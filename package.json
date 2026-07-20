@@ -1,0 +1,40 @@
+{
+  "name": "prabasi-odia",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@fontsource/libre-baskerville": "^5.2.10",
+    "@fontsource/poppins": "^5.2.7",
+    "@hookform/resolvers": "^5.4.0",
+    "@tabler/icons-react": "^3.44.0",
+    "clsx": "^2.1.1",
+    "firebase": "^12.16.0",
+    "formik": "^2.4.9",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^1.24.0",
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-firebase-hooks": "^5.1.1",
+    "react-hook-form": "^7.81.0",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.7.0",
+    "tailwind-merge": "^3.6.0",
+    "yup": "^1.7.1",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

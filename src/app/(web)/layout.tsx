@@ -1,0 +1,19 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import Navbar from '@/components/web/layout/Navbar';
+
+export default function WebLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      <motion.main className="flex-1 pt-16">
+        {children}
+      </motion.main>
+    </div>
+  );
+}
