@@ -5,7 +5,7 @@ import HeroContent from "./HeroContent";
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-[#FFF9F5] min-h-screen">
+    <section className="relative overflow-hidden bg-[#FFF9F5] ">
       {/* Hero Container */}
       <div className="relative mx-auto min-h-[75vh] w-full flex items-center">
         

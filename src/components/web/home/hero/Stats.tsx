@@ -23,9 +23,9 @@ export default function Stats() {
       initial={{ opacity: 0, y: 25 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.7 }}
-      className="w-full"
+      className="w-full py-5"
     >
-      <div className="rounded-[20px] border border-white/60 bg-white/80 backdrop-blur-xl shadow-[0_15px_40px_rgba(0,0,0,.06)] p-4">
+      <div className="rounded-[20px] border border-white/60  bg-white/80 backdrop-blur-xl shadow-[0_15px_40px_rgba(0,0,0,.06)] p-4">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
           {stats.map((item, index) => {
             const Icon = item.icon;

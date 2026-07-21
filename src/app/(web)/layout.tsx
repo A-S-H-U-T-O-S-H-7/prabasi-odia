@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Navbar from '@/components/web/layout/Navbar';
+import Footer from '@/components/web/layout/Footer';
 
 export default function WebLayout({
   children,
@@ -14,6 +15,7 @@ export default function WebLayout({
       <motion.main className="flex-1 pt-16">
         {children}
       </motion.main>
+      <Footer/>
     </div>
   );
 }
