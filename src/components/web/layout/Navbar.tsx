@@ -222,15 +222,6 @@ export default function Navbar() {
                         Profile
                       </Link>
                       
-                      <Link 
-                        href="/settings" 
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-[#2C2420] hover:bg-[#E7D7E8]/30 transition-colors"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <Settings className="h-4 w-4" />
-                        Settings
-                      </Link>
-                      
                       <hr className="my-1 border-[#E7D7E8]" />
                       
                       <Link 
@@ -342,14 +333,7 @@ export default function Navbar() {
                     <User className="h-5 w-5" />
                     <span>Profile</span>
                   </Link>
-                  <Link
-                    href="/settings"
-                    className="flex items-center gap-3 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors py-2"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Settings className="h-5 w-5" />
-                    <span>Settings</span>
-                  </Link>
+                  
                   <Link
                     href="/help"
                     className="flex items-center gap-3 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors py-2"

@@ -3,6 +3,8 @@ import CTASection from '@/components/web/home/CTASection';
 import FeaturesSection from '@/components/web/home/FeaturesSection';
 import Hero from '@/components/web/home/hero/Hero';
 import HowItWorks from '@/components/web/home/HowItWorks';
+import PartnersSection from '@/components/web/home/PartnersSection';
+import TestimonialsSection from '@/components/web/home/TestimonialsSection';
 
 export default function HomePage() {
   return (
@@ -11,7 +13,10 @@ export default function HomePage() {
       <HowItWorks/>
       <FeaturesSection/>
       <CommunitiesPreview/>
+      <TestimonialsSection/>
+      <PartnersSection/>
       <CTASection/>
+
     </>
   );
 }

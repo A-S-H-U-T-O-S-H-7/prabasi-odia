@@ -1,16 +1,19 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Mail, MapPin, Heart } from "lucide-react";
+import { Mail, MapPin, Phone, Heart } from "lucide-react";
 import { 
   FaFacebook, 
   FaInstagram, 
   FaTwitter, 
   FaYoutube, 
-  FaLinkedin 
+  FaLinkedin,
+  FaWhatsapp
 } from "react-icons/fa";
+import { getContactInfo } from "@/lib/services/settingsService";
 
 const footerLinks = {
   Community: [
@@ -19,33 +22,64 @@ const footerLinks = {
     { label: "About Us", href: "/about" },
   ],
   Support: [
-    { label: "Help Center", href: "/help" },
+    { label: "Help Center", href: "/contact" },
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
   ],
 };
 
-const socialLinks = [
-  { icon: FaFacebook, href: "https://facebook.com", label: "Facebook", color: "#1877F2" },
-  { icon: FaInstagram, href: "https://instagram.com", label: "Instagram", color: "#E4405F" },
-  { icon: FaTwitter, href: "https://twitter.com", label: "Twitter", color: "#1DA1F2" },
-  { icon: FaYoutube, href: "https://youtube.com", label: "YouTube", color: "#FF0000" },
-  { icon: FaLinkedin, href: "https://linkedin.com", label: "LinkedIn", color: "#0A66C2" },
-];
+const socialIcons: Record<string, any> = {
+  facebook: FaFacebook,
+  instagram: FaInstagram,
+  twitter: FaTwitter,
+  youtube: FaYoutube,
+  linkedin: FaLinkedin,
+  whatsapp: FaWhatsapp,
+};
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [contactInfo, setContactInfo] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchContactInfo();
+  }, []);
+
+  const fetchContactInfo = async () => {
+    try {
+      const result = await getContactInfo();
+      if (result.success) {
+        setContactInfo(result);
+      }
+    } catch (error) {
+      console.error("Error fetching contact info:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSocialLink = (key: string): string => {
+    return contactInfo?.social?.[key] || '';
+  };
+
+  const activeSocialLinks = Object.entries(socialIcons)
+    .filter(([key]) => getSocialLink(key))
+    .map(([key, Icon]) => ({
+      key,
+      Icon,
+      href: getSocialLink(key),
+    }));
 
   return (
     <footer className="bg-[#2A1636] text-white/80">
-      {/* Main Footer */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-12">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-10 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href="/" className="inline-block">
               <Image
-                src="/logo-white.png"
+                src="/logo.png"
                 alt="Prabasi Odia"
                 width={160}
                 height={50}
@@ -89,38 +123,63 @@ export default function Footer() {
               Get in Touch
             </h4>
             <ul className="space-y-3">
-              <li className="flex items-center gap-3 text-sm text-white/50">
-                <Mail className="w-4 h-4 text-[#D9772B]" />
-                <span>hello@prabasiodia.com</span>
-              </li>
-              <li className="flex items-center gap-3 text-sm text-white/50">
-                <MapPin className="w-4 h-4 text-[#D9772B]" />
-                <span>Bhubaneswar, Odisha, India</span>
-              </li>
+              {/* Phone 1 */}
+              {contactInfo?.contact?.phone1 && (
+                <li className="flex items-center gap-3 text-sm text-white/50">
+                  <Phone className="w-4 h-4 text-[#D9772B]" />
+                  <a href={`tel:${contactInfo.contact.phone1.replace(/\s/g, '')}`} className="hover:text-white transition-colors">
+                    {contactInfo.contact.phone1}
+                  </a>
+                </li>
+              )}
+              {/* Phone 2 */}
+              {contactInfo?.contact?.phone2 && (
+                <li className="flex items-center gap-3 text-sm text-white/50 pl-7">
+                  <span className="text-[#D9772B] text-xs">Alt</span>
+                  <a href={`tel:${contactInfo.contact.phone2.replace(/\s/g, '')}`} className="hover:text-white transition-colors">
+                    {contactInfo.contact.phone2}
+                  </a>
+                </li>
+              )}
+              {/* Email */}
+              {contactInfo?.contact?.contactEmail && (
+                <li className="flex items-center gap-3 text-sm text-white/50">
+                  <Mail className="w-4 h-4 text-[#D9772B]" />
+                  <a href={`mailto:${contactInfo.contact.contactEmail}`} className="hover:text-white transition-colors">
+                    {contactInfo.contact.contactEmail}
+                  </a>
+                </li>
+              )}
+              {/* Address */}
+              {contactInfo?.contact?.address && (
+                <li className="flex items-center gap-3 text-sm text-white/50">
+                  <MapPin className="w-4 h-4 text-[#D9772B]" />
+                  <span>{contactInfo.contact.address}</span>
+                </li>
+              )}
             </ul>
 
             {/* Social Links */}
-            <div className="mt-6">
-              <p className="text-sm text-white/50 mb-3">Follow Us</p>
-              <div className="flex gap-3">
-                {socialLinks.map((social) => {
-                  const Icon = social.icon;
-                  return (
+            {activeSocialLinks.length > 0 && (
+              <div className="mt-6">
+                <p className="text-sm text-white/50 mb-3">Follow Us</p>
+                <div className="flex flex-wrap gap-3">
+                  {activeSocialLinks.map(({ key, Icon, href }) => (
                     <motion.a
-                      key={social.label}
-                      href={social.href}
+                      key={key}
+                      href={href}
                       target="_blank"
                       rel="noopener noreferrer"
                       whileHover={{ y: -3, scale: 1.05 }}
                       className="w-9 h-9 rounded-full bg-white/5 hover:bg-[#6B1E5B] flex items-center justify-center text-white/50 hover:text-white transition-all duration-300"
-                      aria-label={social.label}
+                      aria-label={key}
                     >
                       <Icon className="w-4 h-4" />
                     </motion.a>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

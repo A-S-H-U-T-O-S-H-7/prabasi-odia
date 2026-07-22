@@ -39,6 +39,9 @@ export const ActivityEntityTypes = {
   NOTICE: 'notice',
   SETTINGS: 'settings',
   DOCUMENT: 'document',
+  TESTIMONIAL: 'testimonial',
+  PARTNER:'partner',
+  CONTACT:'contact' 
 } as const;
 
 export type ActivityAction = typeof ActivityActions[keyof typeof ActivityActions];
