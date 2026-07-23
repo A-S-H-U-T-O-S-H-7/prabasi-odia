@@ -21,7 +21,7 @@ export default function HeroContent() {
         </span>
       </motion.div>
 
-      {/* Heading - Reduced for mobile */}
+      {/* Heading - Added gap between lines */}
       <motion.h1
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -32,30 +32,31 @@ export default function HeroContent() {
           font-bold
           tracking-[-1px] sm:tracking-[-2px]
           leading-[0.95]
-          text-[28px]      /* Mobile */
-          sm:text-[44px]   /* Tablet */
-          lg:text-[66px]   /* Desktop */
-          xl:text-[76px]   /* Large Desktop */
+          text-[28px]
+          sm:text-[44px]
+          lg:text-[66px]
+          xl:text-[76px]
         "
       >
         <span className="bg-gradient-to-r from-[#4A148C] via-[#6A1B9A] to-[#8E24AA] bg-clip-text text-transparent">
           One Community.
         </span>
         <br />
-        <span className="whitespace-normal sm:whitespace-nowrap bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] to-[#E6A11C] bg-clip-text text-transparent">
+        {/* Added mt-1 for 4px gap between lines */}
+        <span className="block mt-1 sm:mt-0 sm:inline whitespace-normal sm:whitespace-nowrap bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] to-[#E6A11C] bg-clip-text text-transparent">
           Limitless Connections.
         </span>
       </motion.h1>
 
-      {/* Description - Reduced for mobile */}
+      {/* Description */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.25 }}
         className="
           mt-4 sm:mt-6
-          text-[14px]      /* Mobile */
-          sm:text-[16px]   /* Desktop */
+          text-[14px]
+          sm:text-[16px]
           leading-[1.6] sm:leading-8
           text-[#5C5C66]
           max-w-2xl

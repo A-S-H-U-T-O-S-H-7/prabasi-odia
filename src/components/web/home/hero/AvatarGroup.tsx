@@ -4,11 +4,11 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 
 const avatars = [
-  "/avatars/1.jpg",
-  "/avatars/2.jpg",
-  "/avatars/3.jpg",
-  "/avatars/4.jpg",
-  "/avatars/5.jpg",
+  "/avatar1.jpeg",
+  "/avatar2.jpeg",
+  "/avatar3.jpeg",
+  "/avatar4.jpeg",
+  "/avatar5.jpeg",
 ];
 
 export default function AvatarGroup() {
@@ -19,7 +19,7 @@ export default function AvatarGroup() {
       transition={{ delay: 0.4 }}
       className="mt-6 sm:mt-8"
     >
-      <div className="inline-flex flex-wrap items-center gap-3 sm:gap-4 rounded-2xl border border-white/50  px-3 sm:px-4 py-2 sm:py-3 shadow-[0_15px_40px_rgba(0,0,0,.08)] backdrop-blur-xl w-full sm:w-auto">
+      <div className="inline-flex flex-wrap items-center gap-3 sm:gap-4 rounded-2xl border border-white/50 bg-white/95 backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-3 shadow-[0_15px_40px_rgba(0,0,0,.08)] w-full sm:w-auto">
         {/* Avatar Stack */}
         <div className="flex items-center">
           {avatars.map((avatar, index) => (
