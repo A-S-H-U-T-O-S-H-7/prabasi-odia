@@ -32,8 +32,8 @@ export default function HeroContent() {
           font-bold
           tracking-[-1px] sm:tracking-[-2px]
           leading-[0.95]
-          text-[38px]      /* Mobile */
-          sm:text-[46px]   /* Tablet */
+          text-[36px]      /* Mobile */
+          sm:text-[44px]   /* Tablet */
           lg:text-[66px]   /* Desktop */
           xl:text-[76px]   /* Large Desktop */
         "
