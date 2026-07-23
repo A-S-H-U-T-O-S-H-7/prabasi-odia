@@ -34,7 +34,7 @@ export default function HeroButtons() {
             overflow-hidden
             rounded-full
             bg-gradient-to-r from-[#4A148C] via-[#6A1B9A] to-[#8E24AA]
-            px-3 sm:px-5
+            px-3 sm:px-8
             py-2.5 sm:py-4
             text-xs sm:text-base
             text-white
@@ -64,7 +64,7 @@ export default function HeroButtons() {
             border-[#DDD6D0]
             bg-white/90
             backdrop-blur-lg
-            px-3 sm:px-5
+            px-3 sm:px-8
             py-2.5 sm:py-4
             text-xs sm:text-base
             font-semibold
