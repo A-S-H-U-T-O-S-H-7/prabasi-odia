@@ -16,7 +16,7 @@ export default function HeroContent() {
         className="inline-flex mt-2 sm:mt-5 items-center gap-2 rounded-full border border-[#F4D3BE] bg-white/80 px-3 sm:px-5 py-1.5 sm:py-2 shadow-lg backdrop-blur-md"
       >
         <span className="h-2 w-2 sm:h-3 sm:w-2.5 rounded-full bg-gradient-to-r from-[#6B1E5B] to-[#D9772B]" />
-        <span className="text-[12px] sm:text-sm font-semibold tracking-wide text-[#6B1E5B]">
+        <span className="text-[14px] sm:text-sm font-semibold tracking-wide text-[#6B1E5B]">
           Connecting Odias Worldwide
         </span>
       </motion.div>
@@ -32,8 +32,8 @@ export default function HeroContent() {
           font-bold
           tracking-[-1px] sm:tracking-[-2px]
           leading-[0.95]
-          text-[40px]      /* Mobile */
-          sm:text-[48px]   /* Tablet */
+          text-[38px]      /* Mobile */
+          sm:text-[46px]   /* Tablet */
           lg:text-[66px]   /* Desktop */
           xl:text-[76px]   /* Large Desktop */
         "
