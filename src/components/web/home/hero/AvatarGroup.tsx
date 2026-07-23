@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 const avatars = [
   "/avatar1.jpeg",
-  "/avatar2.jpeg",
+  "/avtar2.jpeg",
   "/avatar3.jpeg",
   "/avatar4.jpeg",
   "/avatar5.jpeg",
