@@ -13,7 +13,6 @@ const stats = [
   { icon: HiUsers, value: "25K+", label: "Members" },
   { icon: HiGlobeAlt, value: "50+", label: "Cities" },
   { icon: HiCalendarDays, value: "500+", label: "Events" },
-  { icon: HiHeart, value: "1K+", label: "Volunteers" },
   { icon: HiBuildingOffice2, value: "200+", label: "Organizations" },
 ];
 
@@ -26,7 +25,7 @@ export default function Stats() {
       className="w-full py-3 sm:py-5"
     >
       <div className="rounded-[16px] sm:rounded-[20px] border border-white/60 bg-white/80 backdrop-blur-xl shadow-[0_15px_40px_rgba(0,0,0,.06)] p-3 sm:p-4">
-        <div className="grid grid-cols-5 gap-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-4 gap-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
           {stats.map((item, index) => {
             const Icon = item.icon;
             return (

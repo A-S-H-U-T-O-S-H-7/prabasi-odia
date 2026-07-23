@@ -19,7 +19,7 @@ export default function AvatarGroup() {
       transition={{ delay: 0.4 }}
       className="mt-6 sm:mt-8"
     >
-      <div className="inline-flex flex-wrap items-center gap-3 sm:gap-4 rounded-2xl border border-white/50 bg-white/75 px-3 sm:px-4 py-2 sm:py-3 shadow-[0_15px_40px_rgba(0,0,0,.08)] backdrop-blur-xl w-full sm:w-auto">
+      <div className="inline-flex flex-wrap items-center gap-3 sm:gap-4 rounded-2xl border border-white/50  px-3 sm:px-4 py-2 sm:py-3 shadow-[0_15px_40px_rgba(0,0,0,.08)] backdrop-blur-xl w-full sm:w-auto">
         {/* Avatar Stack */}
         <div className="flex items-center">
           {avatars.map((avatar, index) => (
