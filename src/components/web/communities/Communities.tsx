@@ -6,9 +6,9 @@ import { toast } from "react-hot-toast";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore, useUserStore } from "@/lib/store";
 import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCommunityService";
-import CommunityHero from "./CommunityHero";
-import CommunityFilters from "./CommunityFilters";
-import CommunityGrid from "./CommunityGrid";
+import CommunityHero from "@/components/web/communities/CommunityHero";
+import CommunityFilters from "@/components/web/communities/CommunityFilters";
+import CommunityGrid from "@/components/web/communities/CommunityGrid";
 
 export default function CommunitiesPage() {
   const router = useRouter();
@@ -113,25 +113,25 @@ export default function CommunitiesPage() {
   }, [searchTerm, selectedCity, communities]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFF9F2] via-white to-[#F5EDE6] py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFF9F2] via-white to-[#F5EDE6] py-4 md:py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="flex cursor-pointer items-center gap-2 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors mb-4 group"
+          className="flex cursor-pointer items-center gap-2 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors mb-3 md:mb-4 group"
         >
-          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-medium">Back</span>
+          <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-xs md:text-sm font-medium">Back</span>
         </button>
 
-        {/* Hero */}
+        {/* Hero with Banner */}
         <CommunityHero 
           totalCommunities={communities.length} 
           totalMembers={totalMembers} 
         />
 
         {/* Filters */}
-        <div className="mt-8">
+        <div className="mt-6 md:mt-8">
           <CommunityFilters
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -142,12 +142,12 @@ export default function CommunitiesPage() {
         </div>
 
         {/* Results Count */}
-        <div className="mt-6 text-sm text-[#6B5E5A]">
+        <div className="mt-4 md:mt-6 text-xs md:text-sm text-[#6B5E5A]">
           Showing {filteredCommunities.length} of {communities.length} communities
         </div>
 
         {/* Grid */}
-        <div className="mt-6">
+        <div className="mt-4 md:mt-6">
           <CommunityGrid
             communities={filteredCommunities}
             loading={loading}

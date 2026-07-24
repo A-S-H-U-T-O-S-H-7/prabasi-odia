@@ -63,7 +63,6 @@ export default function EventsPage() {
       const result = await publicEventService.rsvpEvent(eventId, user?.uid || '');
       if (result.success) {
         toast.success("Successfully RSVPed to the event!");
-        // Update local state
         setEvents(prev => prev.map(e => 
           e.id === eventId 
             ? { ...e, attendeeCount: e.attendeeCount + 1, attendees: [...(e.attendees || []), user?.uid || ''] }
@@ -119,11 +118,9 @@ export default function EventsPage() {
     return event.attendees?.includes(user.uid) || false;
   };
 
-  // Filter events
   useEffect(() => {
     let filtered = events;
     
-    // Filter by search
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(e => 
@@ -133,7 +130,6 @@ export default function EventsPage() {
       );
     }
     
-    // Filter by status
     if (statusFilter !== "all") {
       filtered = filtered.filter(e => e.status === statusFilter);
     }
@@ -144,18 +140,18 @@ export default function EventsPage() {
   const upcomingEvents = events.filter(e => e.status === 'upcoming').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFF9F2] via-white to-[#F5EDE6] py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFF9F2] via-white to-[#F5EDE6] py-4 md:py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="flex cursor-pointer items-center gap-2 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors mb-4 group"
+          className="flex cursor-pointer items-center gap-2 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors mb-3 md:mb-4 group"
         >
-          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-medium">Back</span>
+          <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-xs md:text-sm font-medium">Back</span>
         </button>
 
-        {/* Hero */}
+        {/* Hero with Banner */}
         <EventHero 
           totalEvents={events.length} 
           upcomingEvents={upcomingEvents}
@@ -163,7 +159,7 @@ export default function EventsPage() {
         />
 
         {/* Filters */}
-        <div className="mt-8">
+        <div className="mt-6 md:mt-8">
           <EventFilters
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -173,12 +169,12 @@ export default function EventsPage() {
         </div>
 
         {/* Results Count */}
-        <div className="mt-6 text-sm text-[#6B5E5A]">
+        <div className="mt-4 md:mt-6 text-xs md:text-sm text-[#6B5E5A]">
           Showing {filteredEvents.length} of {events.length} events
         </div>
 
         {/* Grid */}
-        <div className="mt-6">
+        <div className="mt-4 md:mt-6">
           <EventGrid
             events={filteredEvents}
             loading={loading}

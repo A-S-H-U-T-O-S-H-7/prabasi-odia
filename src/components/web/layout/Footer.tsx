@@ -73,9 +73,10 @@ export default function Footer() {
 
   return (
     <footer className="bg-[#2A1636] text-white/80">
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-10 py-12">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-10 py-8 md:py-12">
+        {/* Desktop: 4 columns, Mobile: Brand first then 2 columns grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-          {/* Brand */}
+          {/* Brand - Full width on mobile */}
           <div className="md:col-span-1">
             <Link href="/" className="inline-block">
               <Image
@@ -96,29 +97,33 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
-          {Object.entries(footerLinks).map(([title, links]) => (
-            <div key={title}>
-              <h4 className="text-white font-semibold text-sm mb-4">
-                {title}
-              </h4>
-              <ul className="space-y-2.5">
-                {links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-white/50 hover:text-white transition-colors duration-200"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          {/* Quick Links - Desktop: 2 columns, Mobile: 2 columns side by side */}
+          <div className="md:col-span-2">
+            <div className="grid grid-cols-2 gap-6 md:gap-10">
+              {Object.entries(footerLinks).map(([title, links]) => (
+                <div key={title}>
+                  <h4 className="text-white font-semibold text-sm mb-4">
+                    {title}
+                  </h4>
+                  <ul className="space-y-2.5">
+                    {links.map((link) => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className="text-sm text-white/50 hover:text-white transition-colors duration-200"
+                        >
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
 
-          {/* Contact */}
-          <div>
+          {/* Contact - Desktop: 1 column, Mobile: full width */}
+          <div className="md:col-span-1">
             <h4 className="text-white font-semibold text-sm mb-4">
               Get in Touch
             </h4>

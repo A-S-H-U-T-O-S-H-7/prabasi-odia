@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, forwardRef, ReactNode } from "react";
+import { useState, forwardRef, ReactNode, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -8,7 +8,7 @@ import { FieldError } from "react-hook-form";
 import { Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, Users, Globe2 } from "lucide-react";
 
 // ============================================
-// LOGIN INPUT COMPONENT (light theme)
+// LOGIN INPUT COMPONENT
 // ============================================
 interface LoginInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ReactNode;
@@ -150,7 +150,7 @@ const TrustBadges = () => (
 );
 
 // ============================================
-// LOGIN CARD (light glass)
+// LOGIN CARD
 // ============================================
 const LoginCard = ({ children }: { children: ReactNode }) => (
   <motion.div whileHover={{ y: -3 }} className="relative overflow-hidden rounded-[28px] w-full sm:rounded-[32px]">
@@ -161,7 +161,7 @@ const LoginCard = ({ children }: { children: ReactNode }) => (
 );
 
 // ============================================
-// MAIN LOGIN FORM - EXPORT DEFAULT
+// MAIN LOGIN FORM
 // ============================================
 interface LoginFormProps {
   register: any;
@@ -187,7 +187,7 @@ export default function LoginForm({
   return (
     <LoginCard>
       <div className="space-y-5">
-        {/* Logo circle */}
+        {/* Logo */}
         <div className="flex justify-center">
           <div className="h-16 w-16 rounded-full bg-white shadow-md flex items-center justify-center overflow-hidden ring-1 ring-[#6B1E5B]/10">
             <Image src="/logo.png" alt="Prabasi Odia" width={40} height={40} className="h-10 w-10 object-contain" />
@@ -199,6 +199,13 @@ export default function LoginForm({
           <p className="text-sm text-[#8A5A78]/90">We're glad to see you again 💛</p>
         </div>
 
+        {/* ✅ Google Login FIRST */}
+        <GoogleButton onClick={onGoogleLogin} isLoading={isGoogleLoading} />
+
+        {/* Divider */}
+        <Divider text="or continue with email" />
+
+        {/* Email/Password Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <LoginInput type="email" placeholder="Email Address" icon={<Mail className="w-4 h-4" />} error={errors.email} touched={touchedFields.email} {...register("email")} />
 
@@ -215,9 +222,6 @@ export default function LoginForm({
             Login <span aria-hidden>→</span>
           </GradientButton>
         </form>
-
-        <Divider text="or continue with" />
-        <GoogleButton onClick={onGoogleLogin} isLoading={isGoogleLoading} />
 
         <p className="text-center text-sm text-[#4A2E42]/90">
           Don't have an account?{" "}

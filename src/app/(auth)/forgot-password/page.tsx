@@ -66,7 +66,9 @@ export default function ForgotPasswordPage() {
 
       {/* Background - Mobile */}
       <div className="absolute inset-0 md:hidden">
-        <Image src="/loginmobbg.png" alt="Background" fill priority className="object-cover" />
+        <Image src="/loginmob.png" alt="Background" fill priority className="object-cover" />
+                <div className="absolute inset-0 backdrop-blur-[2px]" />
+
       </div>
 
       {/* Content */}

@@ -72,8 +72,8 @@ export default function CreateCommunityModal({
     }
 
     // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors({ ...errors, coverImage: "Image must be less than 5MB" });
+    if (file.size > 10 * 1024 * 1024) {
+      setErrors({ ...errors, coverImage: "Image must be less than 10MB" });
       return;
     }
 
