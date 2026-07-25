@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Swal from "sweetalert2";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { 
@@ -96,6 +97,7 @@ export default function AdminTestimonialsPage() {
       if (editingTestimonial) {
         result = await adminTestimonialService.updateTestimonial(editingTestimonial.id, formData);
         if (result.success) {
+          toast.success("Testimonial updated successfully ✅");
           await log({
             action: ActivityActions.UPDATE,
             entityType: ActivityEntityTypes.TESTIMONIAL,
@@ -107,6 +109,7 @@ export default function AdminTestimonialsPage() {
       } else {
         result = await adminTestimonialService.createTestimonial(formData);
         if (result.success) {
+          toast.success("Testimonial created successfully ⭐");
           await log({
             action: ActivityActions.CREATE,
             entityType: ActivityEntityTypes.TESTIMONIAL,
@@ -118,7 +121,6 @@ export default function AdminTestimonialsPage() {
       }
       
       if (result.success) {
-        toast.success(editingTestimonial ? "Testimonial updated successfully" : "Testimonial created successfully");
         setIsModalOpen(false);
         fetchTestimonials(true);
         fetchStats();
@@ -134,29 +136,40 @@ export default function AdminTestimonialsPage() {
   };
 
   const handleDelete = async (testimonial: Testimonial) => {
-    if (!confirm(`Delete testimonial from "${testimonial.name}"?`)) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Delete testimonial from "${testimonial.name}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#6B1E5B",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      background: "#FFF9F2",
+      color: "#2A1636",
+    });
 
-    try {
-      const result = await adminTestimonialService.deleteTestimonial(testimonial.id);
-      if (result.success) {
-        await log({
-          action: ActivityActions.DELETE,
-          entityType: ActivityEntityTypes.TESTIMONIAL,
-          entityId: testimonial.id,
-          entityTitle: testimonial.name,
-          details: `Deleted testimonial from ${testimonial.name}`,
-        });
-        toast.success("Testimonial deleted successfully");
-        fetchTestimonials(true);
-        fetchStats();
-      } else {
-        toast.error(result.error || "Failed to delete testimonial");
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await adminTestimonialService.deleteTestimonial(testimonial.id);
+        if (deleteResult.success) {
+          toast.success("Testimonial deleted successfully 🗑️");
+          await log({
+            action: ActivityActions.DELETE,
+            entityType: ActivityEntityTypes.TESTIMONIAL,
+            entityId: testimonial.id,
+            entityTitle: testimonial.name,
+            details: `Deleted testimonial from ${testimonial.name}`,
+          });
+          fetchTestimonials(true);
+          fetchStats();
+        } else {
+          toast.error(deleteResult.error || "Failed to delete testimonial");
+        }
+      } catch (error: any) {
+        console.error("Error deleting testimonial:", error);
+        toast.error(error.message || "Failed to delete testimonial");
       }
-    } catch (error: any) {
-      console.error("Error deleting testimonial:", error);
-      toast.error(error.message || "Failed to delete testimonial");
     }
   };
 
@@ -164,6 +177,7 @@ export default function AdminTestimonialsPage() {
     try {
       const result = await adminTestimonialService.togglePublish(testimonial.id, !testimonial.isPublished);
       if (result.success) {
+        toast.success(testimonial.isPublished ? "Testimonial unpublished" : "Testimonial published");
         await log({
           action: testimonial.isPublished ? ActivityActions.UNPUBLISH : ActivityActions.PUBLISH,
           entityType: ActivityEntityTypes.TESTIMONIAL,
@@ -171,7 +185,6 @@ export default function AdminTestimonialsPage() {
           entityTitle: testimonial.name,
           details: `${testimonial.isPublished ? 'Unpublished' : 'Published'} testimonial from ${testimonial.name}`,
         });
-        toast.success(testimonial.isPublished ? "Testimonial unpublished" : "Testimonial published");
         fetchTestimonials(true);
         fetchStats();
       } else {
@@ -187,6 +200,17 @@ export default function AdminTestimonialsPage() {
     fetchTestimonials(true);
     fetchStats();
   };
+
+  if (!hasPermission) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <h2 className="text-2xl font-serif font-bold text-[#2A1636]">Access Denied</h2>
+          <p className="text-[#6B5E5A] mt-2">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Upload, Loader2, Globe } from "lucide-react";
 import Image from "next/image";
+import { toast } from "react-hot-toast";
 import { Partner } from "@/lib/services/adminPartnerService";
 
 interface CreatePartnerModalProps {
@@ -12,6 +13,10 @@ interface CreatePartnerModalProps {
   editingPartner?: Partner | null;
   isSaving?: boolean;
 }
+
+// ✅ Allowed image types and max size
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/svg+xml'];
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
 
 export default function CreatePartnerModal({
   isOpen,
@@ -30,6 +35,7 @@ export default function CreatePartnerModal({
     displayOrder: 0,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -60,16 +66,21 @@ export default function CreatePartnerModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setErrors({ ...errors, logo: "Please upload an image file" });
+    // ✅ Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setErrors({ ...errors, logo: "Please upload a valid image (JPEG, PNG, WEBP, SVG)" });
+      toast.error("Invalid file type. Please upload JPEG, PNG, WEBP, or SVG.");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors({ ...errors, logo: "Image must be less than 5MB" });
+    // ✅ Validate file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      setErrors({ ...errors, logo: `Image must be less than ${MAX_IMAGE_SIZE / (1024 * 1024)}MB` });
+      toast.error(`Image size exceeds ${MAX_IMAGE_SIZE / (1024 * 1024)}MB limit.`);
       return;
     }
 
+    setIsUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormData({
@@ -78,6 +89,13 @@ export default function CreatePartnerModal({
         logoPreview: reader.result as string,
       });
       setErrors({ ...errors, logo: "" });
+      setIsUploading(false);
+      toast.success("Logo uploaded successfully!");
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      setErrors({ ...errors, logo: "Failed to read image file" });
+      toast.error("Failed to read image file. Please try again.");
     };
     reader.readAsDataURL(file);
   };
@@ -108,6 +126,8 @@ export default function CreatePartnerModal({
     
     const submitData = {
       ...formData,
+      // ✅ Pass the actual File object for upload
+      logoFile: formData.logoFile,
       logo: formData.logoPreview || formData.logo || "",
     };
     onSave(submitData);
@@ -179,10 +199,20 @@ export default function CreatePartnerModal({
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-24 h-24 rounded-xl border-2 border-dashed border-[#D4C8C0]/50 bg-white/50 hover:border-[#6B1E5B] transition-all duration-300 cursor-pointer flex flex-col items-center justify-center"
+                  className={`w-24 h-24 rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center ${
+                    errors.logo
+                      ? "border-red-400 bg-red-50/30"
+                      : "border-[#D4C8C0]/50 bg-white/50 hover:border-[#6B1E5B]"
+                  }`}
                 >
-                  <Upload className="w-6 h-6 text-[#6B5E5A]/40" />
-                  <p className="text-[10px] text-[#6B5E5A]/40 mt-1">Upload</p>
+                  {isUploading ? (
+                    <Loader2 className="w-6 h-6 text-[#6B1E5B] animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-[#6B5E5A]/40" />
+                      <p className="text-[10px] text-[#6B5E5A]/40 mt-1">Upload</p>
+                    </>
+                  )}
                 </div>
               )}
               
@@ -195,7 +225,7 @@ export default function CreatePartnerModal({
               />
               
               {errors.logo && <p className="text-red-500 text-xs mt-1.5">{errors.logo}</p>}
-              <p className="text-[10px] text-[#6B5E5A]/40 mt-1">PNG, JPG (Max 2MB)</p>
+              <p className="text-[10px] text-[#6B5E5A]/40 mt-1">PNG, JPG, WEBP, SVG (Max 2MB)</p>
             </div>
 
             {/* Website */}
@@ -254,7 +284,7 @@ export default function CreatePartnerModal({
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
                 className="flex-1 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white shadow-lg hover:shadow-xl"
               >
                 {isSaving ? (

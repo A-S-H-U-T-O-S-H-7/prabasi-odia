@@ -91,11 +91,11 @@ export default function JoinCommunityPage() {
       odishaHomeAddress: "",
       odishaDistrict: "",
       odishaCity: "",
-      odishaPinCode: "",  // FIXED: consistent naming
+      odishaPinCode: "",  
       currentAddress: "",
       currentCity: "",
       currentState: "",
-      currentPinCode: "", // FIXED: consistent naming
+      currentPinCode: "", 
       interests: [],
       occupation: "",
       organization: "",
@@ -217,7 +217,7 @@ export default function JoinCommunityPage() {
           <Step5Review 
             onSubmit={handleSubmit} 
             onBack={handleBack} 
-            onGoToStep={handleGoToStep} // FIXED: prop name matches component
+            onGoToStep={handleGoToStep} 
             isSubmitting={isSubmitting} 
           />
         );

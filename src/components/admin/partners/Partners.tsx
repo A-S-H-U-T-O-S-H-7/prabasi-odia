@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Swal from "sweetalert2";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { 
@@ -96,6 +97,7 @@ export default function AdminPartnersPage() {
       if (editingPartner) {
         result = await adminPartnerService.updatePartner(editingPartner.id, formData);
         if (result.success) {
+          toast.success("Partner updated successfully ✅");
           await log({
             action: ActivityActions.UPDATE,
             entityType: ActivityEntityTypes.PARTNER,
@@ -107,6 +109,7 @@ export default function AdminPartnersPage() {
       } else {
         result = await adminPartnerService.createPartner(formData);
         if (result.success) {
+          toast.success("Partner created successfully 🤝");
           await log({
             action: ActivityActions.CREATE,
             entityType: ActivityEntityTypes.PARTNER,
@@ -118,7 +121,6 @@ export default function AdminPartnersPage() {
       }
       
       if (result.success) {
-        toast.success(editingPartner ? "Partner updated successfully" : "Partner created successfully");
         setIsModalOpen(false);
         fetchPartners(true);
         fetchStats();
@@ -134,29 +136,40 @@ export default function AdminPartnersPage() {
   };
 
   const handleDelete = async (partner: Partner) => {
-    if (!confirm(`Delete partner "${partner.name}"?`)) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Delete partner "${partner.name}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#6B1E5B",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      background: "#FFF9F2",
+      color: "#2A1636",
+    });
 
-    try {
-      const result = await adminPartnerService.deletePartner(partner.id);
-      if (result.success) {
-        await log({
-          action: ActivityActions.DELETE,
-          entityType: ActivityEntityTypes.PARTNER,
-          entityId: partner.id,
-          entityTitle: partner.name,
-          details: `Deleted partner: ${partner.name}`,
-        });
-        toast.success("Partner deleted successfully");
-        fetchPartners(true);
-        fetchStats();
-      } else {
-        toast.error(result.error || "Failed to delete partner");
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await adminPartnerService.deletePartner(partner.id);
+        if (deleteResult.success) {
+          toast.success("Partner deleted successfully 🗑️");
+          await log({
+            action: ActivityActions.DELETE,
+            entityType: ActivityEntityTypes.PARTNER,
+            entityId: partner.id,
+            entityTitle: partner.name,
+            details: `Deleted partner: ${partner.name}`,
+          });
+          fetchPartners(true);
+          fetchStats();
+        } else {
+          toast.error(deleteResult.error || "Failed to delete partner");
+        }
+      } catch (error: any) {
+        console.error("Error deleting partner:", error);
+        toast.error(error.message || "Failed to delete partner");
       }
-    } catch (error: any) {
-      console.error("Error deleting partner:", error);
-      toast.error(error.message || "Failed to delete partner");
     }
   };
 
@@ -164,6 +177,7 @@ export default function AdminPartnersPage() {
     try {
       const result = await adminPartnerService.toggleActive(partner.id, !partner.isActive);
       if (result.success) {
+        toast.success(partner.isActive ? "Partner deactivated" : "Partner activated");
         await log({
           action: partner.isActive ? ActivityActions.UNPUBLISH : ActivityActions.PUBLISH,
           entityType: ActivityEntityTypes.PARTNER,
@@ -171,7 +185,6 @@ export default function AdminPartnersPage() {
           entityTitle: partner.name,
           details: `${partner.isActive ? 'Deactivated' : 'Activated'} partner: ${partner.name}`,
         });
-        toast.success(partner.isActive ? "Partner deactivated" : "Partner activated");
         fetchPartners(true);
         fetchStats();
       } else {
@@ -187,6 +200,17 @@ export default function AdminPartnersPage() {
     fetchPartners(true);
     fetchStats();
   };
+
+  if (!hasPermission) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <h2 className="text-2xl font-serif font-bold text-[#2A1636]">Access Denied</h2>
+          <p className="text-[#6B5E5A] mt-2">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

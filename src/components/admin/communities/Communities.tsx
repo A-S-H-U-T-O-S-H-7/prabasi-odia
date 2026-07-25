@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Swal from "sweetalert2";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { 
@@ -11,11 +12,11 @@ import {
   Community 
 } from "@/lib/services/adminCommunityService";
 import { ActivityActions, ActivityEntityTypes } from "@/lib/services/activityLogService";
-import CommunityStats from "./CommunityStats";
-import CommunityFilters from "./CommunityFilters";
-import CommunityTable from "./CommunityTable";
-import CreateCommunityModal from "./CreateCommunityModal";
-import CommunityMembersModal from "./CommunityMembersModal";
+import CommunityStats from "@/components/admin/communities/CommunityStats";
+import CommunityFilters from "@/components/admin/communities/CommunityFilters";
+import CommunityTable from "@/components/admin/communities/CommunityTable";
+import CreateCommunityModal from "@/components/admin/communities/CreateCommunityModal";
+import CommunityMembersModal from "@/components/admin/communities/CommunityMembersModal";
 
 export default function AdminCommunitiesPage() {
   const router = useRouter();
@@ -63,7 +64,6 @@ export default function AdminCommunitiesPage() {
     try {
       const result = await adminCommunityService.getAllCommunities();
       if (result.success) {
-        // Apply status filter
         let filtered = result.communities;
         if (statusFilter !== 'all') {
           filtered = filtered.filter(c => c.status === statusFilter);
@@ -125,9 +125,9 @@ export default function AdminCommunitiesPage() {
       let result;
       
       if (editingCommunity) {
-        // Update existing community
         result = await adminCommunityService.updateCommunity(editingCommunity.id, formData);
         if (result.success) {
+          toast.success("Community updated successfully! ✅");
           await log({
             action: ActivityActions.UPDATE,
             entityType: ActivityEntityTypes.COMMUNITY,
@@ -137,13 +137,13 @@ export default function AdminCommunitiesPage() {
           });
         }
       } else {
-        // Create new community
         const createData = {
           ...formData,
           createdBy: admin?.uid || '',
         };
         result = await adminCommunityService.createCommunity(createData);
         if (result.success) {
+          toast.success("Community created successfully! 🎉");
           await log({
             action: ActivityActions.CREATE,
             entityType: ActivityEntityTypes.COMMUNITY,
@@ -155,7 +155,6 @@ export default function AdminCommunitiesPage() {
       }
       
       if (result.success) {
-        toast.success(editingCommunity ? "Community updated successfully" : "Community created successfully");
         setIsModalOpen(false);
         fetchCommunities(true);
         fetchStats();
@@ -171,29 +170,40 @@ export default function AdminCommunitiesPage() {
   };
 
   const handleDelete = async (community: Community) => {
-    if (!confirm(`Delete community "${community.name}"? This will remove all data associated with it.`)) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Delete community "${community.name}"? This will remove all data associated with it.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#6B1E5B",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      background: "#FFF9F2",
+      color: "#2A1636",
+    });
 
-    try {
-      const result = await adminCommunityService.deleteCommunity(community.id);
-      if (result.success) {
-        await log({
-          action: ActivityActions.DELETE,
-          entityType: ActivityEntityTypes.COMMUNITY,
-          entityId: community.id,
-          entityTitle: community.name,
-          details: `Deleted community: ${community.name}`,
-        });
-        toast.success("Community deleted successfully");
-        fetchCommunities(true);
-        fetchStats();
-      } else {
-        toast.error(result.error || "Failed to delete community");
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await adminCommunityService.deleteCommunity(community.id);
+        if (deleteResult.success) {
+          toast.success("Community deleted successfully 🗑️");
+          await log({
+            action: ActivityActions.DELETE,
+            entityType: ActivityEntityTypes.COMMUNITY,
+            entityId: community.id,
+            entityTitle: community.name,
+            details: `Deleted community: ${community.name}`,
+          });
+          fetchCommunities(true);
+          fetchStats();
+        } else {
+          toast.error(deleteResult.error || "Failed to delete community");
+        }
+      } catch (error: any) {
+        console.error("Error deleting community:", error);
+        toast.error(error.message || "Failed to delete community");
       }
-    } catch (error: any) {
-      console.error("Error deleting community:", error);
-      toast.error(error.message || "Failed to delete community");
     }
   };
 
@@ -222,7 +232,7 @@ export default function AdminCommunitiesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Back and Refresh Buttons */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-start gap-3">
           <button

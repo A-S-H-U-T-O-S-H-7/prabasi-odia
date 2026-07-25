@@ -17,6 +17,7 @@ import EventTable from "./EventTable";
 import CreateEventModal from "./CreateEventModal";
 import EventAttendeesModal from "./EventAttendeesModal";
 import { adminCommunityService } from "@/lib/services/adminCommunityService";
+import Swal from "sweetalert2";
 
 export default function AdminEventsPage() {
   const router = useRouter();
@@ -183,29 +184,40 @@ export default function AdminEventsPage() {
   };
 
   const handleDelete = async (event: Event) => {
-    if (!confirm(`Delete event "${event.title}"? This action cannot be undone.`)) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Delete event "${event.title}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#6B1E5B",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      background: "#FFF9F2",
+      color: "#2A1636",
+    });
 
-    try {
-      const result = await adminEventService.deleteEvent(event.id);
-      if (result.success) {
-        await log({
-          action: ActivityActions.DELETE,
-          entityType: ActivityEntityTypes.EVENT,
-          entityId: event.id,
-          entityTitle: event.title,
-          details: `Deleted event: ${event.title}`,
-        });
-        toast.success("Event deleted successfully");
-        fetchEvents(true);
-        fetchStats();
-      } else {
-        toast.error(result.error || "Failed to delete event");
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await adminEventService.deleteEvent(event.id);
+        if (deleteResult.success) {
+          toast.success("Event deleted successfully 🗑️");
+          await log({
+            action: ActivityActions.DELETE,
+            entityType: ActivityEntityTypes.EVENT,
+            entityId: event.id,
+            entityTitle: event.title,
+            details: `Deleted event: ${event.title}`,
+          });
+          fetchEvents(true);
+          fetchStats();
+        } else {
+          toast.error(deleteResult.error || "Failed to delete event");
+        }
+      } catch (error: any) {
+        console.error("Error deleting event:", error);
+        toast.error(error.message || "Failed to delete event");
       }
-    } catch (error: any) {
-      console.error("Error deleting event:", error);
-      toast.error(error.message || "Failed to delete event");
     }
   };
 

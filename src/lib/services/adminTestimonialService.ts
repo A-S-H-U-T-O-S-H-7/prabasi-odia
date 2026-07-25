@@ -18,9 +18,9 @@ const COLLECTION = 'testimonials';
 export interface Testimonial {
   id: string;
   name: string;
-  profession: string;      // 👈 Added
+  profession: string;
   city: string;
-  image: string;           // 👈 Mandatory — URL
+  image: string;
   content: string;
   rating: number;
   isPublished: boolean;
@@ -29,7 +29,7 @@ export interface Testimonial {
 }
 
 export const adminTestimonialService = {
-  // Upload testimonial image
+  // ✅ Upload image to Firebase Storage
   async uploadImage(file: File, testimonialId: string): Promise<string> {
     const path = `testimonials/${testimonialId}/image`;
     const storageRef = ref(storage, path);
@@ -38,7 +38,7 @@ export const adminTestimonialService = {
     return downloadURL;
   },
 
-  // Delete testimonial image
+  // ✅ Delete image from storage
   async deleteImage(testimonialId: string) {
     try {
       const storageRef = ref(storage, `testimonials/${testimonialId}/image`);
@@ -146,17 +146,25 @@ export const adminTestimonialService = {
     }
   },
 
-  // Create testimonial
+  // ✅ Create testimonial with image upload
   async createTestimonial(data: any) {
     try {
       const docRef = doc(collection(db, COLLECTION));
       const now = new Date().toISOString();
       
+      // Upload image if file exists
+      let imageUrl = '';
+      if (data.imageFile && data.imageFile instanceof File) {
+        imageUrl = await this.uploadImage(data.imageFile, docRef.id);
+      } else if (data.image && typeof data.image === 'string') {
+        imageUrl = data.image;
+      }
+      
       const testimonialData = {
         name: data.name,
         profession: data.profession,
         city: data.city,
-        image: data.image || '',
+        image: imageUrl,
         content: data.content,
         rating: data.rating || 5,
         isPublished: data.isPublished || false,
@@ -173,16 +181,24 @@ export const adminTestimonialService = {
     }
   },
 
-  // Update testimonial
+  // ✅ Update testimonial with image upload
   async updateTestimonial(id: string, data: any) {
     try {
       const docRef = doc(db, COLLECTION, id);
+      
+      let imageUrl = data.image || '';
+      if (data.imageFile && data.imageFile instanceof File) {
+        await this.deleteImage(id);
+        imageUrl = await this.uploadImage(data.imageFile, id);
+      } else if (data.image && typeof data.image === 'string') {
+        imageUrl = data.image;
+      }
       
       const updateData: any = {
         name: data.name,
         profession: data.profession,
         city: data.city,
-        image: data.image || '',
+        image: imageUrl,
         content: data.content,
         rating: data.rating || 5,
         isPublished: data.isPublished || false,
@@ -198,12 +214,10 @@ export const adminTestimonialService = {
     }
   },
 
-  // Delete testimonial (with image)
+  // ✅ Delete testimonial (with image)
   async deleteTestimonial(id: string) {
     try {
-      // Delete image from storage
       await this.deleteImage(id);
-      // Delete document from Firestore
       await deleteDoc(doc(db, COLLECTION, id));
       return { success: true };
     } catch (error: any) {

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Star, Loader2, Upload, Image as ImageIcon } from "lucide-react";
+import { X, Star, Loader2, Upload } from "lucide-react";
 import Image from "next/image";
+import { toast } from "react-hot-toast";
 import { Testimonial } from "@/lib/services/adminTestimonialService";
 
 interface CreateTestimonialModalProps {
@@ -12,6 +13,10 @@ interface CreateTestimonialModalProps {
   editingTestimonial?: Testimonial | null;
   isSaving?: boolean;
 }
+
+// Allowed image types and max size
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export default function CreateTestimonialModal({
   isOpen,
@@ -68,16 +73,21 @@ export default function CreateTestimonialModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setErrors({ ...errors, image: "Please upload an image file" });
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setErrors({ ...errors, image: "Please upload a valid image (JPEG, PNG, WEBP)" });
+      toast.error("Invalid file type. Please upload JPEG, PNG, or WEBP.");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors({ ...errors, image: "Image must be less than 5MB" });
+    // Validate file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      setErrors({ ...errors, image: `Image must be less than ${MAX_IMAGE_SIZE / (1024 * 1024)}MB` });
+      toast.error(`Image size exceeds ${MAX_IMAGE_SIZE / (1024 * 1024)}MB limit.`);
       return;
     }
 
+    setIsUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormData({
@@ -86,6 +96,13 @@ export default function CreateTestimonialModal({
         imagePreview: reader.result as string,
       });
       setErrors({ ...errors, image: "" });
+      setIsUploading(false);
+      toast.success("Image uploaded successfully!");
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      setErrors({ ...errors, image: "Failed to read image file" });
+      toast.error("Failed to read image file. Please try again.");
     };
     reader.readAsDataURL(file);
   };
@@ -119,6 +136,7 @@ export default function CreateTestimonialModal({
     
     const submitData = {
       ...formData,
+      imageFile: formData.imageFile,
       image: formData.imagePreview || formData.image || "",
     };
     onSave(submitData);
@@ -242,10 +260,20 @@ export default function CreateTestimonialModal({
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-24 h-24 rounded-xl border-2 border-dashed border-[#D4C8C0]/50 bg-white/50 hover:border-[#6B1E5B] transition-all duration-300 cursor-pointer flex flex-col items-center justify-center"
+                  className={`w-24 h-24 rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center ${
+                    errors.image
+                      ? "border-red-400 bg-red-50/30"
+                      : "border-[#D4C8C0]/50 bg-white/50 hover:border-[#6B1E5B]"
+                  }`}
                 >
-                  <Upload className="w-6 h-6 text-[#6B5E5A]/40" />
-                  <p className="text-[10px] text-[#6B5E5A]/40 mt-1">Upload</p>
+                  {isUploading ? (
+                    <Loader2 className="w-6 h-6 text-[#6B1E5B] animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-[#6B5E5A]/40" />
+                      <p className="text-[10px] text-[#6B5E5A]/40 mt-1">Upload</p>
+                    </>
+                  )}
                 </div>
               )}
               
@@ -258,6 +286,7 @@ export default function CreateTestimonialModal({
               />
               
               {errors.image && <p className="text-red-500 text-xs mt-1.5">{errors.image}</p>}
+              <p className="text-[10px] text-[#6B5E5A]/40 mt-1">PNG, JPG, WEBP (Max 5MB)</p>
             </div>
 
             {/* Content */}
@@ -331,7 +360,7 @@ export default function CreateTestimonialModal({
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
                 className="flex-1 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white shadow-lg hover:shadow-xl"
               >
                 {isSaving ? (

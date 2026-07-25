@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Swal from "sweetalert2";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { 
@@ -141,6 +142,7 @@ export default function AdminNoticesPage() {
       if (editingNotice) {
         result = await adminNoticeService.updateNotice(editingNotice.id, formData);
         if (result.success) {
+          toast.success("Notice updated successfully ✅");
           await log({
             action: ActivityActions.UPDATE,
             entityType: ActivityEntityTypes.NOTICE,
@@ -157,6 +159,7 @@ export default function AdminNoticesPage() {
         };
         result = await adminNoticeService.createNotice(createData);
         if (result.success) {
+          toast.success("Notice created successfully 📢");
           await log({
             action: ActivityActions.CREATE,
             entityType: ActivityEntityTypes.NOTICE,
@@ -168,7 +171,6 @@ export default function AdminNoticesPage() {
       }
       
       if (result.success) {
-        toast.success(editingNotice ? "Notice updated successfully" : "Notice created successfully");
         setIsModalOpen(false);
         fetchNotices(true);
         fetchStats();
@@ -184,29 +186,41 @@ export default function AdminNoticesPage() {
   };
 
   const handleDelete = async (notice: Notice) => {
-    if (!confirm(`Delete notice "${notice.title}"? This action cannot be undone.`)) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Delete notice "${notice.title}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#6B1E5B",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      background: "#FFF9F2",
+      color: "#2A1636",
+      
+    });
 
-    try {
-      const result = await adminNoticeService.deleteNotice(notice.id);
-      if (result.success) {
-        await log({
-          action: ActivityActions.DELETE,
-          entityType: ActivityEntityTypes.NOTICE,
-          entityId: notice.id,
-          entityTitle: notice.title,
-          details: `Deleted notice: ${notice.title}`,
-        });
-        toast.success("Notice deleted successfully");
-        fetchNotices(true);
-        fetchStats();
-      } else {
-        toast.error(result.error || "Failed to delete notice");
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await adminNoticeService.deleteNotice(notice.id);
+        if (deleteResult.success) {
+          toast.success("Notice deleted successfully 🗑️");
+          await log({
+            action: ActivityActions.DELETE,
+            entityType: ActivityEntityTypes.NOTICE,
+            entityId: notice.id,
+            entityTitle: notice.title,
+            details: `Deleted notice: ${notice.title}`,
+          });
+          fetchNotices(true);
+          fetchStats();
+        } else {
+          toast.error(deleteResult.error || "Failed to delete notice");
+        }
+      } catch (error: any) {
+        console.error("Error deleting notice:", error);
+        toast.error(error.message || "Failed to delete notice");
       }
-    } catch (error: any) {
-      console.error("Error deleting notice:", error);
-      toast.error(error.message || "Failed to delete notice");
     }
   };
 

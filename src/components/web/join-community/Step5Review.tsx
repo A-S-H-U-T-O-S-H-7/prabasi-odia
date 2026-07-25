@@ -20,19 +20,19 @@ interface ReviewSectionProps {
 
 function ReviewSection({ title, icon, children, onEdit }: ReviewSectionProps) {
   return (
-    <div className="p-4 rounded-2xl bg-white/50 border border-[#D4C8C0]/20 hover:border-[#6B1E5B]/20 transition-all duration-300">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-[#6B1E5B]/10 flex items-center justify-center">{icon}</div>
-          <h3 className="text-sm font-semibold text-[#2A1636]">{title}</h3>
+    <div className="p-3 md:p-4 rounded-2xl bg-white/50 border border-[#D4C8C0]/20 hover:border-[#6B1E5B]/20 transition-all duration-300">
+      <div className="flex items-center justify-between mb-2 md:mb-3">
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg bg-[#6B1E5B]/10 flex items-center justify-center">{icon}</div>
+          <h3 className="text-xs md:text-sm font-semibold text-[#2A1636]">{title}</h3>
         </div>
         {onEdit && (
-          <button onClick={onEdit} className="flex items-center gap-1 text-xs text-[#6B1E5B] hover:text-[#531547] font-medium transition-colors cursor-pointer">
-            <Edit2 className="w-3 h-3" /> Edit
+          <button onClick={onEdit} className="flex items-center gap-0.5 md:gap-1 text-[10px] md:text-xs text-[#6B1E5B] hover:text-[#531547] font-medium transition-colors cursor-pointer">
+            <Edit2 className="w-2.5 h-2.5 md:w-3 md:h-3" /> Edit
           </button>
         )}
       </div>
-      <div className="space-y-1.5 text-sm text-[#2A1636]/80">{children}</div>
+      <div className="space-y-1 text-xs md:text-sm text-[#2A1636]/80">{children}</div>
     </div>
   );
 }
@@ -40,9 +40,9 @@ function ReviewSection({ title, icon, children, onEdit }: ReviewSectionProps) {
 function ReviewItem({ label, value }: { label: string; value: string | React.ReactNode }) {
   if (!value) return null;
   return (
-    <div className="flex justify-between py-1 border-b border-[#D4C8C0]/10 last:border-0">
-      <span className="text-[#6B5E5A]">{label}</span>
-      <span className="font-medium text-[#2A1636] text-right">{value}</span>
+    <div className="flex justify-between py-0.5 md:py-1 border-b border-[#D4C8C0]/10 last:border-0">
+      <span className="text-[10px] md:text-sm text-[#6B5E5A]">{label}</span>
+      <span className="font-medium text-[10px] md:text-sm text-[#2A1636] text-right">{value}</span>
     </div>
   );
 }
@@ -50,13 +50,6 @@ function ReviewItem({ label, value }: { label: string; value: string | React.Rea
 export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting = false }: Step5ReviewProps) {
   const { watch } = useFormContext();
   const formData = watch();
-
-  // Debug: Log the pin code values
-  console.log("🔍 Review Data:", {
-    odishaPinCode: formData.odishaPinCode,
-    currentPinCode: formData.currentPinCode,
-    fullData: formData
-  });
 
   const familyMembers = formData.familyMembers || [];
   const familyDisplay = familyMembers.length > 0
@@ -80,7 +73,6 @@ export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting
   const hasAadharBack = formData.aadharBack instanceof File || formData.aadharBack;
   const hasVoterId = formData.voterId instanceof File || formData.voterId;
 
-  // Check pin codes
   const isOdishaPinValid = formData.odishaPinCode && formData.odishaPinCode.length === 6;
   const isCurrentPinValid = formData.currentPinCode && formData.currentPinCode.length === 6;
 
@@ -117,7 +109,7 @@ export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting
                 : <span className="text-red-500 font-medium">⚠️ Incomplete</span>
             } 
           />
-          <div className="border-t border-[#D4C8C0]/10 my-2" />
+          <div className="border-t border-[#D4C8C0]/10 my-1 md:my-2" />
           <ReviewItem label="Current Address" value={formData.currentAddress || "—"} />
           <ReviewItem label="State" value={formData.currentState || "—"} />
           <ReviewItem label="City" value={formData.currentCity || "—"} />
@@ -173,19 +165,21 @@ export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6"
+      className="space-y-5 md:space-y-6"
     >
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center flex-shrink-0">
           <CheckCircle className="w-4 h-4 text-[#6B1E5B]" />
         </div>
         <div>
           <h2 className="text-lg font-bold text-[#2A1636]">✅ Review & Submit</h2>
-          <p className="text-sm text-[#6B5E5A]">Please verify all your details before submitting</p>
+          <p className="text-xs md:text-sm text-[#6B5E5A]">Please verify all your details before submitting</p>
         </div>
       </div>
 
-      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+      {/* Sections */}
+      <div className="space-y-2 md:space-y-3 max-h-[350px] md:max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
         {sections.map((section, index) => (
           <ReviewSection
             key={index}
@@ -198,39 +192,40 @@ export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting
         ))}
       </div>
 
+      {/* Submit Button */}
       <div className="flex flex-col gap-3 pt-4 border-t border-[#D4C8C0]/20">
         <button
           onClick={onSubmit}
           disabled={isSubmitting}
-          className="w-full px-6 py-4 rounded-2xl text-white font-semibold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full px-4 md:px-6 py-3 md:py-4 rounded-2xl text-white font-semibold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed text-sm md:text-base"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
               Submitting...
             </>
           ) : (
             <>
-              <FileCheck className="w-5 h-5" />
+              <FileCheck className="w-4 h-4 md:w-5 md:h-5" />
               Submit for Verification
             </>
           )}
         </button>
 
         {!isValid && (
-          <p className="text-center text-sm text-amber-600">
+          <p className="text-center text-xs md:text-sm text-amber-600">
             ⚠️ Please complete all required fields before submitting
           </p>
         )}
 
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <button 
             onClick={onBack} 
-            className="px-6 py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer"
+            className="px-4 md:px-6 py-2 md:py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer text-xs md:text-sm"
           >
             ← Back
           </button>
-          <div className="text-xs text-[#6B5E5A] self-center">
+          <div className="text-[10px] md:text-xs text-[#6B5E5A]">
             Admin will verify within 24-48 hours
           </div>
         </div>
@@ -238,7 +233,7 @@ export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting
 
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+          width: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;

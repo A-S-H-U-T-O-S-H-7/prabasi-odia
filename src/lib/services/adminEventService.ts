@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase/config';
+import { db, storage } from '@/lib/firebase/config';
 import { 
   collection, 
   doc, 
@@ -10,8 +10,8 @@ import {
   query,
   orderBy,
   where,
-  Timestamp 
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const COLLECTION = 'events';
 
@@ -36,6 +36,32 @@ export interface Event {
 }
 
 export const adminEventService = {
+  // ✅ Upload cover image to Firebase Storage
+  async uploadCoverImage(file: File, eventId: string): Promise<string> {
+    try {
+      const path = `events/${eventId}/cover`;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error: any) {
+      console.error('Error uploading cover image:', error);
+      throw new Error('Failed to upload image');
+    }
+  },
+
+  // ✅ Delete cover image from storage
+  async deleteCoverImage(eventId: string) {
+    try {
+      const storageRef = ref(storage, `events/${eventId}/cover`);
+      await deleteObject(storageRef);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error deleting cover image:', error);
+      return { success: true };
+    }
+  },
+
   // Get all events
   async getAllEvents() {
     try {
@@ -112,11 +138,19 @@ export const adminEventService = {
     }
   },
 
-  // Create event
+  // ✅ Create event with image upload
   async createEvent(data: any) {
     try {
       const docRef = doc(collection(db, COLLECTION));
       const now = new Date().toISOString();
+      
+      // Upload image if exists
+      let coverImageUrl = '';
+      if (data.coverImageFile && data.coverImageFile instanceof File) {
+        coverImageUrl = await this.uploadCoverImage(data.coverImageFile, docRef.id);
+      } else if (data.coverImage && typeof data.coverImage === 'string') {
+        coverImageUrl = data.coverImage;
+      }
       
       const eventData = {
         title: data.title,
@@ -127,7 +161,7 @@ export const adminEventService = {
         city: data.city,
         communityId: data.communityId || '',
         communityName: data.communityName || '',
-        coverImage: data.coverImage || '',
+        coverImage: coverImageUrl,
         attendees: [],
         attendeeCount: 0,
         status: data.status || 'upcoming',
@@ -146,10 +180,18 @@ export const adminEventService = {
     }
   },
 
-  // Update event
+  // ✅ Update event with image upload
   async updateEvent(id: string, data: any) {
     try {
       const docRef = doc(db, COLLECTION, id);
+      
+      let coverImageUrl = data.coverImage || '';
+      if (data.coverImageFile && data.coverImageFile instanceof File) {
+        await this.deleteCoverImage(id);
+        coverImageUrl = await this.uploadCoverImage(data.coverImageFile, id);
+      } else if (data.coverImage && typeof data.coverImage === 'string') {
+        coverImageUrl = data.coverImage;
+      }
       
       const updateData: any = {
         title: data.title,
@@ -160,7 +202,7 @@ export const adminEventService = {
         city: data.city,
         communityId: data.communityId || '',
         communityName: data.communityName || '',
-        coverImage: data.coverImage || '',
+        coverImage: coverImageUrl,
         status: data.status || 'upcoming',
         updatedAt: new Date().toISOString(),
       };
@@ -177,6 +219,7 @@ export const adminEventService = {
   // Delete event
   async deleteEvent(id: string) {
     try {
+      await this.deleteCoverImage(id);
       await deleteDoc(doc(db, COLLECTION, id));
       return { success: true };
     } catch (error: any) {

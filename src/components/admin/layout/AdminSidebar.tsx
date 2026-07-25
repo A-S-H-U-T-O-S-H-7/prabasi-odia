@@ -15,6 +15,10 @@ import {
   X,
   Shield,
   Eye,
+  Mail,
+  Handshake,
+  Star,
+  UserCog,
 } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 
@@ -24,10 +28,10 @@ const navigationItems = [
   { name: "Communities", href: "/admin/communities", icon: Building2 },
   { name: "Events", href: "/admin/events", icon: CalendarDays },
   { name: "Notices", href: "/admin/notices", icon: Megaphone },
-    { name: "Contacts", href: "/admin/contact", icon: Megaphone },
-  { name: "Partners", href: "/admin/partners", icon: Megaphone },
-  { name: "testimonials", href: "/admin/testimonials", icon: Megaphone },
-  { name: "Admin Management", href: "/admin/admins", icon: Shield },
+  { name: "Contacts", href: "/admin/contact", icon: Mail },
+  { name: "Partners", href: "/admin/partners", icon: Handshake },
+  { name: "Testimonials", href: "/admin/testimonials", icon: Star },
+  { name: "Admin Management", href: "/admin/admins", icon: UserCog },
   { name: "Activity Logs", href: "/admin/activity", icon: Eye },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
@@ -49,13 +53,17 @@ export default function AdminSidebar() {
   // Filter navigation based on permissions
   const filteredNavItems = navigationItems.filter((item) => {
     if (isSuperAdmin) return true;
-    // For regular admins, check permissions
     const permissions = admin?.permissions || [];
     if (item.name === "Dashboard") return true;
     if (item.name === "Users" && permissions.includes("users")) return true;
     if (item.name === "Communities" && permissions.includes("communities")) return true;
     if (item.name === "Events" && permissions.includes("events")) return true;
     if (item.name === "Notices" && permissions.includes("notices")) return true;
+    if (item.name === "Contacts" && permissions.includes("contacts")) return true;
+    if (item.name === "Partners" && permissions.includes("partners")) return true;
+    if (item.name === "Testimonials" && permissions.includes("testimonials")) return true;
+    if (item.name === "Admin Management" && permissions.includes("admins")) return true;
+    if (item.name === "Activity Logs" && permissions.includes("activity")) return true;
     if (item.name === "Settings" && permissions.includes("settings")) return true;
     return false;
   });
@@ -150,7 +158,6 @@ export default function AdminSidebar() {
                 >
                   <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : ""}`} />
                   <span className="text-sm font-medium truncate">{item.name}</span>
-                  
                 </Link>
               );
             })}

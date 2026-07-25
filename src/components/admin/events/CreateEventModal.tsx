@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Upload, Image as ImageIcon, Loader2, Calendar, Clock, MapPin } from "lucide-react";
+import { X, Upload, Loader2, Calendar, Clock, MapPin } from "lucide-react";
 import Image from "next/image";
+import { toast } from "react-hot-toast";
 import { Event } from "@/lib/services/adminEventService";
 
 interface CreateEventModalProps {
@@ -13,6 +14,10 @@ interface CreateEventModalProps {
   isSaving?: boolean;
   communities?: { id: string; name: string }[];
 }
+
+// Allowed image types
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export default function CreateEventModal({
   isOpen,
@@ -37,6 +42,7 @@ export default function CreateEventModal({
     status: "upcoming" as 'upcoming' | 'ongoing' | 'completed' | 'cancelled',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -77,16 +83,21 @@ export default function CreateEventModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setErrors({ ...errors, coverImage: "Please upload an image file" });
+    // ✅ Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setErrors({ ...errors, coverImage: "Please upload a valid image (JPEG, PNG, WEBP)" });
+      toast.error("Invalid file type. Please upload JPEG, PNG, or WEBP.");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors({ ...errors, coverImage: "Image must be less than 5MB" });
+    // ✅ Validate file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      setErrors({ ...errors, coverImage: `Image must be less than ${MAX_IMAGE_SIZE / (1024 * 1024)}MB` });
+      toast.error(`Image size exceeds ${MAX_IMAGE_SIZE / (1024 * 1024)}MB limit.`);
       return;
     }
 
+    setIsUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormData({
@@ -95,6 +106,13 @@ export default function CreateEventModal({
         coverImagePreview: reader.result as string,
       });
       setErrors({ ...errors, coverImage: "" });
+      setIsUploading(false);
+      toast.success("Image uploaded successfully!");
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      setErrors({ ...errors, coverImage: "Failed to read image file" });
+      toast.error("Failed to read image file. Please try again.");
     };
     reader.readAsDataURL(file);
   };
@@ -138,6 +156,8 @@ export default function CreateEventModal({
     
     const submitData = {
       ...formData,
+      // Pass the actual File object for upload
+      coverImageFile: formData.coverImageFile,
       coverImage: formData.coverImagePreview || formData.coverImage || "",
     };
     onSave(submitData);
@@ -326,7 +346,7 @@ export default function CreateEventModal({
             {/* Cover Image Upload */}
             <div>
               <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
-                Cover Image
+                Cover Image {!editingEvent && <span className="text-red-400">*</span>}
               </label>
               
               {formData.coverImagePreview ? (
@@ -349,11 +369,21 @@ export default function CreateEventModal({
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-32 rounded-xl border-2 border-dashed border-[#D4C8C0]/50 bg-white/50 hover:border-[#6B1E5B] transition-all duration-300 cursor-pointer flex flex-col items-center justify-center"
+                  className={`w-full h-32 rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center ${
+                    errors.coverImage
+                      ? "border-red-400 bg-red-50/30"
+                      : "border-[#D4C8C0]/50 bg-white/50 hover:border-[#6B1E5B]"
+                  }`}
                 >
-                  <Upload className="w-8 h-8 text-[#6B5E5A]/40" />
-                  <p className="text-sm text-[#6B5E5A]/60 mt-2">Click to upload cover image</p>
-                  <p className="text-xs text-[#6B5E5A]/40">PNG, JPG, WEBP (Max 5MB)</p>
+                  {isUploading ? (
+                    <Loader2 className="w-8 h-8 text-[#6B1E5B] animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-[#6B5E5A]/40" />
+                      <p className="text-sm text-[#6B5E5A]/60 mt-2">Click to upload cover image</p>
+                      <p className="text-xs text-[#6B5E5A]/40">PNG, JPG, WEBP (Max 5MB)</p>
+                    </>
+                  )}
                 </div>
               )}
               
@@ -381,7 +411,7 @@ export default function CreateEventModal({
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
                 className="flex-1 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white shadow-lg hover:shadow-xl"
               >
                 {isSaving ? (

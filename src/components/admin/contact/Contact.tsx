@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, ArrowLeft, Mail } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Swal from "sweetalert2";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { 
@@ -80,7 +81,6 @@ export default function AdminContactRequestsPage() {
   const handleView = (request: ContactRequest) => {
     setSelectedRequest(request);
     setIsModalOpen(true);
-    // Mark as read when viewed
     if (!request.isRead) {
       handleToggleRead(request);
     }
@@ -93,6 +93,7 @@ export default function AdminContactRequestsPage() {
         : await adminContactService.markAsRead(request.id);
       
       if (result.success) {
+        toast.success(request.isRead ? "Marked as unread" : "Marked as read");
         await log({
           action: request.isRead ? ActivityActions.UPDATE : ActivityActions.UPDATE,
           entityType: ActivityEntityTypes.CONTACT,
@@ -112,29 +113,40 @@ export default function AdminContactRequestsPage() {
   };
 
   const handleDelete = async (request: ContactRequest) => {
-    if (!confirm(`Delete message from "${request.name}"?`)) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Delete message from "${request.name}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#6B1E5B",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      background: "#FFF9F2",
+      color: "#2A1636",
+    });
 
-    try {
-      const result = await adminContactService.deleteRequest(request.id);
-      if (result.success) {
-        await log({
-          action: ActivityActions.DELETE,
-          entityType: ActivityEntityTypes.CONTACT,
-          entityId: request.id,
-          entityTitle: request.name,
-          details: `Deleted message from ${request.name}`,
-        });
-        toast.success("Message deleted successfully");
-        fetchRequests(true);
-        fetchStats();
-      } else {
-        toast.error(result.error || "Failed to delete message");
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await adminContactService.deleteRequest(request.id);
+        if (deleteResult.success) {
+          toast.success("Message deleted successfully 🗑️");
+          await log({
+            action: ActivityActions.DELETE,
+            entityType: ActivityEntityTypes.CONTACT,
+            entityId: request.id,
+            entityTitle: request.name,
+            details: `Deleted message from ${request.name}`,
+          });
+          fetchRequests(true);
+          fetchStats();
+        } else {
+          toast.error(deleteResult.error || "Failed to delete message");
+        }
+      } catch (error: any) {
+        console.error("Error deleting message:", error);
+        toast.error(error.message || "Failed to delete message");
       }
-    } catch (error: any) {
-      console.error("Error deleting message:", error);
-      toast.error(error.message || "Failed to delete message");
     }
   };
 

@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
 import { ROLES, ROLE_PERMISSIONS } from "@/lib/services/adminManagementService";
-import PermissionSelector from "./PermissionSelector";
-
+import PermissionSelector from "./PermissionSelector"; 
 interface AdminModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -55,7 +54,6 @@ export default function AdminModal({ isOpen, onClose, onSave, editingAdmin, isSa
     if (role !== "super_admin") {
       permissions = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] || [];
     } else {
-      // For super_admin, we keep permissions empty (they have all access)
       permissions = [];
     }
     setFormData({ ...formData, role, permissions });

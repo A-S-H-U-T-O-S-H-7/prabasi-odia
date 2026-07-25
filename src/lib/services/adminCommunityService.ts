@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase/config';
+import { db, storage } from '@/lib/firebase/config';
 import { 
   collection, 
   doc, 
@@ -10,8 +10,8 @@ import {
   query,
   orderBy,
   where,
-  Timestamp 
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const COLLECTION = 'communities';
 
@@ -31,6 +31,36 @@ export interface Community {
 }
 
 export const adminCommunityService = {
+  // ✅ Upload cover image to Firebase Storage
+  async uploadCoverImage(file: File, communityId: string): Promise<string> {
+    try {
+      // Compress image if needed (optional)
+      const compressedFile = await compressImage(file);
+      
+      const path = `communities/${communityId}/cover`;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, compressedFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error: any) {
+      console.error('Error uploading cover image:', error);
+      throw new Error('Failed to upload image');
+    }
+  },
+
+  // ✅ Delete cover image from storage
+  async deleteCoverImage(communityId: string) {
+    try {
+      const storageRef = ref(storage, `communities/${communityId}/cover`);
+      await deleteObject(storageRef);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error deleting cover image:', error);
+      // Don't throw error if image doesn't exist
+      return { success: true };
+    }
+  },
+
   // Get all communities
   async getAllCommunities() {
     try {
@@ -97,18 +127,27 @@ export const adminCommunityService = {
     }
   },
 
-  // Create community
+  // ✅ Create community with image upload
   async createCommunity(data: any) {
     try {
       const docRef = doc(collection(db, COLLECTION));
       const now = new Date().toISOString();
+      
+      // If there's a file to upload, upload it first
+      let coverImageUrl = '';
+      if (data.coverImageFile && data.coverImageFile instanceof File) {
+        coverImageUrl = await this.uploadCoverImage(data.coverImageFile, docRef.id);
+      } else if (data.coverImage && typeof data.coverImage === 'string') {
+        // If it's already a URL (existing image)
+        coverImageUrl = data.coverImage;
+      }
       
       const communityData = {
         name: data.name,
         city: data.city,
         state: data.state,
         description: data.description,
-        coverImage: data.coverImage || '',
+        coverImage: coverImageUrl,
         memberCount: 0,
         status: 'active',
         createdBy: data.createdBy || '',
@@ -126,17 +165,28 @@ export const adminCommunityService = {
     }
   },
 
-  // Update community
+  // ✅ Update community with image upload
   async updateCommunity(id: string, data: any) {
     try {
       const docRef = doc(db, COLLECTION, id);
+      
+      // Check if we need to upload a new image
+      let coverImageUrl = data.coverImage || '';
+      if (data.coverImageFile && data.coverImageFile instanceof File) {
+        // Delete old image if exists
+        await this.deleteCoverImage(id);
+        // Upload new image
+        coverImageUrl = await this.uploadCoverImage(data.coverImageFile, id);
+      } else if (data.coverImage && typeof data.coverImage === 'string') {
+        coverImageUrl = data.coverImage;
+      }
       
       const updateData: any = {
         name: data.name,
         city: data.city,
         state: data.state,
         description: data.description,
-        coverImage: data.coverImage || '',
+        coverImage: coverImageUrl,
         status: data.status || 'active',
         updatedAt: new Date().toISOString(),
       };
@@ -150,9 +200,12 @@ export const adminCommunityService = {
     }
   },
 
-  // Delete community
+  // ✅ Delete community (with image)
   async deleteCommunity(id: string) {
     try {
+      // Delete cover image from storage
+      await this.deleteCoverImage(id);
+      // Delete document from Firestore
       await deleteDoc(doc(db, COLLECTION, id));
       return { success: true };
     } catch (error: any) {
@@ -241,7 +294,6 @@ export const adminCommunityService = {
         return { success: true, members: [] };
       }
       
-      // Fetch user details for each member
       const usersRef = collection(db, 'users');
       const memberPromises = memberIds.map(async (uid) => {
         const userDoc = await getDoc(doc(usersRef, uid));
@@ -296,3 +348,56 @@ export const adminCommunityService = {
     }
   },
 };
+
+// ✅ Helper function to compress image
+async function compressImage(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Max dimensions (reduce if too large)
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 800;
+        
+        if (width > MAX_WIDTH) {
+          height = (height * MAX_WIDTH) / width;
+          width = MAX_WIDTH;
+        }
+        if (height > MAX_HEIGHT) {
+          width = (width * MAX_HEIGHT) / height;
+          height = MAX_HEIGHT;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              reject(new Error('Failed to compress image'));
+            }
+          },
+          'image/jpeg',
+          0.7 // Quality (70%)
+        );
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+}

@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { MapPin, Home, Building, Globe, MapPinned } from "lucide-react";
+import { MapPin, Home, Building } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 
@@ -19,44 +19,43 @@ const odishaDistricts = [
   "Puri", "Rayagada", "Sambalpur", "Subarnapur", "Sundargarh"
 ];
 
-const odishaCities = [
-  "Bhubaneswar", "Cuttack", "Puri", "Rourkela", "Berhampur", "Sambalpur",
-  "Balasore", "Bhadrak", "Baripada", "Jharsuguda", "Angul", "Dhenkanal",
-  "Paradeep", "Talcher", "Kendujhar", "Bargarh", "Jeypore", "Rayagada",
-  "Koraput", "Malkangiri", "Nabarangpur", "Boudh", "Phulbani", "Bhawanipatna",
-  "Kalahandi", "Nuapada", "Subarnapur", "Deogarh", "Sundargarh"
-];
-
 export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
-  const { register, watch, trigger, formState: { errors, touchedFields } } = useFormContext();
+  const { register, trigger, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-
-  // Watch values for conditional logic if needed
-  const odishaDistrict = watch("odishaDistrict");
-  const currentState = watch("currentState");
 
   const fields = [
     "odishaHomeAddress", "odishaDistrict", "odishaCity", "odishaPinCode",
     "currentAddress", "currentState", "currentCity", "currentPinCode",
   ];
+
   const shouldShowError = (name: string) =>
     Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
-  const inputClass = (name: string) => `w-full px-4 py-3 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 cursor-pointer ${
-    shouldShowError(name)
+
+  const inputClass = (name: string) => `
+    w-full px-4 py-3 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30
+    ${shouldShowError(name)
       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
       : "border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20"
-  }`;
+    }
+  `;
+
   const ErrorMessage = ({ name }: { name: string }) => (
     <div className="min-h-6 mt-1" aria-live="polite">
       <AnimatePresence>
         {shouldShowError(name) && (
-          <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
+          <motion.p
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="text-red-400 text-sm"
+          >
             {errors[name]?.message as string}
           </motion.p>
         )}
       </AnimatePresence>
     </div>
   );
+
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
     if (await trigger(fields)) {
@@ -72,10 +71,11 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6"
+      className="space-y-5 md:space-y-6"
     >
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center flex-shrink-0">
           <MapPin className="w-4 h-4 text-[#6B1E5B]" />
         </div>
         <div>
@@ -90,7 +90,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
           <Home className="w-4 h-4 text-[#6B1E5B]" /> Odisha Home Address
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Address */}
+          {/* Address - Full Width */}
           <div className="md:col-span-3">
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Home Address <span className="text-red-400">*</span>
@@ -110,7 +110,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             </label>
             <select
               {...register("odishaDistrict")}
-              className={`${inputClass("odishaDistrict")} appearance-none`}
+              className={`${inputClass("odishaDistrict")} appearance-none cursor-pointer`}
             >
               <option value="">Select district</option>
               {odishaDistricts.map((district) => (
@@ -123,7 +123,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
           {/* City */}
           <div>
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
-              City/Area <span className="text-red-400">*</span>
+              City <span className="text-red-400">*</span>
             </label>
             <input
               {...register("odishaCity")}
@@ -133,7 +133,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             <ErrorMessage name="odishaCity" />
           </div>
 
-          {/* Pin Code - FIXED */}
+          {/* Pin Code */}
           <div>
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Pin Code <span className="text-red-400">*</span>
@@ -142,7 +142,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
               {...register("odishaPinCode")}
               type="text"
               className={inputClass("odishaPinCode")}
-              placeholder="6 digit pin code"
+              placeholder="6 digit pin"
               maxLength={6}
             />
             <ErrorMessage name="odishaPinCode" />
@@ -156,7 +156,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
           <Building className="w-4 h-4 text-[#D9772B]" /> Current Address
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Address */}
+          {/* Address - Full Width */}
           <div className="md:col-span-3">
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Current Address <span className="text-red-400">*</span>
@@ -195,7 +195,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             <ErrorMessage name="currentCity" />
           </div>
 
-          {/* Pin Code - FIXED */}
+          {/* Pin Code */}
           <div>
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Pin Code <span className="text-red-400">*</span>
@@ -204,7 +204,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
               {...register("currentPinCode")}
               type="text"
               className={inputClass("currentPinCode")}
-              placeholder="6 digit pin code"
+              placeholder="6 digit pin"
               maxLength={6}
             />
             <ErrorMessage name="currentPinCode" />
@@ -212,11 +212,18 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
         </div>
       </div>
 
-      <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20">
-        <button onClick={onBack} className="px-6 py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer">
+      {/* Navigation Buttons */}
+      <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6">
+        <button
+          onClick={onBack}
+          className="px-6 py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer"
+        >
           ← Back
         </button>
-        <button onClick={handleNext} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white font-medium shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 transition-all duration-300 hover:scale-[1.02] cursor-pointer">
+        <button
+          onClick={handleNext}
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white font-medium shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+        >
           Next →
         </button>
       </div>

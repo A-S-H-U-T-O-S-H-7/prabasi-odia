@@ -1,4 +1,3 @@
-// components/web/join-community/Step1Personal.tsx
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,8 +46,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   const watchMobileNumber = watch("mobileNumber");
   const watchPhoto = watch("photo");
 
-  // The form is updated in one direction only. Reading it back into local state
-  // created a render loop when this step was mounted again after going back.
   useEffect(() => {
     setValue("familyMembers", familyMembers, { shouldDirty: true });
   }, [familyMembers, setValue]);
@@ -56,7 +53,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         setPhotoError('Please upload a valid image (JPEG, PNG, WEBP)');
@@ -64,7 +60,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         return;
       }
       
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setPhotoError('Image size should be less than 5MB');
         setValue("photo", null);
@@ -76,7 +71,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       reader.onloadend = () => {
         setPhotoPreview(reader.result as string);
         setValue("photo", file, { shouldValidate: true });
-        // Only trigger validation if user has attempted submit or field was touched
         if (hasAttemptedSubmit || touchedFields.photo) {
           trigger("photo");
         }
@@ -100,8 +94,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
 
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
-    
-    // Trigger validation for all fields in step 1
     const isValid = await trigger([
       "fullName",
       "age",
@@ -118,15 +110,10 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
     }
   };
 
-  // Helper to check if field should show error
   const shouldShowError = (fieldName: string) => {
-    // Only show error if:
-    // 1. User has attempted submit, OR
-    // 2. Field has been touched/edited
     return (hasAttemptedSubmit || touchedFields[fieldName]) && errors[fieldName];
   };
 
-  // Helper to check if field is valid
   const isValidField = (fieldName: string, value: any) => {
     return value && value.length > 0 && !errors[fieldName];
   };
@@ -137,11 +124,11 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6"
+      className="space-y-5 md:space-y-6"
     >
-      {/* Header with icon */}
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B1E5B]/20 to-[#D9772B]/20 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B1E5B]/20 to-[#D9772B]/20 flex items-center justify-center flex-shrink-0">
           <User className="w-4 h-4 text-[#6B1E5B]" />
         </div>
         <div>
@@ -150,9 +137,10 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
       </div>
 
+      {/* Grid - Uniform spacing */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Profile Photo */}
-        <div className="md:col-span-2 min-h-[144px]">
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Profile Photo <span className="text-red-400">*</span>
           </label>
@@ -191,12 +179,12 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
             )}
           </AnimatePresence>
           {watchPhoto instanceof File && !photoError && !errors.photo && (
-            <p className="text-green-500 text-sm mt-1">✅ Photo uploaded successfully</p>
+            <p className="text-green-500 text-sm mt-1">✅ Photo uploaded</p>
           )}
         </div>
 
         {/* Full Name */}
-        <div className="min-h-[104px]">
+        <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Full Name <span className="text-red-400">*</span>
           </label>
@@ -210,12 +198,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
             }`}
             placeholder="Your full name"
-            onBlur={() => {
-              // Trigger validation on blur if field has value or was touched
-              if (watchFullName) {
-                trigger("fullName");
-              }
-            }}
+            onBlur={() => { if (watchFullName) trigger("fullName"); }}
           />
           <AnimatePresence>
             {shouldShowError("fullName") && (
@@ -232,7 +215,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
 
         {/* Age */}
-        <div className="min-h-[104px]">
+        <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Age <span className="text-red-400">*</span>
           </label>
@@ -247,11 +230,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
             }`}
             placeholder="Your age"
-            onBlur={() => {
-              if (watchAge) {
-                trigger("age");
-              }
-            }}
+            onBlur={() => { if (watchAge) trigger("age"); }}
           />
           <AnimatePresence>
             {shouldShowError("age") && (
@@ -268,10 +247,10 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
       </div>
 
-      {/* Gender, Blood Group, Mobile Number - In one line (3 columns) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Gender, Blood Group, Mobile Number - 3 columns with uniform height */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Gender */}
-        <div className="min-h-[104px]">
+        <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Gender <span className="text-red-400">*</span>
           </label>
@@ -284,13 +263,9 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 ? 'border-green-400 focus:border-green-400 focus:ring-green-200'
                 : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
             }`}
-            onBlur={() => {
-              if (watchGender) {
-                trigger("gender");
-              }
-            }}
+            onBlur={() => { if (watchGender) trigger("gender"); }}
           >
-            <option value="">Select gender</option>
+            <option value="">Select</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
@@ -311,7 +286,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
 
         {/* Blood Group */}
-        <div className="min-h-[104px]">
+        <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Blood Group <span className="text-red-400">*</span>
           </label>
@@ -324,13 +299,9 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 ? 'border-green-400 focus:border-green-400 focus:ring-green-200'
                 : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
             }`}
-            onBlur={() => {
-              if (watchBloodGroup) {
-                trigger("bloodGroup");
-              }
-            }}
+            onBlur={() => { if (watchBloodGroup) trigger("bloodGroup"); }}
           >
-            <option value="">Select blood group</option>
+            <option value="">Select</option>
             <option value="A+">A+</option>
             <option value="A-">A-</option>
             <option value="B+">B+</option>
@@ -355,7 +326,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
 
         {/* Mobile Number */}
-        <div className="min-h-[104px]">
+        <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Mobile Number <span className="text-red-400">*</span>
           </label>
@@ -377,17 +348,12 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 const value = e.target.value.replace(/\D/g, '');
                 if (value.length <= 10) {
                   setValue("mobileNumber", value);
-                  // Only validate if user has interacted or attempted submit
                   if (hasAttemptedSubmit || touchedFields.mobileNumber) {
                     trigger("mobileNumber");
                   }
                 }
               }}
-              onBlur={() => {
-                if (watchMobileNumber) {
-                  trigger("mobileNumber");
-                }
-              }}
+              onBlur={() => { if (watchMobileNumber) trigger("mobileNumber"); }}
             />
           </div>
           <AnimatePresence>
@@ -405,10 +371,9 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
       </div>
 
-      {/* Hidden interests field for validation */}
       <input type="hidden" {...register("interests")} />
 
-      {/* Family Members Section with Occupation */}
+      {/* Family Members Section */}
       <div className="pt-4 border-t border-[#D4C8C0]/30">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -425,7 +390,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
             onClick={addFamilyMember}
             className="flex items-center gap-1.5 text-sm text-[#6B1E5B] hover:text-[#531547] font-medium transition-colors cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Add Member
+            <Plus className="w-4 h-4" /> Add
           </motion.button>
         </div>
 
@@ -435,7 +400,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
               key={member.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="relative grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-white/60 border border-[#D4C8C0]/30"
+              className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-white/60 border border-[#D4C8C0]/30"
             >
               <input
                 placeholder="Name"
@@ -456,7 +421,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 onChange={(event) => updateFamilyMember(member.id, "relation", event.target.value)}
                 className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm appearance-none"
               >
-                <option value="">Select relation</option>
+                <option value="">Relation</option>
                 {relations.map((relation) => <option key={relation} value={relation}>{relation}</option>)}
               </select>
               <input
@@ -469,7 +434,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 <button
                   type="button"
                   onClick={() => removeFamilyMember(member.id)}
-                  aria-label={`Remove family member ${index + 1}`}
                   className="absolute -top-2 -right-2 p-1.5 rounded-full bg-white border border-[#D4C8C0]/40 text-[#6B5E5A] hover:text-red-500 hover:border-red-200 shadow-sm"
                 >
                   <X className="w-4 h-4" />
@@ -478,103 +442,10 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
             </motion.div>
           ))}
         </div>
-
-        {false && <AnimatePresence mode="popLayout">
-          {familyMembers.map((member, index) => (
-            <motion.div
-              key={member.id}
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -20 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="flex items-center justify-between gap-4 p-3 rounded-2xl bg-white/60 backdrop-blur-sm border border-white/60 shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer"
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6B1E5B]/10 to-[#D9772B]/10 flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-[#6B1E5B]/60" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#2A1636] truncate">
-                    {member.name || `Family Member ${index + 1}`}
-                  </p>
-                  <p className="text-xs text-[#6B5E5A]">
-                    {member.age || '—'} yrs · {member.relation || 'Select relation'}
-                    {member.occupation && ` · 💼 ${member.occupation}`}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setEditingId(member.id)}
-                  className="p-2 rounded-xl text-[#6B5E5A]/40 hover:text-[#6B1E5B] hover:bg-[#6B1E5B]/5 transition-all duration-300 cursor-pointer"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => removeFamilyMember(member.id)}
-                  className="p-2 rounded-xl text-[#6B5E5A]/40 hover:text-red-500 hover:bg-red-50 transition-all duration-300 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </motion.button>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>}
-
-        {/* Edit Form with Occupation */}
-        {false && editingId && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="mt-3 p-4 rounded-2xl bg-gradient-to-br from-white/80 to-[#6B1E5B]/5 border border-[#D4C8C0]/30 grid grid-cols-1 sm:grid-cols-4 gap-3"
-          >
-            <input
-              placeholder="Name"
-              value={familyMembers.find(m => m.id === editingId)?.name || ''}
-              onChange={(e) => updateFamilyMember(editingId, 'name', e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-300 text-sm"
-            />
-            <input
-              placeholder="Age"
-              type="number"
-              value={familyMembers.find(m => m.id === editingId)?.age || ''}
-              onChange={(e) => updateFamilyMember(editingId, 'age', e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-300 text-sm"
-            />
-            <select
-              value={familyMembers.find(m => m.id === editingId)?.relation || ''}
-              onChange={(e) => updateFamilyMember(editingId, 'relation', e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-300 text-sm appearance-none cursor-pointer"
-            >
-              <option value="">Select relation</option>
-              {relations.map((rel) => (<option key={rel} value={rel}>{rel}</option>))}
-            </select>
-            <input
-              placeholder="Occupation"
-              value={familyMembers.find(m => m.id === editingId)?.occupation || ''}
-              onChange={(e) => updateFamilyMember(editingId, 'occupation', e.target.value)}
-              className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-300 text-sm"
-            />
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              onClick={() => setEditingId("")}
-              className="col-span-1 sm:col-span-4 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6B1E5B] to-[#D9772B] text-white text-sm font-medium hover:shadow-lg transition-all duration-300 cursor-pointer"
-            >
-              Save Member ✓
-            </motion.button>
-          </motion.div>
-        )}
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20">
+      {/* Navigation Buttons - Uniform spacing */}
+      <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6">
         {!isFirstStep ? (
           <motion.button
             whileHover={{ scale: 1.02 }}

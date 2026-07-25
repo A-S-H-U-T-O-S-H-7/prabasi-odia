@@ -37,7 +37,7 @@ export default function JoinCommunityLayout({
       {/* Background Images - Mobile */}
       <div className="absolute inset-0 pointer-events-none md:hidden">
         <Image 
-          src="/communitymobbg.png" 
+          src="/loginbg3.png" 
           alt="Community Background" 
           fill 
           className="object-cover opacity-20"

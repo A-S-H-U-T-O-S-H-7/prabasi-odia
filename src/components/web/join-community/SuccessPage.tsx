@@ -1,4 +1,3 @@
-// components/web/join-community/SuccessPage.tsx
 "use client";
 
 import { motion } from "framer-motion";
@@ -23,7 +22,6 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          // Auto redirect to profile
           onGoProfile();
           return 0;
         }
@@ -39,7 +37,7 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="relative text-center py-4 overflow-hidden"
+      className="relative text-center py-4 md:py-6 overflow-hidden px-2"
     >
       {/* Success Animation */}
       <motion.div
@@ -51,9 +49,9 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
           stiffness: 200, 
           damping: 20 
         }}
-        className="relative w-28 h-28 rounded-full bg-gradient-to-br from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] flex items-center justify-center mx-auto shadow-2xl shadow-[#6B1E5B]/30"
+        className="relative w-20 h-20 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] flex items-center justify-center mx-auto shadow-2xl shadow-[#6B1E5B]/30"
       >
-        <CheckCircle className="w-14 h-14 text-white" />
+        <CheckCircle className="w-10 h-10 md:w-14 md:h-14 text-white" />
         {/* Pulsing rings */}
         <motion.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
@@ -72,7 +70,7 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="mt-6 text-3xl font-serif font-bold text-[#2A1636]"
+        className="mt-4 md:mt-6 text-2xl md:text-3xl font-serif font-bold text-[#2A1636]"
       >
         Welcome to Prabasi Odia! 🎉
       </motion.h1>
@@ -82,7 +80,7 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="mt-3 text-[#6B5E5A] max-w-md mx-auto"
+        className="mt-2 md:mt-3 text-xs md:text-sm text-[#6B5E5A] max-w-md mx-auto px-2"
       >
         Your profile has been submitted for verification. 
         You'll receive a notification once your identity is verified.
@@ -93,25 +91,25 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="mt-6 p-5 rounded-2xl bg-gradient-to-br from-amber-50/80 to-orange-50/80 border border-amber-200/50 max-w-sm mx-auto text-left"
+        className="mt-4 md:mt-6 p-4 md:p-5 rounded-2xl bg-gradient-to-br from-amber-50/80 to-orange-50/80 border border-amber-200/50 max-w-sm mx-auto text-left"
       >
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-4 h-4 text-amber-600" />
+        <div className="flex items-start gap-2 md:gap-3">
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-600" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-amber-800">What happens next?</p>
-            <div className="mt-2 space-y-2">
-              <div className="flex items-center gap-2 text-xs text-amber-700/80">
-                <Clock className="w-3 h-3 flex-shrink-0" />
+            <p className="text-xs md:text-sm font-semibold text-amber-800">What happens next?</p>
+            <div className="mt-1.5 md:mt-2 space-y-1.5">
+              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
+                <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
                 <span>Admin verifies your documents (24-48 hours)</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-amber-700/80">
-                <Shield className="w-3 h-3 flex-shrink-0" />
+              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
+                <Shield className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
                 <span>You'll receive a verified badge on your profile</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-amber-700/80">
-                <Award className="w-3 h-3 flex-shrink-0" />
+              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
+                <Award className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
                 <span>Get access to exclusive community features</span>
               </div>
             </div>
@@ -124,13 +122,13 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}
-        className="mt-6"
+        className="mt-4 md:mt-6"
       >
-        <p className="text-xs text-[#6B5E5A] mb-3 flex items-center justify-center gap-2">
-          <Share2 className="w-3 h-3" />
+        <p className="text-[10px] md:text-xs text-[#6B5E5A] mb-2 md:mb-3 flex items-center justify-center gap-1.5">
+          <Share2 className="w-2.5 h-2.5 md:w-3 md:h-3" />
           Share your achievement
         </p>
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-2 md:gap-3">
           {[
             { icon: FaTwitter, label: 'Twitter', color: 'hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2]' },
             { icon: FaLinkedin, label: 'LinkedIn', color: 'hover:bg-[#0A66C2]/10 hover:text-[#0A66C2]' },
@@ -141,9 +139,8 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
               key={index}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className={`p-2 rounded-full bg-white/50 border border-[#D4C8C0]/30 text-[#6B5E5A] transition-all duration-300 ${social.color}`}
+              className={`p-1.5 md:p-2 rounded-full bg-white/50 border border-[#D4C8C0]/30 text-[#6B5E5A] transition-all duration-300 ${social.color}`}
               onClick={() => {
-                // Share functionality
                 if (typeof navigator !== 'undefined' && navigator.share) {
                   navigator.share({
                     title: 'I just joined Prabasi Odia Community!',
@@ -153,7 +150,7 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
                 }
               }}
             >
-              <social.icon className="w-4 h-4" />
+              <social.icon className="w-3 h-3 md:w-4 md:h-4" />
             </motion.button>
           ))}
         </div>
@@ -164,26 +161,26 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9 }}
-        className="mt-8 flex flex-col sm:flex-row gap-4 justify-center"
+        className="mt-6 md:mt-8 flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-2"
       >
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onGoProfile}
-          className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-[#6B1E5B] to-[#D9772B] text-white font-medium hover:shadow-xl shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+          className="px-5 md:px-8 py-3 md:py-3.5 rounded-2xl bg-gradient-to-r from-[#6B1E5B] to-[#D9772B] text-white font-medium hover:shadow-xl shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer text-sm md:text-base"
         >
-          <User className="w-4 h-4" />
+          <User className="w-3.5 h-3.5 md:w-4 md:h-4" />
           Go to Profile
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
         </motion.button>
         
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onGoHome}
-          className="px-8 py-3.5 rounded-2xl border-2 border-[#6B1E5B]/30 text-[#6B1E5B] font-medium hover:bg-[#6B1E5B]/5 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+          className="px-5 md:px-8 py-3 md:py-3.5 rounded-2xl border-2 border-[#6B1E5B]/30 text-[#6B1E5B] font-medium hover:bg-[#6B1E5B]/5 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer text-sm md:text-base"
         >
-          <Home className="w-4 h-4" />
+          <Home className="w-3.5 h-3.5 md:w-4 md:h-4" />
           Go to Home
         </motion.button>
       </motion.div>
@@ -193,14 +190,14 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="mt-6 text-xs text-[#6B5E5A]/50 flex items-center justify-center gap-2"
+        className="mt-4 md:mt-6 text-[10px] md:text-xs text-[#6B5E5A]/50 flex items-center justify-center gap-1.5"
       >
-        <Clock className="w-3 h-3" />
+        <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
         Redirecting to profile in {countdown}s...
         <motion.span
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ duration: 0.5, repeat: Infinity }}
-          className="inline-block w-1.5 h-1.5 rounded-full bg-[#6B1E5B]"
+          className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#6B1E5B]"
         />
       </motion.p>
 
@@ -230,9 +227,9 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
             top: `${20 + i * 10}%`
           }}
         >
-          <Heart className={`w-4 h-4 ${i === 0 ? 'text-red-400' : i === 1 ? 'text-purple-400' : 'text-pink-400'}`} />
+          <Heart className={`w-3 h-3 md:w-4 md:h-4 ${i === 0 ? 'text-red-400' : i === 1 ? 'text-purple-400' : 'text-pink-400'}`} />
         </motion.div>
       ))}
-    </motion.div> 
+    </motion.div>
   );
 }
