@@ -17,29 +17,24 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   
-  // Zustand stores
   const { user, isAuthenticated, logout, loading, initialize } = useAuthStore();
   const { profile, hasJoinedCommunity, fetchUserProfile } = useUserStore();
 
-  // Handle mounting to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Initialize auth listener
   useEffect(() => {
     const unsubscribe = initialize();
     return () => unsubscribe();
   }, [initialize]);
 
-  // Fetch user profile when authenticated
   useEffect(() => {
     if (isAuthenticated && user?.uid) {
       fetchUserProfile(user.uid);
     }
   }, [isAuthenticated, user?.uid, fetchUserProfile]);
 
-  // Scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -48,24 +43,16 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Handle logout
   const handleLogout = async () => {
     await logout();
     router.push('/');
     setIsOpen(false);
   };
 
-  // Get user initials for avatar
   const getUserInitials = () => {
-    if (user?.displayName) {
-      return user.displayName.charAt(0).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    if (profile?.displayName) {
-      return profile.displayName.charAt(0).toUpperCase();
-    }
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (user?.email) return user.email.charAt(0).toUpperCase();
+    if (profile?.displayName) return profile.displayName.charAt(0).toUpperCase();
     return 'U';
   };
 
@@ -82,22 +69,15 @@ export default function Navbar() {
     { href: '/about', label: 'About' },
   ];
 
-  // Don't render anything on server to avoid hydration mismatch
   if (!mounted) {
     return (
       <nav className="fixed top-0 w-full z-50 bg-[#FFF8F2]/80 backdrop-blur-sm border-b border-[#E7D7E8]/50">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center space-x-3 group">
-              <Image
-                src="/logo.png"
-                alt="Prabasi Odia"
-                width={140}
-                height={48}
-                className="h-16 w-auto"
-                priority
-              />
-            </Link>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 relative bg-gray-200 rounded-full animate-pulse" />
+              <div className="w-32 h-8 bg-gray-200 rounded-full animate-pulse" />
+            </div>
             <div className="w-24 h-8 bg-gray-200 rounded-full animate-pulse" />
           </div>
         </div>
@@ -113,22 +93,61 @@ export default function Navbar() {
           : 'bg-[#FFF8F2]/80 backdrop-blur-sm border-b border-[#E7D7E8]/50'
       }`}
     >
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 group">
-            <Image
-              src="/logo.png"
-              alt="Prabasi Odia"
-              width={140}
-              height={48}
-              className="h-16 w-auto transition-transform group-hover:scale-105"
-              priority
-            />
-          </Link>
+      <div className="max-w-8xl mx-auto px-3 sm:px-6 lg:px-10">
+        <div className="flex justify-between items-center h-14 sm:h-16">
+          {/* Left: Prabasi Odia Logo + Divider + Parent Org Logo */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Prabasi Odia Logo - Independent, no border */}
+            <Link href="/" aria-label="Go to home page" className="flex-shrink-0 relative group">
+              <div className="w-18 h-18 md:w-26 md:h-26 relative transition-transform duration-300 group-hover:scale-105">
+                <Image
+                  src="/logo.png"
+                  alt="Prabasi Odia Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="absolute -inset-2 bg-[#6B1E5B]/10 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            </Link>
+
+            {/* Divider — visible on all screen sizes */}
+            <div className="flex flex-col items-center self-stretch py-1 sm:py-2">
+              <div className="w-px flex-1 bg-gradient-to-b from-transparent via-[#D4C8C0] to-transparent"></div>
+            </div>
+
+            {/* Parent Org Logo — visible on all screen sizes */}
+            <a
+              href="https://svsamiti.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 sm:gap-2 group hover:opacity-80 transition-opacity flex-shrink-0"
+              title="Visit Samudayik Vikas Samiti"
+            >
+              <div className="relative w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full overflow-hidden border border-amber-200 shadow-sm group-hover:shadow-md group-hover:border-amber-400 transition-all duration-300 group-hover:scale-105 flex-shrink-0">
+                <Image
+                  src="/svslogo.png"
+                  alt="Samudayik Vikas Samiti"
+                  fill
+                  className="object-contain p-0.5"
+                />
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="text-[7px] xs:text-[8px] sm:text-[9px] md:text-[10px] font-bold text-amber-800 group-hover:text-amber-900 transition-colors whitespace-nowrap">
+                  Samudayik Vikas
+                </span>
+                <span className="text-[7px] xs:text-[8px] sm:text-[9px] md:text-[10px] font-bold text-amber-800 group-hover:text-amber-900 transition-colors whitespace-nowrap -mt-0.5">
+                  Samiti
+                </span>
+                <span className="text-[5px] xs:text-[6px] sm:text-[7px] md:text-[8px] text-amber-500 group-hover:text-amber-600 transition-colors hidden lg:block">
+                  svsamiti.com
+                </span>
+              </div>
+            </a>
+          </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -140,9 +159,8 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* Show Login/Register when not authenticated and not loading */}
             {!isAuthenticated && !loading && (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
                 <Link href="/login">
                   <button className="px-4 py-2 text-sm font-medium text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors">
                     Login
@@ -156,7 +174,6 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Show loading state */}
             {loading && (
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-8 bg-gray-200 rounded-full animate-pulse" />
@@ -164,7 +181,6 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* CASE 2: Logged In + Not Joined - Show Join Free */}
             {isAuthenticated && !hasJoinedCommunity && !loading && (
               <div className="flex items-center space-x-4">
                 <Link href="/join-community">
@@ -175,16 +191,13 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* CASE 3: Logged In + Joined - Show Profile Dropdown */}
             {isAuthenticated && hasJoinedCommunity && !loading && (
               <div className="flex items-center space-x-4">
-                {/* Notifications */}
                 <button className="relative p-2 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors">
                   <Bell className="h-5 w-5" />
                   <span className="absolute top-1 right-1 w-2 h-2 bg-[#D9772B] rounded-full animate-pulse" />
                 </button>
 
-                {/* Profile Dropdown */}
                 <div className="relative group">
                   <button className="flex items-center space-x-2 p-1 rounded-full hover:bg-[#E7D7E8]/50 transition-colors">
                     <div className="w-8 h-8 rounded-full bg-[#6B1E5B] flex items-center justify-center text-white font-semibold text-sm">
@@ -193,10 +206,8 @@ export default function Navbar() {
                     <ChevronDown className="h-4 w-4 text-[#6B5E5A]" />
                   </button>
 
-                  {/* Dropdown Menu */}
                   <div className="absolute right-0 mt-2 w-52 bg-[#FFF8F2] rounded-lg shadow-lg border border-[#E7D7E8] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                     <div className="py-1">
-                      {/* User Info */}
                       <div className="px-4 py-3 border-b border-[#E7D7E8]">
                         <p className="text-sm font-semibold text-[#2C2420]">
                           {getUserDisplayName()}
@@ -254,7 +265,7 @@ export default function Navbar() {
             onClick={() => setIsOpen(!isOpen)}
             className="md:hidden p-2 rounded-lg hover:bg-[#E7D7E8]/50 transition-colors"
           >
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
@@ -269,7 +280,7 @@ export default function Navbar() {
             transition={{ duration: 0.3 }}
             className="md:hidden bg-[#FFF8F2] border-b border-[#E7D7E8] overflow-hidden"
           >
-            <div className="px-4 py-6 space-y-4">
+            <div className="px-4 py-4 space-y-3">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -284,7 +295,6 @@ export default function Navbar() {
 
               <hr className="border-[#E7D7E8]" />
 
-              {/* Mobile - Logged Out */}
               {!isAuthenticated && !loading && (
                 <>
                   <Link
@@ -304,14 +314,12 @@ export default function Navbar() {
                 </>
               )}
 
-              {/* Mobile - Loading */}
               {loading && (
                 <div className="flex justify-center py-2">
                   <div className="w-6 h-6 border-2 border-[#6B1E5B] border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
 
-              {/* Mobile - Logged In + Not Joined */}
               {isAuthenticated && !hasJoinedCommunity && !loading && (
                 <Link
                   href="/join-community"
@@ -322,9 +330,24 @@ export default function Navbar() {
                 </Link>
               )}
 
-              {/* Mobile - Logged In + Joined */}
               {isAuthenticated && hasJoinedCommunity && !loading && (
                 <>
+                  <div className="flex items-center gap-3 px-2 py-2 bg-[#E7D7E8]/30 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-[#6B1E5B] flex items-center justify-center text-white font-semibold text-sm">
+                      {getUserInitials()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#2C2420]">
+                        {getUserDisplayName()}
+                      </p>
+                      {profile?.memberId && (
+                        <p className="text-xs text-[#6B5E5A]">
+                          ID: {profile.memberId}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
                   <Link
                     href="/profile"
                     className="flex items-center gap-3 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors py-2"
@@ -342,6 +365,7 @@ export default function Navbar() {
                     <HelpCircle className="h-5 w-5" />
                     <span>Need Help?</span>
                   </Link>
+                  
                   <button 
                     onClick={handleLogout}
                     className="flex items-center gap-3 text-red-600 hover:text-red-700 transition-colors py-2 w-full"
