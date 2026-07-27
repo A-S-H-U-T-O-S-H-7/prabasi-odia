@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import HeroButtons from "./HeroButtons";
 import AvatarGroup from "./AvatarGroup";
 import Stats from "./Stats";
@@ -21,7 +22,7 @@ export default function HeroContent() {
         </span>
       </motion.div>
 
-      {/* Heading - Added gap between lines */}
+      {/* Heading */}
       <motion.h1
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -42,7 +43,6 @@ export default function HeroContent() {
           One Community.
         </span>
         <br />
-        {/* Added mt-1 for 4px gap between lines */}
         <span className="block mt-1 sm:mt-0 sm:inline whitespace-normal sm:whitespace-nowrap bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] to-[#E6A11C] bg-clip-text text-transparent">
           Limitless Connections.
         </span>
@@ -96,6 +96,37 @@ export default function HeroContent() {
         className="mt-6 sm:mt-10"
       >
         <Stats />
+      </motion.div>
+
+      {/* ✅ Project Credit with Avatar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+        className="mt-6 pt-4 border-t border-[#D4C8C0]/30"
+      >
+        <div className="flex items-center justify-left gap-3">
+          {/* Avatar */}
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#6B1E5B]/20 shadow-md flex-shrink-0">
+            <Image
+              src="/avatar5.jpeg"
+              alt="FCA(Dr) Manoranjan Mohanty"
+              width={40}
+              height={40}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          {/* Text */}
+          <div>
+            <p className="text-xs sm:text-sm text-[#2A1636] font-medium">
+              Project by <span className="text-[#6B1E5B] font-semibold">FCA(Dr) Manoranjan Mohanty</span>
+            </p>
+            <p className="text-[10px] sm:text-xs text-[#6B5E5A]">
+              President of <span className="text-[#6B1E5B] font-medium">Samudayik Vikas Samiti</span>
+            </p>
+          </div>
+        </div>
       </motion.div>
     </div>
   );
