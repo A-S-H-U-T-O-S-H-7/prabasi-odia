@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
+import { motion } from "framer-motion";
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
-import { toast } from "react-hot-toast";
-import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -17,8 +17,8 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already authenticated
   useEffect(() => {
+    console.log("🔍 isAuthenticated:", isAuthenticated);
     if (isAuthenticated) {
       console.log("✅ Already authenticated, redirecting to dashboard...");
       router.push("/admin/dashboard");
@@ -34,12 +34,13 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🔐 Submitting login...");
+    
     if (!email || !password) {
       toast.error("Please enter email and password");
       return;
     }
 
-    console.log("🔐 Submitting login...");
     setIsSubmitting(true);
     const result = await adminLogin(email, password);
     setIsSubmitting(false);
@@ -56,7 +57,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF9F2] via-white to-[#F5EDE6] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF9F2] via-white to-[#FDE8D0]/20 p-4">
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

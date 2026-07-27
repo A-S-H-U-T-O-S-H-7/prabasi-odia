@@ -51,8 +51,6 @@ export const ROLE_PERMISSIONS = {
     'view_activity',
     'manage_settings',
   ],
-  
-  
 };
 
 export const ROLES = [
@@ -121,6 +119,19 @@ export const getAdminById = async (adminId: string) => {
 
 export const createAdmin = async (adminData: any) => {
   try {
+    // ✅ Validate that uid exists
+    if (!adminData.uid) {
+      console.error('❌ Missing uid in adminData:', adminData);
+      return { success: false, error: 'Missing user ID. Please ensure user is created in Firebase Auth first.' };
+    }
+
+    // ✅ Check if admin already exists
+    const existingAdmin = await getAdminById(adminData.uid);
+    if (existingAdmin.success) {
+      return { success: false, error: 'Admin already exists with this ID' };
+    }
+
+    // ✅ Get permissions
     let permissions = adminData.permissions || [];
     if (adminData.role === 'super_admin') {
       permissions = AVAILABLE_PERMISSIONS.map(p => p.id);
@@ -128,6 +139,7 @@ export const createAdmin = async (adminData: any) => {
       permissions = ROLE_PERMISSIONS[adminData.role as keyof typeof ROLE_PERMISSIONS] || [];
     }
     
+    // ✅ Create document with uid as document ID
     const adminRef = doc(db, ADMIN_USERS_COLLECTION, adminData.uid);
     await setDoc(adminRef, {
       uid: adminData.uid,
@@ -184,7 +196,6 @@ export const updateAdmin = async (adminId: string, adminData: any) => {
 
 export const deleteAdmin = async (adminId: string) => {
   try {
-    // 🔧 FIX: Check if admin exists first
     const adminResult = await getAdminById(adminId);
     if (!adminResult.success || !adminResult.admin) {
       return { success: false, error: 'Admin not found' };
@@ -192,7 +203,6 @@ export const deleteAdmin = async (adminId: string) => {
     
     const adminToDelete = adminResult.admin;
     
-    // Prevent deleting last super admin
     if (adminToDelete.role === 'super_admin') {
       const allAdminsResult = await getAllAdmins();
       if (!allAdminsResult.success) {

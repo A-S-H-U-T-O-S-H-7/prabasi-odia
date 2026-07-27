@@ -54,6 +54,7 @@ const useAdminAuthStore = create<AdminAuthState>()(
             return { success: false, error: result.error || 'Login failed' };
           }
         } catch (error: any) {
+          console.error('🏪 Login error:', error);
           set({
             error: error.message || 'Login failed',
             loading: false,

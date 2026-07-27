@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Swal from "sweetalert2";
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import AdminTable from "@/components/admin/admins/AdminTable";
@@ -84,9 +87,11 @@ export default function AdminManagementPage() {
       let result;
       
       if (editingAdmin) {
+        // ✅ Update existing admin (no auth creation needed)
         const adminId = editingAdmin.uid || editingAdmin.id;
         result = await updateAdmin(adminId, formData);
         if (result.success) {
+          toast.success("Admin updated successfully ✅");
           await log({
             action: ActivityActions.UPDATE,
             entityType: ActivityEntityTypes.ADMIN,
@@ -96,8 +101,39 @@ export default function AdminManagementPage() {
           });
         }
       } else {
-        result = await createAdmin(formData);
+        // ✅ Step 1: Create user in Firebase Auth
+        let userCredential;
+        try {
+          userCredential = await createUserWithEmailAndPassword(
+            auth,
+            formData.email,
+            formData.password
+          );
+        } catch (authError: any) {
+          console.error('Firebase Auth error:', authError);
+          if (authError.code === 'auth/email-already-in-use') {
+            toast.error('Email already exists. Please use a different email.');
+          } else if (authError.code === 'auth/weak-password') {
+            toast.error('Password is too weak. Use at least 6 characters.');
+          } else {
+            toast.error('Failed to create auth user: ' + authError.message);
+          }
+          setIsSaving(false);
+          return;
+        }
+
+        const user = userCredential.user;
+        
+        // ✅ Step 2: Create admin document with the UID from Firebase Auth
+        const adminDataWithUid = {
+          ...formData,
+          uid: user.uid,
+        };
+        
+        result = await createAdmin(adminDataWithUid);
+        
         if (result.success) {
+          toast.success("Admin created successfully 🎉");
           await log({
             action: ActivityActions.CREATE,
             entityType: ActivityEntityTypes.ADMIN,
@@ -108,15 +144,14 @@ export default function AdminManagementPage() {
         }
       }
       
-      if (result.success) {
-        toast.success(editingAdmin ? "Admin updated successfully" : "Admin created successfully");
+      if (result?.success) {
         setIsModalOpen(false);
         fetchAdmins(true);
       } else {
-        toast.error(result.error || "Operation failed");
+        toast.error(result?.error || "Operation failed");
       }
     } catch (error: any) {
-      console.error("Error saving admin:", error);
+      console.error('Error saving admin:', error);
       toast.error(error.message || "Failed to save admin");
     } finally {
       setIsSaving(false);
@@ -132,28 +167,39 @@ export default function AdminManagementPage() {
       return;
     }
 
-    if (!confirm(`Delete admin "${admin.name}"? This action cannot be undone.`)) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Delete admin "${admin.name}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#6B1E5B",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      background: "#FFF9F2",
+      color: "#2A1636",
+    });
 
-    try {
-      const result = await deleteAdmin(adminId);
-      if (result.success) {
-        await log({
-          action: ActivityActions.DELETE,
-          entityType: ActivityEntityTypes.ADMIN,
-          entityId: adminId,
-          entityTitle: admin.name,
-          details: `Deleted admin: ${admin.name}`,
-        });
-        toast.success("Admin deleted successfully");
-        fetchAdmins(true);
-      } else {
-        toast.error(result.error || "Failed to delete admin");
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await deleteAdmin(adminId);
+        if (deleteResult.success) {
+          toast.success("Admin deleted successfully 🗑️");
+          await log({
+            action: ActivityActions.DELETE,
+            entityType: ActivityEntityTypes.ADMIN,
+            entityId: adminId,
+            entityTitle: admin.name,
+            details: `Deleted admin: ${admin.name}`,
+          });
+          fetchAdmins(true);
+        } else {
+          toast.error(deleteResult.error || "Failed to delete admin");
+        }
+      } catch (error: any) {
+        console.error("Error deleting admin:", error);
+        toast.error(error.message || "Failed to delete admin");
       }
-    } catch (error: any) {
-      console.error("Error deleting admin:", error);
-      toast.error(error.message || "Failed to delete admin");
     }
   };
 
@@ -161,7 +207,6 @@ export default function AdminManagementPage() {
     fetchAdmins(true);
   };
 
-  // ✅ Use only uid - no id
   const currentAdminId = currentAdmin?.uid || '';
 
   if (loading) {
