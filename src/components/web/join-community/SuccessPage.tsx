@@ -3,11 +3,11 @@
 import { motion } from "framer-motion";
 import { 
   CheckCircle, Home, User, Sparkles, Award, Clock, 
-  Mail, MessageCircle, Share2,
-  ArrowRight, Heart, Shield
+  Mail, Share2, ArrowRight, Heart, Shield
 } from "lucide-react";
 import { FaTwitter, FaLinkedin, FaWhatsapp } from "react-icons/fa";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface SuccessPageProps {
   onGoHome: () => void;
@@ -15,6 +15,7 @@ interface SuccessPageProps {
 }
 
 export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps) {
+  const router = useRouter();
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
@@ -22,7 +23,10 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          onGoProfile();
+          // Use setTimeout to defer the navigation
+          setTimeout(() => {
+            router.push('/profile');
+          }, 100);
           return 0;
         }
         return prev - 1;
@@ -30,7 +34,7 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [onGoProfile]);
+  }, [router]);
 
   return (
     <motion.div
@@ -102,7 +106,7 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
             <div className="mt-1.5 md:mt-2 space-y-1.5">
               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
                 <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
-                <span>Admin verifies your documents (24-48 hours)</span>
+                <span>Admin verifies your details (24-48 hours)</span>
               </div>
               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
                 <Shield className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />

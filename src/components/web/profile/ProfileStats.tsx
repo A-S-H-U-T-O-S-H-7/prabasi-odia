@@ -7,10 +7,29 @@ interface ProfileStatsProps {
 }
 
 export default function ProfileStats({ profile }: ProfileStatsProps) {
+  // Format date to show Month Year (e.g., "July 2026")
+  const formatMemberSince = (dateString: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long' 
+      });
+    } catch {
+      return "N/A";
+    }
+  };
+
+  // Count actual family members with names
+  const familyCount = profile.familyMembers 
+    ? profile.familyMembers.filter((m: any) => m.name && m.name.trim() !== "").length 
+    : 0;
+
   const stats = [
-    { icon: Calendar, label: "Member Since", value: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "N/A" },
+    { icon: Calendar, label: "Member Since", value: formatMemberSince(profile.createdAt) },
     { icon: Heart, label: "Interests", value: (profile.interests || []).length || 0 },
-    { icon: Users, label: "Family Members", value: (profile.familyMembers || []).length || 0 },
+    { icon: Users, label: "Family Members", value: familyCount },
     { icon: MapPin, label: "Location", value: profile.currentCity || "N/A" },
   ];
 

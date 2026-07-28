@@ -3,17 +3,19 @@ import { persist } from 'zustand/middleware';
 
 export interface FamilyMember {
   name: string;
-  age: number;
+  dob: string; // Date of Birth instead of age
   relation: string;
 }
 
 export interface RegistrationData {
   // Step 1: Personal
   fullName: string;
-  age: string;
+  dob: string; // Date of Birth
   gender: string;
   bloodGroup: string;
   photo?: File | string;
+  mobileNumber: string;
+  occupation: string;
   
   // Step 2: Family
   familyMembers: FamilyMember[];
@@ -21,34 +23,26 @@ export interface RegistrationData {
   // Step 3: Address
   odishaHomeAddress: string;
   odishaDistrict: string;
-  currentCity: string;
+  odishaCity: string;
+  odishaPinCode: string;
   currentAddress: string;
+  currentCity: string;
+  currentState: string;
+  currentCountry: string;
+  currentPinCode: string;
   
-  // Step 4: Professional
-  occupation: string;
-  organization: string;
-  
-  // Step 5: Interests
+  // Step 4: Interests & Aadhar
   interests: string[];
-  
-  // Step 6: Documents
-  aadharFront?: File | string;
-  aadharBack?: File | string;
-  voterId?: File | string;
-  
-  // Consent
-  consent: boolean;
+  aadharNumber: string;
 }
 
 interface RegistrationState {
-  // State
   currentStep: number;
   totalSteps: number;
   formData: RegistrationData;
   isSubmitting: boolean;
   error: string | null;
   
-  // Actions
   nextStep: () => void;
   prevStep: () => void;
   goToStep: (step: number) => void;
@@ -60,35 +54,35 @@ interface RegistrationState {
 
 const initialRegistrationData: RegistrationData = {
   fullName: '',
-  age: '',
+  dob: '',
   gender: '',
   bloodGroup: '',
   photo: undefined,
-  familyMembers: [{ name: '', age: 0, relation: '' }],
+  mobileNumber: '',
+  occupation: '',
+  familyMembers: [{ name: '', dob: '', relation: '' }],
   odishaHomeAddress: '',
   odishaDistrict: '',
-  currentCity: '',
+  odishaCity: '',
+  odishaPinCode: '',
   currentAddress: '',
-  occupation: '',
-  organization: '',
+  currentCity: '',
+  currentState: '',
+  currentCountry: '',
+  currentPinCode: '',
   interests: [],
-  aadharFront: undefined,
-  aadharBack: undefined,
-  voterId: undefined,
-  consent: false,
+  aadharNumber: '',
 };
 
 export const useRegistrationStore = create<RegistrationState>()(
   persist(
     (set, get) => ({
-      // Initial State
       currentStep: 1,
-      totalSteps: 6,
+      totalSteps: 4,
       formData: initialRegistrationData,
       isSubmitting: false,
       error: null,
 
-      // Actions
       nextStep: () => {
         const { currentStep, totalSteps } = get();
         if (currentStep < totalSteps) {

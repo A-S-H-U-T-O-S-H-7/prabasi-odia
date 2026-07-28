@@ -12,26 +12,28 @@ import JoinCommunityLayout from "@/components/web/join-community/JoinCommunityLa
 import Step1Personal from "@/components/web/join-community/Step1Personal";
 import Step2Address from "@/components/web/join-community/Step2Address";
 import Step3Interests from "@/components/web/join-community/Step3Interests";
-import Step4Documents from "@/components/web/join-community/Step4Documents";
-import Step5Review from "@/components/web/join-community/Step5Review";
+import Step4Review from "@/components/web/join-community/Step4Review";
 import SuccessPage from "@/components/web/join-community/SuccessPage";
 import { userService } from "@/lib/services/userService";
 
-// FIXED SCHEMA - consistent field names
+// ============================================
+// UPDATED SCHEMA - 4 Steps Only
+// ============================================
 const schema = z.object({
-  // Step 1: Personal
+  // Step 1: Personal & Family
   photo: z.any()
     .refine((file) => file instanceof File, "Profile photo is required"),
   fullName: z.string().min(2, "Full name is required"),
-  age: z.string().min(1, "Age is required"),
+  dob: z.string().min(1, "Date of birth is required"),
   gender: z.string().min(1, "Gender is required"),
   bloodGroup: z.string().min(1, "Blood group is required"),
   mobileNumber: z.string()
     .min(10, "Mobile number must be 10 digits")
     .max(10, "Mobile number must be 10 digits")
     .regex(/^[6-9][0-9]{9}$/, "Mobile number must start with 6,7,8, or 9"),
-
-  // Step 2: Address - FIXED: Use odishaPinCode and currentPinCode consistently
+  occupation: z.string().min(2, "Occupation is required"),
+  
+  // Step 2: Address
   odishaHomeAddress: z.string().min(5, "Odisha home address is required"),
   odishaDistrict: z.string().min(1, "District is required"),
   odishaCity: z.string().min(2, "City is required"),
@@ -41,6 +43,7 @@ const schema = z.object({
     .regex(/^[0-9]+$/, "Pin code must contain only numbers"),
   
   currentAddress: z.string().min(5, "Current address is required"),
+  currentCountry: z.string().min(2, "Country is required"),
   currentState: z.string().min(2, "State is required"),
   currentCity: z.string().min(2, "Current city is required"),
   currentPinCode: z.string()
@@ -48,28 +51,26 @@ const schema = z.object({
     .max(6, "Pin code must be 6 digits")
     .regex(/^[0-9]+$/, "Pin code must contain only numbers"),
 
-  // Step 3: Interests
+  // Step 3: Interests & Aadhar
   interests: z.array(z.string()).min(2, "Please select at least 2 interests"),
-  occupation: z.string().min(2, "Occupation is required"),
-  organization: z.string().min(2, "Organization is required"),
+  aadharNumber: z.string()
+    .min(12, "Aadhar number must be 12 digits")
+    .max(12, "Aadhar number must be 12 digits")
+    .regex(/^[0-9]+$/, "Aadhar number must contain only numbers"),
 
-  // Step 4: Documents
-  aadharFront: z.any().refine((file) => file instanceof File, "Aadhar Front is required"),
-  aadharBack: z.any().refine((file) => file instanceof File, "Aadhar Back is required"),
-  voterId: z.any().refine((file) => file instanceof File, "Voter ID is required"),
-  consent: z.boolean().refine((val) => val === true, "You must consent to document verification"),
-
-  // Family Members (handled separately)
+  // Family Members (optional - handled separately)
   familyMembers: z.array(z.any()).optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
+// ============================================
+// UPDATED STEPS - 4 Steps Only
+// ============================================
 const STEPS = [
-  { title: "Personal & Family", subtitle: "Tell us about yourself" },
+  { title: "Personal & Family", subtitle: "Tell us about yourself and your family" },
   { title: "Your Roots", subtitle: "Where do you call home?" },
-  { title: "Your Passions", subtitle: "What drives you?" },
-  { title: "Verify Identity", subtitle: "Upload your documents" },
+  { title: "Interests & Aadhar", subtitle: "What drives you? Share your Aadhar" },
   { title: "Review & Submit", subtitle: "Almost there!" },
 ];
 
@@ -84,23 +85,23 @@ export default function JoinCommunityPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       fullName: "",
-      age: "",
+      dob: "",
       gender: "",
       bloodGroup: "",
       mobileNumber: "",
+      occupation: "",
       odishaHomeAddress: "",
       odishaDistrict: "",
       odishaCity: "",
-      odishaPinCode: "",  
+      odishaPinCode: "",
       currentAddress: "",
-      currentCity: "",
+      currentCountry: "",
       currentState: "",
-      currentPinCode: "", 
+      currentCity: "",
+      currentPinCode: "",
       interests: [],
-      occupation: "",
-      organization: "",
-      consent: false,
-      familyMembers: [],
+      aadharNumber: "",
+      familyMembers: [{ name: "", dob: "", relation: "" }],
     },
     mode: "onChange",
   });
@@ -129,8 +130,7 @@ export default function JoinCommunityPage() {
   const handleGoToStep = (step: number) => setCurrentStep(step);
 
   const handleSubmit = async () => {
-    // A user can return to an earlier step and change a value, so validate the
-    // complete form again before writing anything to the backend.
+    // Validate the complete form
     const isValid = await methods.trigger();
     if (!isValid) {
       toast.error("Please correct the highlighted required fields");
@@ -141,26 +141,43 @@ export default function JoinCommunityPage() {
     try {
       const data = methods.getValues();
       
+      // Calculate age from DOB
+      const calculateAge = (dob: string): number => {
+        if (!dob) return 0;
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        return age;
+      };
+
+      const age = calculateAge(data.dob);
+
       // Prepare profile data
       const profileData = {
         uid: user.uid,
         displayName: data.fullName,
         email: user.email || '',
-        mobileNumber: data.mobileNumber,
-        age: parseInt(data.age),
+        phoneNumber: data.mobileNumber,
+        age: age,
+        dob: data.dob,
         gender: data.gender,
         bloodGroup: data.bloodGroup,
+        occupation: data.occupation,
         odishaHomeAddress: data.odishaHomeAddress,
         odishaDistrict: data.odishaDistrict,
         odishaCity: data.odishaCity,
-        odishaPinCode: data.odishaPinCode, // FIXED
+        odishaPinCode: data.odishaPinCode,
         currentAddress: data.currentAddress,
-        currentCity: data.currentCity,
+        currentCountry: data.currentCountry,
         currentState: data.currentState,
-        currentPinCode: data.currentPinCode, // FIXED
-        occupation: data.occupation,
-        organization: data.organization,
+        currentCity: data.currentCity,
+        currentPinCode: data.currentPinCode,
         interests: data.interests,
+        aadharNumber: data.aadharNumber,
         familyMembers: data.familyMembers || [],
         hasJoinedCommunity: true,
         isVerified: false,
@@ -168,17 +185,6 @@ export default function JoinCommunityPage() {
 
       // Create user profile
       await userService.createUserProfile(user.uid, profileData);
-      
-      // Upload documents
-      if (data.aadharFront instanceof File) {
-        await userService.uploadDocument(user.uid, data.aadharFront, 'aadharFront');
-      }
-      if (data.aadharBack instanceof File) {
-        await userService.uploadDocument(user.uid, data.aadharBack, 'aadharBack');
-      }
-      if (data.voterId instanceof File) {
-        await userService.uploadDocument(user.uid, data.voterId, 'voterId');
-      }
 
       // Upload profile photo
       if (data.photo instanceof File) {
@@ -186,7 +192,7 @@ export default function JoinCommunityPage() {
       }
 
       setIsSuccess(true);
-      toast.success("Profile submitted successfully!");
+      toast.success("Profile submitted successfully! Our team will verify your details.");
     } catch (error: any) {
       toast.error(error.message || "Something went wrong. Please try again.");
       console.error("Submit error:", error);
@@ -195,8 +201,13 @@ export default function JoinCommunityPage() {
     }
   };
 
-  const handleGoHome = () => router.push('/');
-  const handleGoProfile = () => router.push('/profile');
+  const handleGoHome = () => {
+    router.push('/');
+  };
+
+  const handleGoProfile = () => {
+    router.push('/profile');
+  };
 
   const renderStep = () => {
     if (isSuccess) {
@@ -211,10 +222,8 @@ export default function JoinCommunityPage() {
       case 3: 
         return <Step3Interests onNext={handleNext} onBack={handleBack} />;
       case 4: 
-        return <Step4Documents onNext={handleNext} onBack={handleBack} />;
-      case 5: 
         return (
-          <Step5Review 
+          <Step4Review 
             onSubmit={handleSubmit} 
             onBack={handleBack} 
             onGoToStep={handleGoToStep} 

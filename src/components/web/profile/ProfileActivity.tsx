@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, CheckCircle2, Clock } from "lucide-react";
+import { CheckCircle2, Clock } from "lucide-react";
 
 interface ProfileActivityProps {
   profile: any;
@@ -9,11 +9,43 @@ interface ProfileActivityProps {
 export default function ProfileActivity({ profile }: ProfileActivityProps) {
   const activities = [];
 
+  // Format date to show Day, Month Date, Year (e.g., "Thursday, July 15, 2026")
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Recently";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch {
+      return "Recently";
+    }
+  };
+
+  // Format date for display (Month Year format)
+  const formatMonthYear = (dateString: string) => {
+    if (!dateString) return "Recently";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long' 
+      });
+    } catch {
+      return "Recently";
+    }
+  };
+
   if (profile.createdAt) {
     activities.push({
       icon: CheckCircle2,
       label: "Joined Prabasi Odia",
-      date: new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      date: formatDate(profile.createdAt),
+      monthYear: formatMonthYear(profile.createdAt),
+      fullDate: formatDate(profile.createdAt),
       color: "text-green-500"
     });
   }
@@ -22,7 +54,9 @@ export default function ProfileActivity({ profile }: ProfileActivityProps) {
     activities.push({
       icon: CheckCircle2,
       label: "Completed Community Registration",
-      date: profile.updatedAt ? new Date(profile.updatedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "Recently",
+      date: profile.updatedAt ? formatDate(profile.updatedAt) : "Recently",
+      monthYear: profile.updatedAt ? formatMonthYear(profile.updatedAt) : "Recently",
+      fullDate: profile.updatedAt ? formatDate(profile.updatedAt) : "Recently",
       color: "text-blue-500"
     });
   }
@@ -31,7 +65,9 @@ export default function ProfileActivity({ profile }: ProfileActivityProps) {
     activities.push({
       icon: CheckCircle2,
       label: "Identity Verified",
-      date: profile.verifiedAt ? new Date(profile.verifiedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "Recently",
+      date: profile.verifiedAt ? formatDate(profile.verifiedAt) : "Recently",
+      monthYear: profile.verifiedAt ? formatMonthYear(profile.verifiedAt) : "Recently",
+      fullDate: profile.verifiedAt ? formatDate(profile.verifiedAt) : "Recently",
       color: "text-purple-500"
     });
   }
@@ -48,7 +84,7 @@ export default function ProfileActivity({ profile }: ProfileActivityProps) {
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-sm">
       <h3 className="text-sm font-semibold text-[#2A1636] mb-4">📅 Activity</h3>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {activities.map((activity, index) => (
           <div key={index} className="flex items-start gap-3">
             <div className={`mt-0.5 p-1 rounded-full ${activity.color} bg-opacity-10`}>
@@ -56,8 +92,8 @@ export default function ProfileActivity({ profile }: ProfileActivityProps) {
             </div>
             <div>
               <p className="text-sm font-medium text-[#2A1636]">{activity.label}</p>
-              <p className="text-xs text-[#6B5E5A] flex items-center gap-1">
-                <Clock className="w-3 h-3" /> {activity.date}
+              <p className="text-xs text-[#6B5E5A] flex items-center gap-1 mt-0.5">
+                <Clock className="w-3 h-3" /> {activity.fullDate || activity.date || activity.monthYear}
               </p>
             </div>
           </div>

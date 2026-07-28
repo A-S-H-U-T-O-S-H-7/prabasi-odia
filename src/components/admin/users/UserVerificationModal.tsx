@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, User, Mail, MapPin, Phone, Calendar, Heart, Shield, 
@@ -29,12 +29,130 @@ export default function UserVerificationModal({
   onReject,
   isVerifying = false,
 }: UserVerificationModalProps) {
+  // ============================================
+  // ALL HOOKS FIRST - TOP LEVEL
+  // ============================================
   const { log } = useActivityLogger();
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [memberId, setMemberId] = useState("");
+  const [memberCount, setMemberCount] = useState(0);
+  const [isLoadingCount, setIsLoadingCount] = useState(false);
 
+  // ============================================
+  // FETCH MEMBER COUNT WHEN MODAL OPENS
+  // ============================================
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchMemberCount();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, user]);
+
+  // ============================================
+  // FUNCTIONS
+  // ============================================
+
+  // Fetch member count from Firestore
+  const fetchMemberCount = async () => {
+    setIsLoadingCount(true);
+    try {
+      const { collection, getDocs, query, where } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase/config');
+      
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('isVerified', '==', true));
+      const snapshot = await getDocs(q);
+      const count = snapshot.size + 1;
+      setMemberCount(count);
+      
+      if (user) {
+        const generatedId = generateMemberId(user, count);
+        setMemberId(generatedId);
+      }
+    } catch (error) {
+      console.error("Error fetching member count:", error);
+      if (user) {
+        const fallbackId = `26${user.displayName?.charAt(0) || 'O'}${user.displayName?.charAt(1) || 'D'}${user.age || 0}${Date.now().toString().slice(-5)}`;
+        setMemberId(fallbackId);
+      }
+    } finally {
+      setIsLoadingCount(false);
+    }
+  };
+
+  // Generate Member ID: Year(2-digit) + Initials + Age + Serial(5-digit)
+  const generateMemberId = (userData: UserData, count: number) => {
+    // Get current year (last 2 digits)
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    
+    // Get initials from name
+    const nameParts = userData.displayName?.split(" ") || [];
+    let initials = "";
+    if (nameParts.length >= 2) {
+      initials = nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase();
+    } else if (nameParts.length === 1) {
+      initials = nameParts[0].charAt(0).toUpperCase() + "X";
+    } else {
+      initials = "OD";
+    }
+    
+    // Get age
+    const age = userData.age || 0;
+    
+    // Serial number padded to 5 digits
+    const serial = String(count).padStart(5, "0");
+    
+    // Combine: Year + Initials + Age + Serial
+    return `${currentYear}${initials}${age}${serial}`;
+  };
+
+  // Regenerate member ID
+  const regenerateMemberId = () => {
+    if (user) {
+      const newId = generateMemberId(user, memberCount);
+      setMemberId(newId);
+    }
+  };
+
+  // Handle verification
+  const handleVerify = async () => {
+    const finalMemberId = memberId || generateMemberId(user!, memberCount);
+    
+    await log({
+      action: ActivityActions.VERIFY,
+      entityType: ActivityEntityTypes.USER,
+      entityId: user!.uid,
+      entityTitle: user!.displayName,
+      details: `Verified user ${user!.displayName} with member ID ${finalMemberId}`,
+    });
+    
+    onVerify(user!.uid, finalMemberId);
+  };
+
+  // Handle rejection
+  const handleReject = async () => {
+    const reason = rejectReason || "No reason provided";
+    
+    await log({
+      action: ActivityActions.REJECT,
+      entityType: ActivityEntityTypes.USER,
+      entityId: user!.uid,
+      entityTitle: user!.displayName,
+      details: `Rejected user ${user!.displayName}. Reason: ${reason}`,
+    });
+    
+    onReject(user!.uid, reason);
+  };
+
+  // ============================================
+  // EARLY RETURN - AFTER ALL HOOKS
+  // ============================================
   if (!user) return null;
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   const hasDocuments = user.documents && (
     user.documents.aadharFront ||
@@ -43,42 +161,11 @@ export default function UserVerificationModal({
     user.documents.profilePhoto
   );
 
-  // Document type labels and icons
   const documentLabels: Record<string, { label: string; icon: string }> = {
     profilePhoto: { label: "Profile Photo", icon: "📸" },
     aadharFront: { label: "Aadhar Front", icon: "🪪" },
     aadharBack: { label: "Aadhar Back", icon: "🪪" },
     voterId: { label: "Voter ID", icon: "🗳️" },
-  };
-
-  const handleVerify = async () => {
-    const generatedId = memberId || `OD${new Date().getFullYear().toString().slice(-2)}${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-    
-    // Log the action
-    await log({
-      action: ActivityActions.VERIFY,
-      entityType: ActivityEntityTypes.USER,
-      entityId: user.uid,
-      entityTitle: user.displayName,
-      details: `Verified user ${user.displayName} with member ID ${generatedId}`,
-    });
-    
-    onVerify(user.uid, generatedId);
-  };
-
-  const handleReject = async () => {
-    const reason = rejectReason || "No reason provided";
-    
-    // Log the action
-    await log({
-      action: ActivityActions.REJECT,
-      entityType: ActivityEntityTypes.USER,
-      entityId: user.uid,
-      entityTitle: user.displayName,
-      details: `Rejected user ${user.displayName}. Reason: ${reason}`,
-    });
-    
-    onReject(user.uid, reason);
   };
 
   return (
@@ -285,22 +372,42 @@ export default function UserVerificationModal({
                           <Shield className="w-4 h-4 text-[#6B1E5B]" /> Verification
                         </h4>
                         
-                        {/* Member ID Input */}
+                        {/* Member ID Input with Auto-generation info */}
                         <div className="mb-3">
-                          <label className="text-xs text-[#6B5E5A] block mb-1">Member ID (optional)</label>
-                          <input
-                            type="text"
-                            value={memberId}
-                            onChange={(e) => setMemberId(e.target.value)}
-                            placeholder="Auto-generated if left blank"
-                            className="w-full px-3 py-2 rounded-xl border border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
-                          />
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs text-[#6B5E5A]">Member ID</label>
+                            <button
+                              onClick={regenerateMemberId}
+                              className="text-xs text-[#6B1E5B] hover:text-[#531547] font-medium cursor-pointer flex items-center gap-1"
+                            >
+                              <span>⟳</span> Regenerate
+                            </button>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={memberId}
+                              onChange={(e) => setMemberId(e.target.value)}
+                              placeholder="Auto-generated"
+                              className="w-full px-3 py-2 rounded-xl border border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm font-mono"
+                            />
+                            {isLoadingCount && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Loader2 className="w-4 h-4 animate-spin text-[#6B5E5A]" />
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[#6B5E5A] mt-1">
+                            Format: Year(2-digit) + Name Initials + Age + Serial Number
+                            <br />
+                            <span className="text-[#6B1E5B]">Example: 26SD3000001</span>
+                          </p>
                         </div>
 
                         <div className="flex gap-3">
                           <button
                             onClick={handleVerify}
-                            disabled={isVerifying}
+                            disabled={isVerifying || isLoadingCount}
                             className="flex-1 py-2.5 rounded-xl bg-green-600 text-white font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                           >
                             {isVerifying ? (

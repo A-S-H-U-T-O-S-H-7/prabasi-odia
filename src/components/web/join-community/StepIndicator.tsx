@@ -17,7 +17,6 @@ export default function StepIndicator({ currentStep, totalSteps }: StepIndicator
     "Personal",
     "Address", 
     "Passions",
-    "Documents",
     "Review"
   ];
 

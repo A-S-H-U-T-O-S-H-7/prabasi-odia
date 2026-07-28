@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { CheckCircle, User, MapPin, Heart, Shield, Edit2, FileCheck, Loader2 } from "lucide-react";
+import { CheckCircle, User, MapPin, Heart, Edit2, FileCheck, Loader2, Shield, AlertCircle } from "lucide-react";
 
-interface Step5ReviewProps {
+interface Step4ReviewProps {
   onSubmit: () => void;
   onBack: () => void;
   onGoToStep: (step: number) => void;
@@ -47,14 +47,35 @@ function ReviewItem({ label, value }: { label: string; value: string | React.Rea
   );
 }
 
-export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting = false }: Step5ReviewProps) {
+export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting = false }: Step4ReviewProps) {
   const { watch } = useFormContext();
   const formData = watch();
 
+  // Calculate age from DOB
+  const calculateAge = (dob: string): number => {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const userAge = formData.dob ? calculateAge(formData.dob) : null;
+
   const familyMembers = formData.familyMembers || [];
   const familyDisplay = familyMembers.length > 0
-    ? familyMembers.map((m: any) => `${m.name} (${m.relation}, ${m.age}yrs)${m.occupation ? `, ${m.occupation}` : ''}`).join(', ')
-    : 'Not added';
+    ? familyMembers
+        .filter((m: any) => m.name)
+        .map((m: any) => {
+          const age = m.dob ? calculateAge(m.dob) : '—';
+          return `${m.name} (${m.relation}, ${age}yrs)`;
+        })
+        .join(', ')
+    : 'None added';
 
   const interestsMap: Record<string, string> = {
     volunteering: '🤝 Volunteering',
@@ -69,95 +90,93 @@ export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting
 
   const interestsDisplay = (formData.interests || []).map((i: string) => interestsMap[i] || i).join(', ') || 'None selected';
 
-  const hasAadharFront = formData.aadharFront instanceof File || formData.aadharFront;
-  const hasAadharBack = formData.aadharBack instanceof File || formData.aadharBack;
-  const hasVoterId = formData.voterId instanceof File || formData.voterId;
-
   const isOdishaPinValid = formData.odishaPinCode && formData.odishaPinCode.length === 6;
   const isCurrentPinValid = formData.currentPinCode && formData.currentPinCode.length === 6;
+  const isAadharValid = formData.aadharNumber && formData.aadharNumber.length === 12;
 
   const sections = [
     {
-      title: "👤 Personal Details",
+      title: "👤 Personal & Family",
       icon: <User className="w-3.5 h-3.5 text-[#6B1E5B]" />,
       step: 1,
       content: (
         <>
           <ReviewItem label="Full Name" value={formData.fullName || "—"} />
-          <ReviewItem label="Age" value={formData.age || "—"} />
+          <ReviewItem label="Date of Birth" value={formData.dob ? new Date(formData.dob).toLocaleDateString() : "—"} />
+          <ReviewItem label="Age" value={userAge !== null ? `${userAge} years` : "—"} />
           <ReviewItem label="Gender" value={formData.gender || "—"} />
           <ReviewItem label="Blood Group" value={formData.bloodGroup || "—"} />
-          <ReviewItem label="Family Members" value={familyDisplay} />
+          <ReviewItem label="Mobile Number" value={formData.mobileNumber || "—"} />
+          <ReviewItem label="Occupation" value={formData.occupation || "—"} />
           {formData.photo && <ReviewItem label="Photo" value="✅ Uploaded" />}
+          <ReviewItem label="Family Members" value={familyDisplay} />
         </>
       )
     },
     {
-      title: "📍 Your Roots",
+      title: "📍 Address",
       icon: <MapPin className="w-3.5 h-3.5 text-[#6B1E5B]" />,
       step: 2,
       content: (
         <>
-          <ReviewItem label="Odisha Home Address" value={formData.odishaHomeAddress || "—"} />
+          <div className="font-semibold text-[#6B1E5B] text-[10px] md:text-xs mt-1">Odisha Address</div>
+          <ReviewItem label="Home Address" value={formData.odishaHomeAddress || "—"} />
           <ReviewItem label="District" value={formData.odishaDistrict || "—"} />
           <ReviewItem label="City" value={formData.odishaCity || "—"} />
-          <ReviewItem 
-            label="PIN Code" 
-            value={
-              isOdishaPinValid 
-                ? formData.odishaPinCode 
-                : <span className="text-red-500 font-medium">⚠️ Incomplete</span>
-            } 
-          />
-          <div className="border-t border-[#D4C8C0]/10 my-1 md:my-2" />
-          <ReviewItem label="Current Address" value={formData.currentAddress || "—"} />
+          <ReviewItem label="PIN Code" value={isOdishaPinValid ? formData.odishaPinCode : <span className="text-red-500 font-medium">⚠️ Incomplete</span>} />
+          
+          <div className="font-semibold text-[#D9772B] text-[10px] md:text-xs mt-2">Current Address</div>
+          <ReviewItem label="Address" value={formData.currentAddress || "—"} />
+          <ReviewItem label="Country" value={formData.currentCountry || "—"} />
           <ReviewItem label="State" value={formData.currentState || "—"} />
           <ReviewItem label="City" value={formData.currentCity || "—"} />
-          <ReviewItem 
-            label="PIN Code" 
-            value={
-              isCurrentPinValid 
-                ? formData.currentPinCode 
-                : <span className="text-red-500 font-medium">⚠️ Incomplete</span>
-            } 
-          />
+          <ReviewItem label="PIN Code" value={isCurrentPinValid ? formData.currentPinCode : <span className="text-red-500 font-medium">⚠️ Incomplete</span>} />
         </>
       )
     },
     {
-      title: "💖 Your Passions",
+      title: "💖 Interests & Aadhar",
       icon: <Heart className="w-3.5 h-3.5 text-[#6B1E5B]" />,
       step: 3,
       content: (
         <>
           <ReviewItem label="Interests" value={interestsDisplay} />
-          <ReviewItem label="Occupation" value={formData.occupation || 'Not specified'} />
-          <ReviewItem label="Organization" value={formData.organization || 'Not specified'} />
-        </>
-      )
-    },
-    {
-      title: "🛡️ Documents",
-      icon: <Shield className="w-3.5 h-3.5 text-[#6B1E5B]" />,
-      step: 4,
-      content: (
-        <>
-          <ReviewItem label="Aadhar Front" value={hasAadharFront ? '✅ Uploaded' : '❌ Missing'} />
-          <ReviewItem label="Aadhar Back" value={hasAadharBack ? '✅ Uploaded' : '❌ Missing'} />
-          <ReviewItem label="Voter ID" value={hasVoterId ? '✅ Uploaded' : '❌ Missing'} />
-          <ReviewItem label="Consent" value={formData.consent ? '✅ Agreed' : '❌ Not agreed'} />
+          <ReviewItem 
+            label="Aadhar Number" 
+            value={
+              isAadharValid 
+                ? `✅ ${formData.aadharNumber}` 
+                : <span className="text-red-500 font-medium">⚠️ Invalid</span>
+            } 
+          />
+          {isAadharValid && (
+            <div className="flex items-center gap-1.5 mt-1 text-[10px] text-amber-600">
+              <Shield className="w-3 h-3" /> Will be verified by admin
+            </div>
+          )}
         </>
       )
     }
   ];
 
-  const isValid = formData.photo instanceof File && formData.fullName && formData.age && formData.gender &&
-    formData.bloodGroup && formData.odishaHomeAddress && formData.odishaDistrict &&
-    formData.odishaCity && isOdishaPinValid &&
-    formData.currentAddress && formData.currentState && formData.currentCity && isCurrentPinValid &&
+  const isValid = formData.photo instanceof File && 
+    formData.fullName && 
+    formData.dob && 
+    formData.gender && 
+    formData.bloodGroup && 
+    formData.mobileNumber && 
+    formData.occupation &&
+    formData.odishaHomeAddress && 
+    formData.odishaDistrict &&
+    formData.odishaCity && 
+    isOdishaPinValid &&
+    formData.currentAddress && 
+    formData.currentCountry && 
+    formData.currentState && 
+    formData.currentCity && 
+    isCurrentPinValid &&
     (formData.interests || []).length >= 2 &&
-    formData.occupation && formData.organization &&
-    hasAadharFront && hasAadharBack && hasVoterId && formData.consent;
+    isAadharValid;
 
   return (
     <motion.div
@@ -196,8 +215,10 @@ export default function Step5Review({ onSubmit, onBack, onGoToStep, isSubmitting
       <div className="flex flex-col gap-3 pt-4 border-t border-[#D4C8C0]/20">
         <button
           onClick={onSubmit}
-          disabled={isSubmitting}
-          className="w-full px-4 md:px-6 py-3 md:py-4 rounded-2xl text-white font-semibold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed text-sm md:text-base"
+          disabled={isSubmitting || !isValid}
+          className={`w-full px-4 md:px-6 py-3 md:py-4 rounded-2xl text-white font-semibold transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed text-sm md:text-base ${
+            !isValid && !isSubmitting ? 'bg-gray-400' : 'bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B]'
+          }`}
         >
           {isSubmitting ? (
             <>
