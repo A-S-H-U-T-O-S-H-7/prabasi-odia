@@ -109,8 +109,8 @@ export default function PartnersSection() {
 
   if (loading) {
     return (
-      <section className="py-12 md:py-16 px-4 bg-gradient-to-b from-[#FFF9F2] via-[#FDE8D0]/10 to-[#FFF9F2]">
-        <div className="max-w-8xl mx-auto">
+      <section className="py-8 md:py-10 px-4 bg-gradient-to-b from-[#FFF9F2] via-[#FDE8D0]/10 to-[#FFF9F2]">
+        <div className="max-w-8xl px-3 md:px-5 mx-auto">
           <div className="text-center mb-8">
             <div className="h-5 bg-gray-200 rounded w-48 mx-auto animate-pulse" />
             <div className="h-6 bg-gray-200 rounded w-64 mx-auto mt-2 animate-pulse" />
@@ -134,8 +134,8 @@ export default function PartnersSection() {
   }
 
   return (
-    <section className="py-12 md:py-16 px-4 bg-gradient-to-b from-[#FFF9F2] via-[#FDE8D0]/10 to-[#FFF9F2] overflow-hidden">
-      <div className="max-w-8xl mx-auto">
+    <section className="py-8 md:py-10 px-4 bg-gradient-to-b from-[#FFF9F2] via-[#FDE8D0]/10 to-[#FFF9F2] overflow-hidden">
+      <div className="max-w-8xl px-3 md:px-5 mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -221,9 +221,9 @@ export default function PartnersSection() {
               {/* Separator Line */}
               {partners.length > 1 && index < displayPartners.length - 1 && (
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  <div className="w-1 h-1 rounded-full bg-[#6B1E5B]/30" />
-                  <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#6B1E5B]/40 to-transparent" />
-                  <div className="w-1 h-1 rounded-full bg-[#6B1E5B]/30" />
+                  <div className="w-1 h-1 rounded-full bg-[#6B1E5B]/70" />
+                  <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#6B1E5B]/60 to-transparent" />
+                  <div className="w-1 h-1 rounded-full bg-[#6B1E5B]/70" />
                 </div>
               )}
             </div>
