@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import HeroContent from "./HeroContent";
+import LanguageSwitcher from "./Languageswitcher";
+
+declare global {
+  interface Window {
+    google: any;
+    googleTranslateElementInit: () => void;
+  }
+}
 
 export default function Hero() {
   const [isMobile, setIsMobile] = useState(false);
@@ -12,15 +20,57 @@ export default function Hero() {
       setIsMobile(window.innerWidth < 768);
     };
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Google Translate bootstrap — runs once
+  useEffect(() => {
+    // Patch removeChild/insertBefore so React doesn't crash when the
+    // widget rewrites text nodes that React still thinks it owns.
+    if (typeof Node === "function" && Node.prototype) {
+      const originalRemoveChild = Node.prototype.removeChild;
+      // @ts-ignore
+      Node.prototype.removeChild = function (child: any) {
+        if (child.parentNode !== this) return child;
+        return originalRemoveChild.apply(this, arguments as any);
+      };
+      const originalInsertBefore = Node.prototype.insertBefore;
+      // @ts-ignore
+      Node.prototype.insertBefore = function (newNode: any, referenceNode: any) {
+        if (referenceNode && referenceNode.parentNode !== this) return newNode;
+        return originalInsertBefore.apply(this, arguments as any);
+      };
+    }
+
+    if (document.getElementById("google-translate-script")) return;
+
+    window.googleTranslateElementInit = () => {
+      new window.google.translate.TranslateElement(
+        {
+          pageLanguage: "en",
+          includedLanguages: "en,or,hi",
+          autoDisplay: false,
+        },
+        "google_translate_element"
+      );
+    };
+
+    const script = document.createElement("script");
+    script.id = "google-translate-script";
+    script.src =
+      "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    script.async = true;
+    document.body.appendChild(script);
   }, []);
 
   return (
     <section className="relative overflow-hidden bg-[#FFF9F5]">
+      {/* Hidden mount point Google injects its real widget into */}
+      <div id="google_translate_element" className="hidden" />
+
       {/* Hero Container */}
       <div className="relative mx-auto min-h-[55vh] md:min-h-[75vh] w-full flex items-center">
-        
         {/* Background Image - Fixed positioning */}
         <div className="absolute inset-0 z-0">
           <Image
@@ -38,6 +88,11 @@ export default function Hero() {
 
         {/* Decorative Blur */}
         <div className="absolute left-[-180px] top-[-180px] z-10 h-[520px] w-[520px] rounded-full bg-orange-100 blur-[120px] opacity-60" />
+
+        {/* Language Switcher - top right */}
+        <div className="absolute right-4 top-4 sm:right-8 sm:top-6 z-30">
+          <LanguageSwitcher />
+        </div>
 
         {/* Content */}
         <div className="relative z-20 w-full">

@@ -6,9 +6,11 @@ import HeroButtons from "./HeroButtons";
 import AvatarGroup from "./AvatarGroup";
 import Stats from "./Stats";
 
+
 export default function HeroContent() {
   return (
     <div className="max-w-3xl py-4 sm:py-0">
+      
       {/* Badge */}
       <motion.div
         initial={{ opacity: 0, x: -25 }}
