@@ -183,3 +183,29 @@
     line-height: var(--text-body--line-height);
   }
 }
+
+/* ===== Google Translate Widget Overrides ===== */
+/* Hide the sticky top banner Google injects on language switch */
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+}
+
+/* Google pushes body down with an inline top offset to make room for
+   the banner above — force it back so the page doesn't leave a gap */
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+/* Hide the hover tooltip/highlight balloon on translated text */
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
