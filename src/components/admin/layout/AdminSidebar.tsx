@@ -7,6 +7,7 @@ import Image from "next/image";
 import {
   LayoutDashboard,
   Users,
+  UserPlus,
   Building2,
   CalendarDays,
   Megaphone,
@@ -19,17 +20,22 @@ import {
   Handshake,
   Star,
   UserCog,
+  Award,
+  Phone,
 } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 
 const navigationItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Registered Users", href: "/admin/registered-users", icon: UserPlus },
   { name: "Communities", href: "/admin/communities", icon: Building2 },
   { name: "Events", href: "/admin/events", icon: CalendarDays },
   { name: "Notices", href: "/admin/notices", icon: Megaphone },
   { name: "Contacts", href: "/admin/contact", icon: Mail },
   { name: "Partners", href: "/admin/partners", icon: Handshake },
+  { name: "Advisory Board", href: "/admin/advisory-board", icon: Award },
+  { name: "Emergency Contacts", href: "/admin/emergency-contacts", icon: Phone },
   { name: "Testimonials", href: "/admin/testimonials", icon: Star },
   { name: "Admin Management", href: "/admin/admins", icon: UserCog },
   { name: "Activity Logs", href: "/admin/activity", icon: Eye },
@@ -56,11 +62,14 @@ export default function AdminSidebar() {
     const permissions = admin?.permissions || [];
     if (item.name === "Dashboard") return true;
     if (item.name === "Users" && permissions.includes("users")) return true;
+    if (item.name === "Registered Users" && permissions.includes("users")) return true;
     if (item.name === "Communities" && permissions.includes("communities")) return true;
     if (item.name === "Events" && permissions.includes("events")) return true;
     if (item.name === "Notices" && permissions.includes("notices")) return true;
     if (item.name === "Contacts" && permissions.includes("contacts")) return true;
     if (item.name === "Partners" && permissions.includes("partners")) return true;
+    if (item.name === "Advisory Board" && permissions.includes("advisory_board")) return true;
+    if (item.name === "Emergency Contacts" && permissions.includes("emergency_contacts")) return true;
     if (item.name === "Testimonials" && permissions.includes("testimonials")) return true;
     if (item.name === "Admin Management" && permissions.includes("admins")) return true;
     if (item.name === "Activity Logs" && permissions.includes("activity")) return true;

@@ -279,6 +279,37 @@ export default function UserVerificationModal({
                       </div>
                     </div>
 
+                    {/* Nearby Community */}
+                    <div className="bg-white/60 rounded-xl p-4 border border-[#E7D7E8]/50">
+                      <h4 className="text-sm font-semibold text-[#2A1636] mb-2 flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-[#6B1E5B]" /> Nearby Community
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        {user.requestedCommunityName ? (
+                          <>
+                            <p className="text-[#D9772B] font-medium">⚠️ Community request pending</p>
+                            <p>
+                              <span className="text-[#6B5E5A]">Suggested name:</span>{" "}
+                              <span className="font-semibold text-[#2A1636]">{user.requestedCommunityName}</span>
+                            </p>
+                            <p className="text-xs text-[#6B5E5A] mt-1">
+                              Create this community manually from Communities, then add the member.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p>
+                              <span className="text-[#6B5E5A]">Community:</span>{" "}
+                              {user.nearbyCommunityName || "—"}
+                            </p>
+                            {user.communityRequestStatus === "joined" && (
+                              <p className="text-xs text-green-600 mt-1">✅ Auto-joined on registration</p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Professional */}
                     <div className="bg-white/60 rounded-xl p-4 border border-[#E7D7E8]/50">
                       <h4 className="text-sm font-semibold text-[#2A1636] mb-2 flex items-center gap-2">

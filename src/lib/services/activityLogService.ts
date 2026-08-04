@@ -41,6 +41,8 @@ export const ActivityEntityTypes = {
   DOCUMENT: 'document',
   TESTIMONIAL: 'testimonial',
   PARTNER:'partner',
+  ADVISORY_BOARD: 'advisory_board',
+  EMERGENCY_CONTACT: 'emergency_contact',
   CONTACT:'contact' 
 } as const;
 

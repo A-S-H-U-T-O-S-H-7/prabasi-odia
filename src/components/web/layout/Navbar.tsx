@@ -66,6 +66,7 @@ export default function Navbar() {
     { href: '/', label: 'Home', icon: Home },
     { href: '/communities', label: 'Communities', icon: Users },
     { href: '/events', label: 'Events', icon: Calendar },
+    { href: '/advisory-board', label: 'Advisory Board' },
     { href: '/about', label: 'About' },
   ];
 

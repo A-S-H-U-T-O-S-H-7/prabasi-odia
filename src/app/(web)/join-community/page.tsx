@@ -14,7 +14,9 @@ import Step2Address from "@/components/web/join-community/Step2Address";
 import Step3Interests from "@/components/web/join-community/Step3Interests";
 import Step4Review from "@/components/web/join-community/Step4Review";
 import SuccessPage from "@/components/web/join-community/SuccessPage";
+import { CANT_FIND_COMMUNITY } from "@/components/web/join-community/Step2Address";
 import { userService } from "@/lib/services/userService";
+import { publicCommunityService } from "@/lib/services/publicCommunityService";
 
 // ============================================
 // UPDATED SCHEMA - 4 Steps Only
@@ -44,12 +46,21 @@ const schema = z.object({
   
   currentAddress: z.string().min(5, "Current address is required"),
   currentCountry: z.string().min(2, "Country is required"),
-  currentState: z.string().min(2, "State is required"),
+  currentState: z.string()
+    .min(2, "State is required")
+    .refine(
+      (val) => !/^(odisha|orissa)$/i.test(val.trim()),
+      "Odisha cannot be selected as current address state"
+    ),
   currentCity: z.string().min(2, "Current city is required"),
   currentPinCode: z.string()
     .min(6, "Pin code must be 6 digits")
     .max(6, "Pin code must be 6 digits")
     .regex(/^[0-9]+$/, "Pin code must contain only numbers"),
+
+  nearbyCommunityId: z.string().min(1, "Please select your nearby community"),
+  nearbyCommunityName: z.string().optional(),
+  requestedCommunityName: z.string().optional(),
 
   // Step 3: Interests & Aadhar
   interests: z.array(z.string()).min(2, "Please select at least 2 interests"),
@@ -60,6 +71,16 @@ const schema = z.object({
 
   // Family Members (optional - handled separately)
   familyMembers: z.array(z.any()).optional(),
+}).superRefine((data, ctx) => {
+  if (data.nearbyCommunityId === CANT_FIND_COMMUNITY) {
+    if (!data.requestedCommunityName || data.requestedCommunityName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please enter your community name",
+        path: ["requestedCommunityName"],
+      });
+    }
+  }
 });
 
 type FormData = z.infer<typeof schema>;
@@ -99,6 +120,9 @@ export default function JoinCommunityPage() {
       currentState: "",
       currentCity: "",
       currentPinCode: "",
+      nearbyCommunityId: "",
+      nearbyCommunityName: "",
+      requestedCommunityName: "",
       interests: [],
       aadharNumber: "",
       familyMembers: [{ name: "", dob: "", relation: "" }],
@@ -155,6 +179,14 @@ export default function JoinCommunityPage() {
       };
 
       const age = calculateAge(data.dob);
+      const isCommunityRequest = data.nearbyCommunityId === CANT_FIND_COMMUNITY;
+      const selectedCommunityId = isCommunityRequest ? null : data.nearbyCommunityId;
+      const selectedCommunityName = isCommunityRequest
+        ? null
+        : (data.nearbyCommunityName || null);
+      const requestedCommunityName = isCommunityRequest
+        ? (data.requestedCommunityName || "").trim()
+        : null;
 
       // Prepare profile data
       const profileData = {
@@ -176,6 +208,10 @@ export default function JoinCommunityPage() {
         currentState: data.currentState,
         currentCity: data.currentCity,
         currentPinCode: data.currentPinCode,
+        nearbyCommunityId: selectedCommunityId,
+        nearbyCommunityName: selectedCommunityName,
+        requestedCommunityName,
+        communityRequestStatus: isCommunityRequest ? 'pending' : (selectedCommunityId ? 'joined' : null),
         interests: data.interests,
         aadharNumber: data.aadharNumber,
         familyMembers: data.familyMembers || [],
@@ -191,8 +227,21 @@ export default function JoinCommunityPage() {
         await userService.uploadDocument(user.uid, data.photo, 'profilePhoto');
       }
 
+      // Auto-join selected nearby community
+      if (selectedCommunityId) {
+        const joinResult = await publicCommunityService.joinCommunity(selectedCommunityId, user.uid);
+        if (!joinResult.success && joinResult.error !== 'Already a member') {
+          console.error("Failed to join community:", joinResult.error);
+          toast.error("Profile saved, but community join failed. Admin can add you later.");
+        }
+      }
+
       setIsSuccess(true);
-      toast.success("Profile submitted successfully! Our team will verify your details.");
+      toast.success(
+        isCommunityRequest
+          ? "Profile submitted! Your community request will be reviewed by admin."
+          : "Profile submitted successfully! Our team will verify your details."
+      );
     } catch (error: any) {
       toast.error(error.message || "Something went wrong. Please try again.");
       console.error("Submit error:", error);

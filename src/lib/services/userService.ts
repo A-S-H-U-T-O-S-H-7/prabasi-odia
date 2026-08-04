@@ -26,6 +26,10 @@ export interface UserProfileData {
   currentCity: string;
   currentState: string;
   currentPinCode: string;
+  nearbyCommunityId?: string | null;
+  nearbyCommunityName?: string | null;
+  requestedCommunityName?: string | null;
+  communityRequestStatus?: 'pending' | 'joined' | 'created' | null;
   occupation?: string;
   organization?: string;
   interests: string[];

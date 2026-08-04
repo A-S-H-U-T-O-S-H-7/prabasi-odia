@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import Navbar from '@/components/web/layout/Navbar';
 import Footer from '@/components/web/layout/Footer';
+import EmergencyContactWidget from '@/components/web/EmergencyContactWidget';
 import { TranslationProvider } from '@/components/web/translation/TranslationProvider';
 
 export default function WebLayout({
@@ -19,6 +20,8 @@ export default function WebLayout({
         </motion.main>
         <Footer/>
       </div>
+      {/* Outside translation root so open/close is never rewritten by translator */}
+      <EmergencyContactWidget />
     </TranslationProvider>
   );
 }

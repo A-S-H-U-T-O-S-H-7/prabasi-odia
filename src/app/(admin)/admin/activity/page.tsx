@@ -23,7 +23,11 @@ import {
   CalendarDays,
   Megaphone,
   Shield,
-  ArrowLeft
+  ArrowLeft,
+  Award,
+  Handshake,
+  Mail,
+  Phone
 } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { 
@@ -91,6 +95,11 @@ const entityOptions = [
   { value: ActivityEntityTypes.COMMUNITY, label: 'Community' },
   { value: ActivityEntityTypes.EVENT, label: 'Event' },
   { value: ActivityEntityTypes.NOTICE, label: 'Notice' },
+  { value: ActivityEntityTypes.PARTNER, label: 'Partner' },
+  { value: ActivityEntityTypes.ADVISORY_BOARD, label: 'Advisory Board' },
+  { value: ActivityEntityTypes.EMERGENCY_CONTACT, label: 'Emergency Contact' },
+  { value: ActivityEntityTypes.TESTIMONIAL, label: 'Testimonial' },
+  { value: ActivityEntityTypes.CONTACT, label: 'Contact' },
   { value: ActivityEntityTypes.SETTINGS, label: 'Settings' },
   { value: ActivityEntityTypes.DOCUMENT, label: 'Document' },
 ];
@@ -104,6 +113,11 @@ const getEntityTypeLabel = (entityType: string): string => {
     [ActivityEntityTypes.NOTICE]: "Notice",
     [ActivityEntityTypes.SETTINGS]: "Settings",
     [ActivityEntityTypes.DOCUMENT]: "Document",
+    [ActivityEntityTypes.PARTNER]: "Partner",
+    [ActivityEntityTypes.ADVISORY_BOARD]: "Advisory Board",
+    [ActivityEntityTypes.EMERGENCY_CONTACT]: "Emergency Contact",
+    [ActivityEntityTypes.TESTIMONIAL]: "Testimonial",
+    [ActivityEntityTypes.CONTACT]: "Contact",
   };
   return labels[entityType] || entityType;
 };
@@ -117,6 +131,11 @@ const getEntityTypeColor = (entityType: string): string => {
     [ActivityEntityTypes.NOTICE]: "text-orange-500",
     [ActivityEntityTypes.SETTINGS]: "text-gray-500",
     [ActivityEntityTypes.DOCUMENT]: "text-yellow-500",
+    [ActivityEntityTypes.PARTNER]: "text-teal-500",
+    [ActivityEntityTypes.ADVISORY_BOARD]: "text-amber-600",
+    [ActivityEntityTypes.EMERGENCY_CONTACT]: "text-red-500",
+    [ActivityEntityTypes.TESTIMONIAL]: "text-pink-500",
+    [ActivityEntityTypes.CONTACT]: "text-cyan-500",
   };
   return colors[entityType] || "text-gray-500";
 };
@@ -128,6 +147,11 @@ const getEntityIcon = (entityType: string): any => {
     [ActivityEntityTypes.COMMUNITY]: Building2,
     [ActivityEntityTypes.EVENT]: CalendarDays,
     [ActivityEntityTypes.NOTICE]: Megaphone,
+    [ActivityEntityTypes.PARTNER]: Handshake,
+    [ActivityEntityTypes.ADVISORY_BOARD]: Award,
+    [ActivityEntityTypes.EMERGENCY_CONTACT]: Phone,
+    [ActivityEntityTypes.TESTIMONIAL]: Star,
+    [ActivityEntityTypes.CONTACT]: Mail,
   };
   return icons[entityType] || FileText;
 };

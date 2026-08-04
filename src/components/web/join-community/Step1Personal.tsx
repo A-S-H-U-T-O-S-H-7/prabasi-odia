@@ -40,7 +40,24 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
 
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => {
     const savedMembers = getValues("familyMembers") as FamilyMember[] | undefined;
-    return savedMembers?.length ? savedMembers : [{ id: "1", name: "", dob: "", relation: "" }];
+    if (savedMembers?.length) {
+      const seen = new Set<string>();
+      return savedMembers.map((member, index) => {
+        let id = member.id || `family-${index}-${Date.now()}`;
+        if (seen.has(id)) {
+          id = `family-${index}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        }
+        seen.add(id);
+        return {
+          ...member,
+          id,
+          name: member.name || "",
+          dob: member.dob || "",
+          relation: member.relation || "",
+        };
+      });
+    }
+    return [{ id: `family-0-${Date.now()}`, name: "", dob: "", relation: "" }];
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -420,10 +437,11 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
           {familyMembers.map((member, index) => {
             const age = getFamilyMemberAge(member.dob);
             const isAdult = age >= 18 && member.dob;
+            const memberKey = member.id || `family-fallback-${index}`;
             
             return (
               <motion.div
-                key={member.id}
+                key={memberKey}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="relative grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-white/60 border border-[#D4C8C0]/30"
@@ -431,7 +449,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 <input
                   placeholder="Name"
                   value={member.name}
-                  onChange={(e) => updateFamilyMember(member.id, "name", e.target.value)}
+                  onChange={(e) => updateFamilyMember(memberKey, "name", e.target.value)}
                   className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
                 />
                 <div className="relative">
@@ -439,7 +457,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                     type="date"
                     placeholder="DOB"
                     value={member.dob}
-                    onChange={(e) => updateFamilyMember(member.id, "dob", e.target.value)}
+                    onChange={(e) => updateFamilyMember(memberKey, "dob", e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
                   />
                   {member.dob && (
@@ -455,7 +473,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 </div>
                 <select
                   value={member.relation}
-                  onChange={(e) => updateFamilyMember(member.id, "relation", e.target.value)}
+                  onChange={(e) => updateFamilyMember(memberKey, "relation", e.target.value)}
                   className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm appearance-none"
                 >
                   <option value="">Relation</option>
@@ -464,7 +482,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 {familyMembers.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => removeFamilyMember(member.id)}
+                    onClick={() => removeFamilyMember(memberKey)}
                     className="absolute -top-2 -right-2 p-1.5 rounded-full bg-white border border-[#D4C8C0]/40 text-[#6B5E5A] hover:text-red-500 hover:border-red-200 shadow-sm"
                   >
                     <X className="w-4 h-4" />

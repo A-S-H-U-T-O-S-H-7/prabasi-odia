@@ -131,6 +131,19 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
           <ReviewItem label="State" value={formData.currentState || "—"} />
           <ReviewItem label="City" value={formData.currentCity || "—"} />
           <ReviewItem label="PIN Code" value={isCurrentPinValid ? formData.currentPinCode : <span className="text-red-500 font-medium">⚠️ Incomplete</span>} />
+
+          <div className="font-semibold text-[#6B1E5B] text-[10px] md:text-xs mt-2">Nearby Community</div>
+          <ReviewItem
+            label="Community"
+            value={
+              formData.nearbyCommunityId === "__cant_find__"
+                ? "Can't find nearby community"
+                : (formData.nearbyCommunityName || "—")
+            }
+          />
+          {formData.nearbyCommunityId === "__cant_find__" && (
+            <ReviewItem label="Suggested Name" value={formData.requestedCommunityName || "—"} />
+          )}
         </>
       )
     },
@@ -175,6 +188,8 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
     formData.currentState && 
     formData.currentCity && 
     isCurrentPinValid &&
+    formData.nearbyCommunityId &&
+    (formData.nearbyCommunityId !== "__cant_find__" || (formData.requestedCommunityName || "").trim().length >= 2) &&
     (formData.interests || []).length >= 2 &&
     isAadharValid;
 

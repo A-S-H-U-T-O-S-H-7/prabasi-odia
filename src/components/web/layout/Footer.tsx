@@ -19,6 +19,7 @@ const footerLinks = {
   Community: [
     { label: "Communities", href: "/communities" },
     { label: "Events", href: "/events" },
+    { label: "Advisory Board", href: "/advisory-board" },
     { label: "About Us", href: "/about" },
   ],
   Support: [

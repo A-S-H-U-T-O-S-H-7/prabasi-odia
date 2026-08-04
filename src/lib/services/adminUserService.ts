@@ -4,14 +4,8 @@ import {
   getDocs, 
   getDoc, 
   doc, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  startAfter,
   updateDoc,
   deleteDoc,
-  Timestamp 
 } from 'firebase/firestore';
 
 export interface UserData {
@@ -31,6 +25,10 @@ export interface UserData {
   currentCity?: string;
   currentState?: string;
   currentPinCode?: string;
+  nearbyCommunityId?: string | null;
+  nearbyCommunityName?: string | null;
+  requestedCommunityName?: string | null;
+  communityRequestStatus?: 'pending' | 'joined' | 'created' | null;
   occupation?: string;
   organization?: string;
   interests?: string[];
@@ -52,10 +50,28 @@ export interface UserData {
 }
 
 export const adminUserService = {
-  // Get all users with pagination
+  // Map Firestore docs → UserData (avoids composite index issues via client filter)
+  _mapUserDoc(docSnap: { id: string; data: () => Record<string, any> }): UserData {
+    const data = docSnap.data();
+    return {
+      ...data,
+      uid: docSnap.id,
+      documents: data.documents || {},
+    } as UserData;
+  },
+
+  _sortByCreatedAtDesc(users: UserData[]) {
+    return users.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  },
+
+  // Get joining-form community members (hasJoinedCommunity === true)
   async getUsers(
     limitCount: number = 10,
-    lastDoc?: any,
+    _lastDoc?: any,
     filters?: {
       search?: string;
       status?: 'all' | 'pending' | 'verified';
@@ -63,56 +79,114 @@ export const adminUserService = {
     }
   ) {
     try {
-      let q = query(
-        collection(db, 'users'),
-        orderBy('createdAt', 'desc'),
-        limit(limitCount)
-      );
+      const snapshot = await getDocs(collection(db, 'users'));
+      let users = snapshot.docs
+        .map((d) => this._mapUserDoc(d))
+        .filter((u) => u.hasJoinedCommunity);
 
-      // Apply status filter
       if (filters?.status === 'pending') {
-        q = query(
-          collection(db, 'users'),
-          where('hasJoinedCommunity', '==', true),
-          where('isVerified', '==', false),
-          orderBy('createdAt', 'desc'),
-          limit(limitCount)
-        );
+        users = users.filter((u) => !u.isVerified);
       } else if (filters?.status === 'verified') {
-        q = query(
-          collection(db, 'users'),
-          where('isVerified', '==', true),
-          orderBy('createdAt', 'desc'),
-          limit(limitCount)
-        );
+        users = users.filter((u) => u.isVerified);
       }
 
-      // Apply pagination
-      if (lastDoc) {
-        q = query(q, startAfter(lastDoc));
-      }
-
-      const snapshot = await getDocs(q);
-      const users = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-          uid: doc.id,
-          // Ensure documents is always an object
-          documents: data.documents || {},
-        } as UserData;
-      });
-
-      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      users = this._sortByCreatedAtDesc(users).slice(0, limitCount);
 
       return {
         users,
-        lastVisible,
-        hasMore: snapshot.docs.length === limitCount,
+        lastVisible: null,
+        hasMore: false,
       };
     } catch (error) {
       console.error('Error fetching users:', error);
       return { users: [], lastVisible: null, hasMore: false };
+    }
+  },
+
+  // Get all registered/signup users (regardless of joining form)
+  async getRegisteredUsers(
+    limitCount: number = 20,
+    _lastDoc?: any,
+    filters?: {
+      status?: 'all' | 'joined' | 'signup_only';
+    }
+  ) {
+    try {
+      const snapshot = await getDocs(collection(db, 'users'));
+      let users = snapshot.docs.map((d) => this._mapUserDoc(d));
+
+      if (filters?.status === 'joined') {
+        users = users.filter((u) => u.hasJoinedCommunity);
+      } else if (filters?.status === 'signup_only') {
+        users = users.filter((u) => !u.hasJoinedCommunity);
+      }
+
+      users = this._sortByCreatedAtDesc(users).slice(0, limitCount);
+
+      return {
+        users,
+        lastVisible: null,
+        hasMore: false,
+      };
+    } catch (error) {
+      console.error('Error fetching registered users:', error);
+      return { users: [], lastVisible: null, hasMore: false };
+    }
+  },
+
+  async getRegisteredUserStats() {
+    try {
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+
+      let total = 0;
+      let joined = 0;
+      let signupOnly = 0;
+
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        total++;
+        if (data.hasJoinedCommunity) {
+          joined++;
+        } else {
+          signupOnly++;
+        }
+      });
+
+      return { total, joined, signupOnly };
+    } catch (error) {
+      console.error('Error fetching registered user stats:', error);
+      return { total: 0, joined: 0, signupOnly: 0 };
+    }
+  },
+
+  async searchRegisteredUsers(searchTerm: string) {
+    try {
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+
+      const results: UserData[] = [];
+      const term = searchTerm.toLowerCase();
+
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (
+          data.displayName?.toLowerCase().includes(term) ||
+          data.email?.toLowerCase().includes(term) ||
+          data.memberId?.toLowerCase().includes(term)
+        ) {
+          results.push({
+            ...data,
+            uid: doc.id,
+            documents: data.documents || {},
+          } as UserData);
+        }
+      });
+
+      return { success: true, users: results };
+    } catch (error) {
+      console.error('Error searching registered users:', error);
+      return { success: false, error: 'Error searching registered users', users: [] as UserData[] };
     }
   },
 
@@ -172,7 +246,7 @@ export const adminUserService = {
     }
   },
 
-  // Get user stats
+  // Get joining-form member stats
   async getUserStats() {
     try {
       const usersRef = collection(db, 'users');
@@ -184,8 +258,9 @@ export const adminUserService = {
       
       snapshot.docs.forEach(doc => {
         const data = doc.data();
+        if (!data.hasJoinedCommunity) return;
         total++;
-        if (data.hasJoinedCommunity && !data.isVerified) pending++;
+        if (!data.isVerified) pending++;
         if (data.isVerified) verified++;
       });
 
@@ -206,7 +281,7 @@ export const adminUserService = {
     }
   },
 
-  // Search users
+  // Search joining-form members
   async searchUsers(searchTerm: string) {
     try {
       const usersRef = collection(db, 'users');
@@ -217,6 +292,7 @@ export const adminUserService = {
       
       snapshot.docs.forEach(doc => {
         const data = doc.data();
+        if (!data.hasJoinedCommunity) return;
         if (
           data.displayName?.toLowerCase().includes(term) ||
           data.email?.toLowerCase().includes(term) ||
