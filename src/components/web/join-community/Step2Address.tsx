@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useLocationData } from "@/hooks/useLocationData";
 import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCommunityService";
+import { geocodeLocation } from "@/lib/utils/locationGeocode";
 
 export const CANT_FIND_COMMUNITY = "__cant_find__";
 
@@ -32,14 +33,16 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
   const [communities, setCommunities] = useState<PublicCommunity[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
+  // ✅ FIX: Single watch() call for better performance
   const formData = watch();
-  const nearbyCommunityId = watch("nearbyCommunityId");
-  const currentState = watch("currentState");
-  const currentCountry = watch("currentCountry");
-  const currentCity = watch("currentCity");
-  const currentLatitude = watch("currentLatitude");
-  const currentLongitude = watch("currentLongitude");
+  const nearbyCommunityId = formData.nearbyCommunityId || "";
+  const currentState = formData.currentState;
+  const currentCountry = formData.currentCountry;
+  const currentCity = formData.currentCity;
+  const currentLatitude = formData.currentLatitude;
+  const currentLongitude = formData.currentLongitude;
   const showRequestedCommunity = nearbyCommunityId === CANT_FIND_COMMUNITY;
 
   const { countries, states, cities, loading } = useLocationData({
@@ -47,27 +50,35 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
     state: formData.currentState || ''
   });
 
-  // Prabasi = living outside Odisha — exclude Odisha/Orissa from current address states
   const availableStates = useMemo(
     () => states.filter((state) => !isOdishaState(state.name)),
     [states]
   );
 
+  // Load communities
   useEffect(() => {
     let cancelled = false;
     const loadCommunities = async () => {
       setLoadingCommunities(true);
-      const result = await publicCommunityService.getActiveCommunities();
-      if (!cancelled) {
-        setCommunities(result.communities || []);
-        setLoadingCommunities(false);
+      try {
+        const result = await publicCommunityService.getActiveCommunities();
+        if (!cancelled) {
+          setCommunities(result.communities || []);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingCommunities(false);
+        }
       }
     };
+
     loadCommunities();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Clear Odisha if somehow selected (e.g. restored form value)
+  // Clear Odisha if selected
   useEffect(() => {
     if (currentState && isOdishaState(currentState)) {
       setValue("currentState", "", { shouldValidate: true });
@@ -78,30 +89,37 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
     }
   }, [currentState, setValue]);
 
+  // Geocode when city/state/country changes
   useEffect(() => {
     const canGeocode = currentCity && currentState && currentCountry;
     if (!canGeocode) {
       setValue("currentLatitude", undefined);
       setValue("currentLongitude", undefined);
+      setGeocodeError(null);
       return;
     }
 
     const timer = setTimeout(async () => {
       try {
         setIsGeocoding(true);
-        const query = encodeURIComponent(`${currentCity}, ${currentState}, ${currentCountry}`);
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`);
-        const data = await response.json();
+        setGeocodeError(null);
+        const result = await geocodeLocation({
+          city: currentCity,
+          state: currentState,
+          country: currentCountry,
+        });
 
-        if (Array.isArray(data) && data.length > 0) {
-          setValue("currentLatitude", Number(data[0].lat), { shouldValidate: false });
-          setValue("currentLongitude", Number(data[0].lon), { shouldValidate: false });
+        if (result) {
+          setValue("currentLatitude", result.lat, { shouldValidate: false });
+          setValue("currentLongitude", result.lng, { shouldValidate: false });
         } else {
           setValue("currentLatitude", undefined);
           setValue("currentLongitude", undefined);
+          setGeocodeError("Could not find coordinates for this location. Please check your address.");
         }
       } catch (error) {
         console.error("Geocoding failed:", error);
+        setGeocodeError("Geocoding failed. Please try again.");
       } finally {
         setIsGeocoding(false);
       }
@@ -110,16 +128,22 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
     return () => clearTimeout(timer);
   }, [currentCity, currentState, currentCountry, setValue]);
 
-  // Keep selected community name in sync for review/submit
+  // Community name sync
   useEffect(() => {
     if (!nearbyCommunityId || nearbyCommunityId === CANT_FIND_COMMUNITY) {
-      setValue("nearbyCommunityName", "");
+      setValue("nearbyCommunityName", "", { shouldValidate: false });
+      if (nearbyCommunityId === CANT_FIND_COMMUNITY) {
+        setValue("requestedCommunityName", formData.requestedCommunityName || "", { shouldValidate: false });
+      } else {
+        setValue("requestedCommunityName", "", { shouldValidate: false });
+      }
       return;
     }
-    const selected = communities.find((c) => c.id === nearbyCommunityId);
-    setValue("nearbyCommunityName", selected?.name || "");
-    setValue("requestedCommunityName", "");
-  }, [nearbyCommunityId, communities, setValue]);
+
+    const selected = communities.find((community) => community.id === nearbyCommunityId);
+    setValue("nearbyCommunityName", selected?.name || "", { shouldValidate: false });
+    setValue("requestedCommunityName", "", { shouldValidate: false });
+  }, [nearbyCommunityId, communities, setValue, formData.requestedCommunityName]);
 
   const fields = [
     "odishaHomeAddress", "odishaDistrict", "odishaCity", "odishaPinCode",
@@ -173,7 +197,6 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       transition={{ duration: 0.4 }}
       className="space-y-5 md:space-y-6"
     >
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center flex-shrink-0">
           <MapPin className="w-4 h-4 text-[#6B1E5B]" />
@@ -301,9 +324,23 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             </select>
             {loading.cities && <p className="text-xs text-[#6B5E5A] mt-1">Loading cities...</p>}
             <ErrorMessage name="currentCity" />
-            {isGeocoding && <p className="text-xs text-[#6B5E5A] mt-1">Fetching map coordinates...</p>}
-            {!isGeocoding && currentLatitude && currentLongitude && (
-              <p className="text-xs text-emerald-700 mt-1">Coordinates captured for map display</p>
+            
+            {/* ✅ FIX: Geocoding loading state */}
+            {isGeocoding && (
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-3 h-3 border-2 border-[#6B1E5B] border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs text-[#6B5E5A]">Fetching map coordinates...</p>
+              </div>
+            )}
+            
+            {/* ✅ FIX: Geocoding success state */}
+            {!isGeocoding && currentLatitude && currentLongitude && !geocodeError && (
+              <p className="text-xs text-emerald-700 mt-1">✅ Coordinates captured for map display</p>
+            )}
+            
+            {/* ✅ FIX: Geocoding error state */}
+            {geocodeError && (
+              <p className="text-xs text-amber-600 mt-1">⚠️ {geocodeError}</p>
             )}
           </div>
 
@@ -333,9 +370,9 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
               disabled={loadingCommunities}
             >
               <option value="">
-                {loadingCommunities ? "Loading communities..." : "Select your nearby community"}
+                {loadingCommunities ? "Loading communities..." : communities.length > 0 ? "Select your nearby community" : "No communities available"}
               </option>
-              {communities.map((community) => (
+              {communities.length > 0 && communities.map((community) => (
                 <option key={community.id} value={community.id}>
                   {community.name}
                   {community.city ? ` — ${community.city}` : ""}
@@ -344,6 +381,11 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
               ))}
               <option value={CANT_FIND_COMMUNITY}>Can&apos;t find nearby community</option>
             </select>
+            {!loadingCommunities && communities.length === 0 && (
+              <p className="text-xs text-[#6B5E5A] mt-1">
+                No communities are available yet. You can request a new one below.
+              </p>
+            )}
             <ErrorMessage name="nearbyCommunityId" />
             {!showRequestedCommunity && nearbyCommunityId && (
               <p className="text-xs text-[#6B1E5B] mt-1">
@@ -378,9 +420,9 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
         </div>
       </div>
 
-      {/* Navigation Buttons */}
       <input type="hidden" {...register("currentLatitude", { valueAsNumber: true })} />
       <input type="hidden" {...register("currentLongitude", { valueAsNumber: true })} />
+      
       <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6">
         <button onClick={onBack} className="px-6 py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer">
           ← Back

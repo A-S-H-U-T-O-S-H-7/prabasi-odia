@@ -1,12 +1,13 @@
 import { db } from '@/lib/firebase/config';
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
+import {
+  collection,
+  getDocs,
+  getDoc,
+  doc,
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore';
+import { adminCommunityService } from './adminCommunityService';
 
 export interface UserData {
   uid: string;
@@ -216,12 +217,49 @@ export const adminUserService = {
   async verifyUser(uid: string, memberId: string) {
     try {
       const docRef = doc(db, 'users', uid);
-      await updateDoc(docRef, {
+      const userDoc = await getDoc(docRef);
+
+      if (!userDoc.exists()) {
+        return { success: false, error: 'User not found' };
+      }
+
+      const userData = userDoc.data();
+      const updates: Record<string, any> = {
         isVerified: true,
-        memberId: memberId,
+        hasJoinedCommunity: true,
+        memberId,
         verifiedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      });
+      };
+
+      if (userData.communityRequestStatus === 'pending' && userData.requestedCommunityName) {
+        const requestedName = String(userData.requestedCommunityName).trim();
+        const createdCommunityResult = await adminCommunityService.createCommunity({
+          name: requestedName,
+          city: userData.currentCity || userData.odishaCity || '',
+          state: userData.currentState || '',
+          description: `Community requested by ${userData.displayName || 'a member'}`,
+          createdBy: 'admin',
+        });
+
+        if (createdCommunityResult.success && createdCommunityResult.id) {
+          await adminCommunityService.addMemberToCommunity(createdCommunityResult.id, uid);
+          updates.communityRequestStatus = 'created';
+          updates.nearbyCommunityId = createdCommunityResult.id;
+          updates.nearbyCommunityName = requestedName;
+          updates.requestedCommunityName = null;
+        } else {
+          updates.communityRequestStatus = 'pending';
+        }
+      } else if (userData.nearbyCommunityId) {
+        await adminCommunityService.addMemberToCommunity(userData.nearbyCommunityId, uid);
+        updates.communityRequestStatus = userData.communityRequestStatus || 'joined';
+        updates.nearbyCommunityName = userData.nearbyCommunityName || updates.nearbyCommunityName;
+      } else if (userData.communityRequestStatus === 'joined') {
+        updates.communityRequestStatus = 'joined';
+      }
+
+      await updateDoc(docRef, updates);
       return { success: true };
     } catch (error) {
       console.error('Error verifying user:', error);
@@ -233,12 +271,19 @@ export const adminUserService = {
   async rejectUser(uid: string, reason: string) {
     try {
       const docRef = doc(db, 'users', uid);
-      await updateDoc(docRef, {
+      const userDoc = await getDoc(docRef);
+      const updates: Record<string, any> = {
         isVerified: false,
         rejectionReason: reason,
         rejectedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      });
+      };
+
+      if (userDoc.exists() && userDoc.data().communityRequestStatus === 'pending') {
+        updates.communityRequestStatus = null;
+      }
+
+      await updateDoc(docRef, updates);
       return { success: true };
     } catch (error) {
       console.error('Error rejecting user:', error);

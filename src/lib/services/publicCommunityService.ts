@@ -26,7 +26,6 @@ export interface PublicCommunity {
 }
 
 export const publicCommunityService = {
-  // Get all active communities
   async getActiveCommunities() {
     try {
       const q = query(
@@ -60,7 +59,6 @@ export const publicCommunityService = {
     }
   },
 
-  // Get community by ID
   async getCommunityById(id: string) {
     try {
       const docRef = doc(db, 'communities', id);
@@ -92,7 +90,6 @@ export const publicCommunityService = {
     }
   },
 
-  // Join community
   async joinCommunity(communityId: string, userId: string) {
     try {
       const docRef = doc(db, 'communities', communityId);
@@ -122,7 +119,6 @@ export const publicCommunityService = {
     }
   },
 
-  // Leave community
   async leaveCommunity(communityId: string, userId: string) {
     try {
       const docRef = doc(db, 'communities', communityId);
@@ -152,7 +148,6 @@ export const publicCommunityService = {
     }
   },
 
-  // Check if user is member
   async isUserMember(communityId: string, userId: string) {
     try {
       const docRef = doc(db, 'communities', communityId);
@@ -172,7 +167,6 @@ export const publicCommunityService = {
     }
   },
 
-  // Get communities by city
   async getCommunitiesByCity(city: string) {
     try {
       const q = query(

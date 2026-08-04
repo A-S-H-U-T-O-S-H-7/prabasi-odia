@@ -13,19 +13,37 @@ export interface MapMember {
   lat: number;
   lng: number;
   isVerified: boolean;
+  memberId?: string;
+  photoURL?: string;
 }
 
-const maskName = (name: string) => {
-  if (!name) return "Member";
+export const maskName = (name: string): string => {
+  if (!name || name.trim().length === 0) return "Member";
+  
   const parts = name.trim().split(/\s+/);
   return parts
-    .map((part) => (part.length <= 1 ? `${part}*` : `${part[0]}${"*".repeat(Math.min(part.length - 1, 4))}`))
+    .map((part) => {
+      if (part.length <= 1) return `${part}*`;
+      const firstChar = part.charAt(0);
+      const maskLength = Math.min(part.length - 1, 4);
+      return `${firstChar}${'*'.repeat(maskLength)}`;
+    })
     .join(" ");
+};
+
+export const getMemberTitle = (gender: string, name: string): string => {
+  const masked = maskName(name);
+  if (gender?.toLowerCase() === 'male') return `Mr. ${masked}`;
+  if (gender?.toLowerCase() === 'female') return `Ms. ${masked}`;
+  return masked;
 };
 
 export const mapService = {
   async getVerifiedMembersWithCoordinates(): Promise<MapMember[]> {
-    const q = query(collection(db, "users"), where("isVerified", "==", true));
+    const q = query(
+      collection(db, "users"),
+      where("isVerified", "==", true)
+    );
     const snapshot = await getDocs(q);
     const members: MapMember[] = [];
 
@@ -34,11 +52,12 @@ export const mapService = {
       const lat = Number(data.currentLatitude);
       const lng = Number(data.currentLongitude);
 
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0) {
+        const displayName = data.displayName || "Member";
         members.push({
           id: docSnap.id,
-          displayName: data.displayName || "Member",
-          maskedName: maskName(data.displayName || "Member"),
+          displayName,
+          maskedName: maskName(displayName),
           currentCity: data.currentCity || "Unknown",
           currentState: data.currentState || "Unknown",
           currentCountry: data.currentCountry || "Unknown",
@@ -47,10 +66,24 @@ export const mapService = {
           lat,
           lng,
           isVerified: Boolean(data.isVerified),
+          memberId: data.memberId || "",
+          photoURL: data.photoURL || "",
         });
       }
     });
 
     return members;
+  },
+
+  async getMemberCount(): Promise<number> {
+    const members = await this.getVerifiedMembersWithCoordinates();
+    return members.length;
+  },
+
+  async getMembersByCity(city: string): Promise<MapMember[]> {
+    const allMembers = await this.getVerifiedMembersWithCoordinates();
+    return allMembers.filter(
+      (member) => member.currentCity.toLowerCase() === city.toLowerCase()
+    );
   },
 };

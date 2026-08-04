@@ -127,7 +127,7 @@ export default function UserVerificationModal({
       details: `Verified user ${user!.displayName} with member ID ${finalMemberId}`,
     });
     
-    onVerify(user!.uid, finalMemberId);
+    await onVerify(user!.uid, finalMemberId);
   };
 
   // Handle rejection
@@ -293,7 +293,7 @@ export default function UserVerificationModal({
                               <span className="font-semibold text-[#2A1636]">{user.requestedCommunityName}</span>
                             </p>
                             <p className="text-xs text-[#6B5E5A] mt-1">
-                              Create this community manually from Communities, then add the member.
+                              This community will be created automatically when you verify the user.
                             </p>
                           </>
                         ) : (
