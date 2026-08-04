@@ -15,7 +15,7 @@ import Step3Interests from "@/components/web/join-community/Step3Interests";
 import Step4Review from "@/components/web/join-community/Step4Review";
 import SuccessPage from "@/components/web/join-community/SuccessPage";
 import { CANT_FIND_COMMUNITY } from "@/components/web/join-community/Step2Address";
-import { userService } from "@/lib/services/userService";
+import { userService, type UserProfileData } from "@/lib/services/userService";
 import { publicCommunityService } from "@/lib/services/publicCommunityService";
 
 // ============================================
@@ -187,6 +187,8 @@ export default function JoinCommunityPage() {
       const requestedCommunityName = isCommunityRequest
         ? (data.requestedCommunityName || "").trim()
         : null;
+      const communityRequestStatus: UserProfileData["communityRequestStatus"] =
+        isCommunityRequest ? "pending" : (selectedCommunityId ? "joined" : null);
 
       // Prepare profile data
       const profileData = {
@@ -211,7 +213,7 @@ export default function JoinCommunityPage() {
         nearbyCommunityId: selectedCommunityId,
         nearbyCommunityName: selectedCommunityName,
         requestedCommunityName,
-        communityRequestStatus: isCommunityRequest ? 'pending' : (selectedCommunityId ? 'joined' : null),
+        communityRequestStatus,
         interests: data.interests,
         aadharNumber: data.aadharNumber,
         familyMembers: data.familyMembers || [],
