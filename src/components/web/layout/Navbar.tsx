@@ -66,9 +66,11 @@ export default function Navbar() {
     { href: '/', label: 'Home', icon: Home },
     { href: '/communities', label: 'Communities', icon: Users },
     { href: '/events', label: 'Events', icon: Calendar },
+    { href: '/map', label: 'Member Map' },
     { href: '/advisory-board', label: 'Advisory Board' },
     { href: '/about', label: 'About' },
   ];
+  const donateHref = isAuthenticated ? '/donation' : '/signup';
 
   if (!mounted) {
     return (
@@ -159,6 +161,13 @@ export default function Navbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#6B1E5B] transition-all group-hover:w-full" />
               </Link>
             ))}
+            {!loading && (
+              <Link href={donateHref}>
+                <button className="px-5 py-2 text-sm font-semibold text-white bg-[#D9772B] hover:bg-[#B8621E] rounded-lg transition-all shadow-lg shadow-[#D9772B]/25 hover:shadow-[#D9772B]/40">
+                  Donate
+                </button>
+              </Link>
+            )}
 
             {!isAuthenticated && !loading && (
               <div className="flex items-center space-x-3">
@@ -293,6 +302,15 @@ export default function Navbar() {
                   <span>{link.label}</span>
                 </Link>
               ))}
+              {!loading && (
+                <Link
+                  href={donateHref}
+                  className="block text-center bg-[#D9772B] text-white hover:bg-[#B8621E] rounded-lg py-2 transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Donate
+                </Link>
+              )}
 
               <hr className="border-[#E7D7E8]" />
 

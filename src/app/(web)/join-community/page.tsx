@@ -53,6 +53,8 @@ const schema = z.object({
       "Odisha cannot be selected as current address state"
     ),
   currentCity: z.string().min(2, "Current city is required"),
+  currentLatitude: z.number().optional(),
+  currentLongitude: z.number().optional(),
   currentPinCode: z.string()
     .min(6, "Pin code must be 6 digits")
     .max(6, "Pin code must be 6 digits")
@@ -119,6 +121,8 @@ export default function JoinCommunityPage() {
       currentCountry: "",
       currentState: "",
       currentCity: "",
+      currentLatitude: undefined,
+      currentLongitude: undefined,
       currentPinCode: "",
       nearbyCommunityId: "",
       nearbyCommunityName: "",
@@ -209,6 +213,8 @@ export default function JoinCommunityPage() {
         currentCountry: data.currentCountry,
         currentState: data.currentState,
         currentCity: data.currentCity,
+        currentLatitude: data.currentLatitude ?? null,
+        currentLongitude: data.currentLongitude ?? null,
         currentPinCode: data.currentPinCode,
         nearbyCommunityId: selectedCommunityId,
         nearbyCommunityName: selectedCommunityName,

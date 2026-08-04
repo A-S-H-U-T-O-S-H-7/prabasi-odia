@@ -3,13 +3,18 @@
 import { Edit, Trash2, Eye, EyeOff, Phone } from "lucide-react";
 import { EmergencyContact } from "@/lib/services/adminEmergencyContactService";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  ambulance: "Ambulance",
-  police: "Police",
-  fire: "Fire",
-  hospital: "Hospital",
-  helpline: "Helpline",
-  other: "Other",
+const CATEGORY_ICONS: Record<string, string> = {
+  ambulance: "🚑",
+  police: "👮",
+  emergency: "🚨",
+  "women-helpline": "👩‍⚕️",
+  railway: "🚆",
+  lpg: "⛽",
+  "cyber-crime": "💻",
+  fire: "🔥",
+  hospital: "🏥",
+  helpline: "📞",
+  other: "🆘",
 };
 
 interface EmergencyContactTableRowProps {
@@ -50,8 +55,8 @@ export default function EmergencyContactTableRow({
         </div>
       </td>
       <td className="px-4 py-3">
-        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#6B1E5B]/10 text-[#6B1E5B]">
-          {CATEGORY_LABELS[contact.category] || contact.category}
+        <span className="text-xl leading-none" title={contact.category}>
+          {CATEGORY_ICONS[contact.category] || "🆘"}
         </span>
       </td>
       <td className="px-4 py-3">

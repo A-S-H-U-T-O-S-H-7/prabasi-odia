@@ -22,6 +22,11 @@ import {
 const CATEGORY_ICON: Record<EmergencyCategory, typeof Phone> = {
   ambulance: Ambulance,
   police: Shield,
+  emergency: AlertTriangle,
+  "women-helpline": Headphones,
+  railway: Phone,
+  lpg: Flame,
+  "cyber-crime": Shield,
   fire: Flame,
   hospital: Hospital,
   helpline: Headphones,
@@ -31,6 +36,11 @@ const CATEGORY_ICON: Record<EmergencyCategory, typeof Phone> = {
 const CATEGORY_COLOR: Record<EmergencyCategory, string> = {
   ambulance: "bg-red-100 text-red-600",
   police: "bg-blue-100 text-blue-600",
+  emergency: "bg-amber-100 text-amber-600",
+  "women-helpline": "bg-pink-100 text-pink-600",
+  railway: "bg-indigo-100 text-indigo-600",
+  lpg: "bg-orange-100 text-orange-600",
+  "cyber-crime": "bg-slate-100 text-slate-600",
   fire: "bg-orange-100 text-orange-600",
   hospital: "bg-emerald-100 text-emerald-600",
   helpline: "bg-purple-100 text-purple-600",
@@ -123,10 +133,23 @@ export default function EmergencyContactWidget() {
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}
                     >
-                      <Icon className="w-5 h-5" />
+                      <span className="text-lg leading-none">
+                        {contact.category === "ambulance" && "🚑"}
+                        {contact.category === "police" && "👮"}
+                        {contact.category === "emergency" && "🚨"}
+                        {contact.category === "women-helpline" && "👩‍⚕️"}
+                        {contact.category === "railway" && "🚆"}
+                        {contact.category === "lpg" && "⛽"}
+                        {contact.category === "cyber-crime" && "💻"}
+                        {contact.category === "fire" && "🔥"}
+                        {contact.category === "hospital" && "🏥"}
+                        {contact.category === "helpline" && "📞"}
+                        {contact.category === "other" && "🆘"}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-[#2A1636] truncate group-hover:text-[#B91C1C] transition-colors">
+                        
                         {contact.title}
                       </p>
                       <p className="text-sm font-medium text-[#6B1E5B] mt-0.5">

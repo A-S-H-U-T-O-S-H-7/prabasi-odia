@@ -35,6 +35,19 @@ export interface GrowthData {
   count: number;
 }
 
+export interface CountryData {
+  country: string;
+  count: number;
+  color: string;
+}
+
+export interface CountryStateAgeData {
+  country: string;
+  state: string;
+  total: number;
+  ageGroups: Record<string, number>;
+}
+
 export interface RecentUser {
   uid: string;
   displayName: string;
@@ -45,6 +58,37 @@ export interface RecentUser {
 }
 
 export const adminDashboardService = {
+  getAgeFromUserData(userData: any): number | null {
+    if (typeof userData.age === 'number' && userData.age > 0) {
+      return userData.age;
+    }
+
+    if (typeof userData.dob === 'string' && userData.dob) {
+      const birthDate = new Date(userData.dob);
+      if (!Number.isNaN(birthDate.getTime())) {
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        return age >= 0 ? age : null;
+      }
+    }
+
+    return null;
+  },
+
+  getAgeGroup(age: number | null): string {
+    if (age === null) return 'Unknown';
+    if (age >= 18 && age <= 24) return '18-24';
+    if (age >= 25 && age <= 34) return '25-34';
+    if (age >= 35 && age <= 44) return '35-44';
+    if (age >= 45 && age <= 54) return '45-54';
+    if (age >= 55) return '55+';
+    return 'Unknown';
+  },
+
   // Get dashboard stats
   async getDashboardStats(): Promise<DashboardStats> {
     try {
@@ -104,13 +148,12 @@ export const adminDashboardService = {
       
       snapshot.forEach(doc => {
         const data = doc.data();
-        const age = data.age;
-        if (age) {
-          if (age >= 18 && age <= 24) ageGroups['18-24']++;
-          else if (age >= 25 && age <= 34) ageGroups['25-34']++;
-          else if (age >= 35 && age <= 44) ageGroups['35-44']++;
-          else if (age >= 45 && age <= 54) ageGroups['45-54']++;
-          else if (age >= 55) ageGroups['55+']++;
+        const age = this.getAgeFromUserData(data);
+        if (age !== null) {
+          const ageGroup = this.getAgeGroup(age);
+          if (ageGroup !== 'Unknown') {
+            ageGroups[ageGroup]++;
+          }
         }
       });
       
@@ -151,6 +194,78 @@ export const adminDashboardService = {
         }));
     } catch (error) {
       console.error('Error getting state data:', error);
+      return [];
+    }
+  },
+
+  // Get country-wise distribution
+  async getCountryData(): Promise<CountryData[]> {
+    try {
+      const snapshot = await getDocs(collection(db, 'users'));
+      const countryMap: Record<string, number> = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const country = (data.currentCountry || 'Unknown').trim();
+        const safeCountry = country || 'Unknown';
+        countryMap[safeCountry] = (countryMap[safeCountry] || 0) + 1;
+      });
+
+      const colors = ['#6B1E5B', '#8A2E72', '#D9772B', '#E6A11C', '#34D399', '#059669', '#0EA5E9', '#7C3AED', '#EC4899', '#14B8A6'];
+
+      return Object.entries(countryMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([country, count], index) => ({
+          country,
+          count,
+          color: colors[index % colors.length],
+        }));
+    } catch (error) {
+      console.error('Error getting country data:', error);
+      return [];
+    }
+  },
+
+  // Get country + state wise age groups
+  async getCountryStateAgeData(): Promise<CountryStateAgeData[]> {
+    try {
+      const snapshot = await getDocs(collection(db, 'users'));
+      const matrix: Record<string, CountryStateAgeData> = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const country = (data.currentCountry || 'Unknown').trim() || 'Unknown';
+        const state = (data.currentState || 'Unknown').trim() || 'Unknown';
+        const key = `${country}__${state}`;
+
+        if (!matrix[key]) {
+          matrix[key] = {
+            country,
+            state,
+            total: 0,
+            ageGroups: {
+              '18-24': 0,
+              '25-34': 0,
+              '35-44': 0,
+              '45-54': 0,
+              '55+': 0,
+              Unknown: 0,
+            },
+          };
+        }
+
+        const age = this.getAgeFromUserData(data);
+        const ageGroup = this.getAgeGroup(age);
+        matrix[key].ageGroups[ageGroup] = (matrix[key].ageGroups[ageGroup] || 0) + 1;
+        matrix[key].total += 1;
+      });
+
+      return Object.values(matrix)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 20);
+    } catch (error) {
+      console.error('Error getting country state age data:', error);
       return [];
     }
   },

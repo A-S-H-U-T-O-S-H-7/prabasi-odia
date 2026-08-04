@@ -16,12 +16,17 @@ interface CreateEmergencyContactModalProps {
 }
 
 const CATEGORIES: { value: EmergencyCategory; label: string }[] = [
-  { value: "ambulance", label: "Ambulance" },
-  { value: "police", label: "Police" },
-  { value: "fire", label: "Fire" },
-  { value: "hospital", label: "Hospital" },
-  { value: "helpline", label: "Helpline" },
-  { value: "other", label: "Other" },
+  { value: "ambulance", label: "🚑" },
+  { value: "police", label: "👮" },
+  { value: "emergency", label: "🚨" },
+  { value: "women-helpline", label: "👩‍⚕️" },
+  { value: "railway", label: "🚆" },
+  { value: "lpg", label: "⛽" },
+  { value: "cyber-crime", label: "💻" },
+  { value: "fire", label: "🔥" },
+  { value: "hospital", label: "🏥" },
+  { value: "helpline", label: "📞" },
+  { value: "other", label: "🆘" },
 ];
 
 const emptyForm = {

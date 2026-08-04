@@ -10,6 +10,8 @@ import {
   DashboardStats,
   AgeGroupData,
   StateData,
+  CountryData,
+  CountryStateAgeData,
   GrowthData,
   RecentUser,
 } from "@/lib/services/adminDashboardService";
@@ -19,6 +21,8 @@ import StateDistributionChart from "@/components/admin/dashboard/StateDistributi
 import GrowthChart from "@/components/admin/dashboard/GrowthChart";
 import RecentUsers from "@/components/admin/dashboard/RecentUsers";
 import TopCommunities from "@/components/admin/dashboard/TopCommunities";
+import CountryDistributionChart from "@/components/admin/dashboard/CountryDistributionChart";
+import CountryStateAgeTable from "@/components/admin/dashboard/CountryStateAgeTable";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -36,6 +40,8 @@ export default function AdminDashboardPage() {
   });
   const [ageData, setAgeData] = useState<AgeGroupData[]>([]);
   const [stateData, setStateData] = useState<StateData[]>([]);
+  const [countryData, setCountryData] = useState<CountryData[]>([]);
+  const [countryStateAgeData, setCountryStateAgeData] = useState<CountryStateAgeData[]>([]);
   const [growthData, setGrowthData] = useState<GrowthData[]>([]);
   const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
   const [topCommunities, setTopCommunities] = useState<{ id: string; name: string; memberCount: number }[]>([]);
@@ -69,6 +75,8 @@ export default function AdminDashboardPage() {
         statsResult,
         ageResult,
         stateResult,
+        countryResult,
+        countryStateAgeResult,
         growthResult,
         recentResult,
         topCommunitiesResult,
@@ -76,6 +84,8 @@ export default function AdminDashboardPage() {
         adminDashboardService.getDashboardStats(),
         adminDashboardService.getAgeGroupData(),
         adminDashboardService.getStateData(),
+        adminDashboardService.getCountryData(),
+        adminDashboardService.getCountryStateAgeData(),
         adminDashboardService.getGrowthData(30),
         adminDashboardService.getRecentUsers(5),
         adminDashboardService.getTopCommunities(5),
@@ -84,6 +94,8 @@ export default function AdminDashboardPage() {
       setStats(statsResult);
       setAgeData(ageResult);
       setStateData(stateResult);
+      setCountryData(countryResult);
+      setCountryStateAgeData(countryStateAgeResult);
       setGrowthData(growthResult);
       setRecentUsers(recentResult);
       setTopCommunities(topCommunitiesResult);
@@ -152,6 +164,25 @@ export default function AdminDashboardPage() {
             <span className="text-xs text-[#6B5E5A]">Top 10 states</span>
           </div>
           <StateDistributionChart data={stateData} />
+        </div>
+      </div>
+
+      {/* Country & Country-State-Age */}
+      <div className="grid grid-cols-1 gap-6">
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#E7D7E8] p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-[#2A1636]">🌍 Country-wise Distribution</h3>
+            <span className="text-xs text-[#6B5E5A]">Top 10 countries</span>
+          </div>
+          <CountryDistributionChart data={countryData} />
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#E7D7E8] p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-[#2A1636]">🧮 Country + State Age Group</h3>
+            <span className="text-xs text-[#6B5E5A]">Top 20 locations</span>
+          </div>
+          <CountryStateAgeTable data={countryStateAgeData} />
         </div>
       </div>
 

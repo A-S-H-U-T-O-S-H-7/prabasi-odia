@@ -27,7 +27,7 @@ export default function AdvisoryBoardHero({
     <div className="relative rounded-2xl md:rounded-3xl overflow-hidden mb-8 md:mb-12">
       <div className="absolute inset-0 z-0">
         <Image
-          src={isMobile ? "/aboutmob.png" : "/about2.png"}
+          src={isMobile ? "/advisormob.png" : "/advisorybg.png"}
           alt="Advisory Board Banner"
           fill
           className="object-cover"

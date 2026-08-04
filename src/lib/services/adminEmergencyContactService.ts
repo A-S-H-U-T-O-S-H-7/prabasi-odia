@@ -16,6 +16,11 @@ const COLLECTION = 'emergencyContacts';
 export type EmergencyCategory =
   | 'ambulance'
   | 'police'
+  | 'emergency'
+  | 'women-helpline'
+  | 'railway'
+  | 'lpg'
+  | 'cyber-crime'
   | 'fire'
   | 'hospital'
   | 'helpline'

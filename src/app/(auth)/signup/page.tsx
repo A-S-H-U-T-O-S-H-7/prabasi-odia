@@ -35,7 +35,7 @@ export default function SignupPage() {
       email: "",
       password: "",
       confirmPassword: "",
-      agreeTerms: false,
+      agreeTerms: true,
     },
   });
 

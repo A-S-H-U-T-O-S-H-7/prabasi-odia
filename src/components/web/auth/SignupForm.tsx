@@ -84,19 +84,20 @@ PasswordInput.displayName = 'PasswordInput';
 // ============================================
 interface CheckboxProps {
   checked: boolean;
-  onChange: (checked: boolean) => void;
+  onChange?: (checked: boolean) => void;
+  disabled?: boolean;
   label?: string | ReactNode;
 }
 
-const Checkbox = ({ checked, onChange, label }: CheckboxProps) => {
+const Checkbox = ({ checked, onChange, disabled = false, label }: CheckboxProps) => {
   return (
     <div className="flex items-start gap-3">
-      <button type="button" onClick={() => onChange(!checked)} className="relative flex-shrink-0 mt-0.5 cursor-pointer">
+      <button type="button" disabled={disabled} onClick={() => onChange?.(!checked)} className={`relative flex-shrink-0 mt-0.5 ${disabled ? "cursor-not-allowed opacity-90" : "cursor-pointer"}`}>
         <div className={`w-5 h-5 rounded-lg border-2 transition-all duration-300 flex items-center justify-center ${checked ? 'bg-[#E8B84C] border-[#E8B84C]' : 'border-white/50 bg-white/10 hover:border-white/70'}`}>
           {checked && <Check className="w-3.5 h-3.5 text-[#2A1636]" />}
         </div>
       </button>
-      {label && <div onClick={() => onChange(!checked)} className="text-sm text-white/90 cursor-pointer hover:text-white transition-colors select-none">{label}</div>}
+      {label && <div className={`text-sm text-white/90 ${disabled ? "cursor-not-allowed" : "cursor-pointer hover:text-white"} transition-colors select-none`}>{label}</div>}
     </div>
   );
 };
@@ -304,6 +305,7 @@ export default function SignupForm({
         <Divider text="or sign up with email" />
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <input type="hidden" {...register("agreeTerms")} value="true" />
           <AuthInput label="Full Name" icon={<User className="w-4 h-4" />} error={errors.name} touched={touchedFields.name} {...register("name")} />
           <AuthInput label="Email Address" icon={<Mail className="w-4 h-4" />} type="email" error={errors.email} touched={touchedFields.email} {...register("email")} />
 
@@ -317,12 +319,8 @@ export default function SignupForm({
 
           <div className="pt-1">
             <Checkbox
-              checked={agreeTerms}
-              onChange={(checked) => {
-                register("agreeTerms").onChange({
-                  target: { name: "agreeTerms", value: checked },
-                });
-              }}
+              checked={true}
+              disabled
               label={
                 <span className="text-white/90">
                   I agree to the <Link href="/terms" className="text-[#E8B84C] hover:text-[#F3C97A] transition-colors">Terms of Service</Link> and <Link href="/privacy" className="text-[#E8B84C] hover:text-[#F3C97A] transition-colors">Privacy Policy</Link>

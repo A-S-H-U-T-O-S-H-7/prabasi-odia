@@ -31,10 +31,15 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [communities, setCommunities] = useState<PublicCommunity[]>([]);
   const [loadingCommunities, setLoadingCommunities] = useState(true);
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const formData = watch();
   const nearbyCommunityId = watch("nearbyCommunityId");
   const currentState = watch("currentState");
+  const currentCountry = watch("currentCountry");
+  const currentCity = watch("currentCity");
+  const currentLatitude = watch("currentLatitude");
+  const currentLongitude = watch("currentLongitude");
   const showRequestedCommunity = nearbyCommunityId === CANT_FIND_COMMUNITY;
 
   const { countries, states, cities, loading } = useLocationData({
@@ -67,9 +72,43 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
     if (currentState && isOdishaState(currentState)) {
       setValue("currentState", "", { shouldValidate: true });
       setValue("currentCity", "", { shouldValidate: true });
+      setValue("currentLatitude", undefined);
+      setValue("currentLongitude", undefined);
       toast.error("Odisha cannot be selected as current address state");
     }
   }, [currentState, setValue]);
+
+  useEffect(() => {
+    const canGeocode = currentCity && currentState && currentCountry;
+    if (!canGeocode) {
+      setValue("currentLatitude", undefined);
+      setValue("currentLongitude", undefined);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsGeocoding(true);
+        const query = encodeURIComponent(`${currentCity}, ${currentState}, ${currentCountry}`);
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`);
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          setValue("currentLatitude", Number(data[0].lat), { shouldValidate: false });
+          setValue("currentLongitude", Number(data[0].lon), { shouldValidate: false });
+        } else {
+          setValue("currentLatitude", undefined);
+          setValue("currentLongitude", undefined);
+        }
+      } catch (error) {
+        console.error("Geocoding failed:", error);
+      } finally {
+        setIsGeocoding(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [currentCity, currentState, currentCountry, setValue]);
 
   // Keep selected community name in sync for review/submit
   useEffect(() => {
@@ -262,6 +301,10 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             </select>
             {loading.cities && <p className="text-xs text-[#6B5E5A] mt-1">Loading cities...</p>}
             <ErrorMessage name="currentCity" />
+            {isGeocoding && <p className="text-xs text-[#6B5E5A] mt-1">Fetching map coordinates...</p>}
+            {!isGeocoding && currentLatitude && currentLongitude && (
+              <p className="text-xs text-emerald-700 mt-1">Coordinates captured for map display</p>
+            )}
           </div>
 
           <div>
@@ -336,6 +379,8 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       </div>
 
       {/* Navigation Buttons */}
+      <input type="hidden" {...register("currentLatitude", { valueAsNumber: true })} />
+      <input type="hidden" {...register("currentLongitude", { valueAsNumber: true })} />
       <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6">
         <button onClick={onBack} className="px-6 py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer">
           ← Back

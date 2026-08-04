@@ -25,6 +25,9 @@ export interface UserProfileData {
   currentAddress: string;
   currentCity: string;
   currentState: string;
+  currentCountry?: string;
+  currentLatitude?: number | null;
+  currentLongitude?: number | null;
   currentPinCode: string;
   nearbyCommunityId?: string | null;
   nearbyCommunityName?: string | null;
