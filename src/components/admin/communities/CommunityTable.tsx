@@ -44,6 +44,7 @@ export default function CommunityTable({
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">#</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">Community</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-[#6B5E5A] uppercase tracking-wider">Country</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">Members</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">Status</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">Created</th>

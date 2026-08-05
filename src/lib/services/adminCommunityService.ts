@@ -18,8 +18,9 @@ const COLLECTION = 'communities';
 export interface Community {
   id: string;
   name: string;
-  city: string;
+  country: string;
   state: string;
+  city: string;
   description: string;
   coverImage?: string;
   memberCount: number;
@@ -73,8 +74,9 @@ export const adminCommunityService = {
         communities.push({
           id: doc.id,
           name: data.name || '',
-          city: data.city || '',
+          country: data.country || 'India',
           state: data.state || '',
+          city: data.city || '',
           description: data.description || '',
           coverImage: data.coverImage || '',
           memberCount: data.memberCount || 0,
@@ -109,8 +111,9 @@ export const adminCommunityService = {
         community: {
           id: docSnap.id,
           name: data.name || '',
-          city: data.city || '',
+          country: data.country || 'India',
           state: data.state || '',
+          city: data.city || '',
           description: data.description || '',
           coverImage: data.coverImage || '',
           memberCount: data.memberCount || 0,
@@ -144,8 +147,9 @@ export const adminCommunityService = {
       
       const communityData = {
         name: data.name,
-        city: data.city,
+        country: data.country || 'India',
         state: data.state,
+        city: data.city,
         description: data.description,
         coverImage: coverImageUrl,
         memberCount: 0,
@@ -183,8 +187,9 @@ export const adminCommunityService = {
       
       const updateData: any = {
         name: data.name,
-        city: data.city,
+        country: data.country || 'India',
         state: data.state,
+        city: data.city,
         description: data.description,
         coverImage: coverImageUrl,
         status: data.status || 'active',
@@ -253,14 +258,16 @@ export const adminCommunityService = {
         const data = doc.data();
         if (
           data.name?.toLowerCase().includes(term) ||
-          data.city?.toLowerCase().includes(term) ||
-          data.state?.toLowerCase().includes(term)
+          data.country?.toLowerCase().includes(term) ||
+          data.state?.toLowerCase().includes(term) ||
+          data.city?.toLowerCase().includes(term)
         ) {
           results.push({
             id: doc.id,
             name: data.name || '',
-            city: data.city || '',
+            country: data.country || 'India',
             state: data.state || '',
+            city: data.city || '',
             description: data.description || '',
             coverImage: data.coverImage || '',
             memberCount: data.memberCount || 0,
@@ -347,6 +354,35 @@ export const adminCommunityService = {
       return { success: false, error: error.message };
     }
   },
+
+  // Remove member from community
+  async removeMemberFromCommunity(communityId: string, userId: string) {
+    try {
+      const docRef = doc(db, COLLECTION, communityId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        return { success: false, error: 'Community not found' };
+      }
+      
+      const data = docSnap.data();
+      const members = data.members || [];
+      
+      if (members.includes(userId)) {
+        const updatedMembers = members.filter((id: string) => id !== userId);
+        await updateDoc(docRef, {
+          members: updatedMembers,
+          memberCount: updatedMembers.length,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error removing member:', error);
+      return { success: false, error: error.message };
+    }
+  },
 };
 
 // ✅ Helper function to compress image
@@ -393,7 +429,7 @@ async function compressImage(file: File): Promise<File> {
             }
           },
           'image/jpeg',
-          0.7 // Quality (70%)
+          0.7 
         );
       };
       img.onerror = reject;

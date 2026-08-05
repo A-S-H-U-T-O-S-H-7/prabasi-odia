@@ -53,6 +53,11 @@ export default function CommunityTableRow({
         </div>
       </td>
       
+      {/* ✅ Country Column */}
+      <td className="px-4 py-3">
+        <span className="text-sm text-[#2A1636]">{community.country || "India"}</span>
+      </td>
+      
       <td className="px-4 py-3">
         <div className="flex items-center gap-1.5 text-sm text-[#6B5E5A]">
           <Users className="w-4 h-4" />

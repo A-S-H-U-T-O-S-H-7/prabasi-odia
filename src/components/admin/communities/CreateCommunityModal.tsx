@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Upload, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
+import { useLocationData } from "@/hooks/useLocationData";
 
 interface CreateCommunityModalProps {
   isOpen: boolean;
@@ -13,11 +14,9 @@ interface CreateCommunityModalProps {
   isSaving?: boolean;
 }
 
-const ODISHA_STATES = ["Odisha", "Andhra Pradesh", "Telangana", "Karnataka", "Tamil Nadu", "Maharashtra", "West Bengal", "Jharkhand", "Chhattisgarh", "Delhi", "Other"];
-
-// Allowed image types
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/svg+xml'];
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+// ✅ Allowed image types
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp','image/avif', 'image/svg+xml'];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function CreateCommunityModal({
   isOpen,
@@ -28,8 +27,9 @@ export default function CreateCommunityModal({
 }: CreateCommunityModalProps) {
   const [formData, setFormData] = useState({
     name: "",
+    country: "India",
+    state: "",
     city: "",
-    state: "Odisha",
     description: "",
     coverImage: "",
     coverImageFile: null as File | null,
@@ -40,12 +40,33 @@ export default function CreateCommunityModal({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ✅ Use location data hook
+  const { countries, states, cities, loading } = useLocationData({
+    country: formData.country || '',
+    state: formData.state || ''
+  });
+
+  // ✅ Reset state when country changes
+  useEffect(() => {
+    if (formData.country) {
+      setFormData(prev => ({ ...prev, state: "", city: "" }));
+    }
+  }, [formData.country]);
+
+  // ✅ Reset city when state changes
+  useEffect(() => {
+    if (formData.state) {
+      setFormData(prev => ({ ...prev, city: "" }));
+    }
+  }, [formData.state]);
+
   useEffect(() => {
     if (editingCommunity) {
       setFormData({
         name: editingCommunity.name || "",
+        country: editingCommunity.country || "India",
+        state: editingCommunity.state || "",
         city: editingCommunity.city || "",
-        state: editingCommunity.state || "Odisha",
         description: editingCommunity.description || "",
         coverImage: editingCommunity.coverImage || "",
         coverImageFile: null,
@@ -55,8 +76,9 @@ export default function CreateCommunityModal({
     } else {
       setFormData({
         name: "",
+        country: "India",
+        state: "",
         city: "",
-        state: "Odisha",
         description: "",
         coverImage: "",
         coverImageFile: null,
@@ -70,21 +92,18 @@ export default function CreateCommunityModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // ✅ Validate file type
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       setErrors({ ...errors, coverImage: "Please upload a valid image (JPEG, PNG, WEBP, SVG)" });
       toast.error("Invalid file type. Please upload JPEG, PNG, WEBP, or SVG.");
       return;
     }
 
-    // ✅ Validate file size
     if (file.size > MAX_IMAGE_SIZE) {
       setErrors({ ...errors, coverImage: `Image must be less than ${MAX_IMAGE_SIZE / (1024 * 1024)}MB` });
       toast.error(`Image size exceeds ${MAX_IMAGE_SIZE / (1024 * 1024)}MB limit.`);
       return;
     }
 
-    // ✅ Validate minimum size (optional - prevent corrupt files)
     if (file.size < 1024) {
       setErrors({ ...errors, coverImage: "Image file seems too small. Please upload a valid image." });
       toast.error("Image file seems too small. Please upload a valid image.");
@@ -126,6 +145,8 @@ export default function CreateCommunityModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = "Community name is required";
+    if (!formData.country) newErrors.country = "Country is required";
+    if (!formData.state) newErrors.state = "State is required";
     if (!formData.city.trim()) newErrors.city = "City is required";
     if (!formData.description.trim()) newErrors.description = "Description is required";
     setErrors(newErrors);
@@ -133,17 +154,16 @@ export default function CreateCommunityModal({
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
-  
-  const submitData = {
-    ...formData,
-    // Pass the actual File object, not the preview
-    coverImageFile: formData.coverImageFile,
-    coverImage: formData.coverImagePreview || formData.coverImage || "",
+    e.preventDefault();
+    if (!validateForm()) return;
+    
+    const submitData = {
+      ...formData,
+      coverImageFile: formData.coverImageFile,
+      coverImage: formData.coverImagePreview || formData.coverImage || "",
+    };
+    onSave(submitData);
   };
-  onSave(submitData);
-};
 
   if (!isOpen) return null;
 
@@ -185,8 +205,57 @@ export default function CreateCommunityModal({
               {errors.name && <p className="text-red-500 text-xs mt-1.5">{errors.name}</p>}
             </div>
 
-            {/* City + State */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Country + State + City */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Country */}
+              <div>
+                <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
+                  Country <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 border-2 border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B] focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20 cursor-pointer"
+                  disabled={loading.countries}
+                >
+                  <option value="">Select Country</option>
+                  {countries.map((country) => (
+                    <option key={country.iso2} value={country.name}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+                {loading.countries && (
+                  <p className="text-xs text-[#6B5E5A] mt-1">Loading countries...</p>
+                )}
+                {errors.country && <p className="text-red-500 text-xs mt-1.5">{errors.country}</p>}
+              </div>
+
+              {/* State */}
+              <div>
+                <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
+                  State <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 border-2 border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B] focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20 cursor-pointer"
+                  disabled={!formData.country || loading.states}
+                >
+                  <option value="">Select State</option>
+                  {states.map((state) => (
+                    <option key={state.iso2} value={state.name}>
+                      {state.name}
+                    </option>
+                  ))}
+                </select>
+                {loading.states && (
+                  <p className="text-xs text-[#6B5E5A] mt-1">Loading states...</p>
+                )}
+                {errors.state && <p className="text-red-500 text-xs mt-1.5">{errors.state}</p>}
+              </div>
+
+              {/* City */}
               <div>
                 <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
                   City <span className="text-red-400">*</span>
@@ -201,23 +270,9 @@ export default function CreateCommunityModal({
                       : "border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B]"
                   } focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20`}
                   placeholder="e.g. Bhubaneswar"
+                  disabled={!formData.state}
                 />
                 {errors.city && <p className="text-red-500 text-xs mt-1.5">{errors.city}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
-                  State <span className="text-red-400">*</span>
-                </label>
-                <select
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 border-2 border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B] focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20 cursor-pointer"
-                >
-                  {ODISHA_STATES.map(state => (
-                    <option key={state} value={state}>{state}</option>
-                  ))}
-                </select>
               </div>
             </div>
 
