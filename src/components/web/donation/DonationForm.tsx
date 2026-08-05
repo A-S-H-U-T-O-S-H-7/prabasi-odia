@@ -8,6 +8,7 @@ import {
   IndianRupee, Loader2, Shield 
 } from 'lucide-react';
 import { useLocationData } from '@/hooks/useLocationData';
+import { useAuthStore } from '@/lib/store';
 
 interface DonationFormProps {
   donorType?: 'indian' | 'foreign';
@@ -17,6 +18,7 @@ interface DonationFormProps {
 export default function DonationForm({ donorType = 'indian', setDonorType }: DonationFormProps) {
   const [localDonorType, setLocalDonorType] = useState<'indian' | 'foreign'>('indian');
   const [processing, setProcessing] = useState(false);
+  const { user } = useAuthStore();
   
   const currentDonorType = donorType || localDonorType;
   const currentSetDonorType = setDonorType || setLocalDonorType;
@@ -141,7 +143,7 @@ export default function DonationForm({ donorType = 'indian', setDonorType }: Don
       await setDoc(donationRef, {
         id: donationId,
         donationId,
-        userId: null,
+        userId: user?.uid || null,
         donorDetails: {
           name: formData.fullName,
           email: formData.email,

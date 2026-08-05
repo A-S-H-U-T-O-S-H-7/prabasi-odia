@@ -40,7 +40,7 @@ export default function CommunityCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       whileHover={{ y: -6, transition: { duration: 0.3 } }}
-      className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-[#E7D7E8]/50 p-5 md:p-6 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden group"
+      className="relative bg-white/80 backdrop-blur-sm rounded-2xl border border-[#E7D7E8]/50 p-px shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden group"
     >
       {/* Elegant Gradient Border on Hover */}
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#6B1E5B]/20 via-[#D9772B]/10 to-[#E6A11C]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
@@ -68,43 +68,45 @@ export default function CommunityCard({
         </svg>
       </div>
 
-      {/* Cover Image */}
-      <div className="relative w-full h-28 md:h-38 rounded-xl overflow-hidden mb-3 md:mb-4">
-        {community.coverImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={community.coverImage}
-            alt={community.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#6B1E5B]/10 to-[#D9772B]/10 flex items-center justify-center">
-            <span className="text-3xl md:text-4xl">🏘️</span>
+      <Link href={`/communities/${community.slug}`} className="block relative z-10">
+        {/* Cover Image */}
+        <div className="relative w-full h-28 md:h-38 rounded-t-[15px] overflow-hidden">
+          {community.coverImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={community.coverImage}
+              alt={community.name}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#6B1E5B]/10 to-[#D9772B]/10 flex items-center justify-center">
+              <span className="text-3xl md:text-4xl">🏘️</span>
+            </div>
+          )}
+          {/* Member Badge */}
+          <div className="absolute top-2 right-2 bg-[#6B1E5B]/80 backdrop-blur-sm text-white text-[8px] md:text-[10px] px-2.5 py-1 rounded-full shadow-lg">
+            {community.memberCount} members
           </div>
-        )}
-        {/* Member Badge */}
-        <div className="absolute top-2 right-2 bg-[#6B1E5B]/80 backdrop-blur-sm text-white text-[8px] md:text-[10px] px-2.5 py-1 rounded-full shadow-lg">
-          {community.memberCount} members
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="relative z-10">
-        <h3 className="text-sm md:text-lg font-bold text-[#2A1636] group-hover:text-[#6B1E5B] transition-colors duration-300 truncate">
-          {community.name}
-        </h3>
-        <p className="text-xs md:text-sm text-[#6B5E5A] flex items-center gap-1 mt-0.5">
-          <MapPin className="w-3 h-3 md:w-3.5 md:h-3.5" />
-          {community.city}, {community.state}
-        </p>
+        {/* Content */}
+        <div className="px-4 md:px-5 pt-3 md:pt-4">
+          <h3 className="text-sm md:text-lg font-bold text-[#2A1636] group-hover:text-[#6B1E5B] transition-colors duration-300 truncate">
+            {community.name}
+          </h3>
+          <p className="text-xs md:text-sm text-[#6B5E5A] flex items-center gap-1 mt-0.5">
+            <MapPin className="w-3 h-3 md:w-3.5 md:h-3.5" />
+            {community.city}, {community.state}
+          </p>
 
-        <p className="text-xs md:text-sm text-[#6B5E5A] mt-1.5 md:mt-2 line-clamp-2">
-          {community.description || "A vibrant community of Odias in this city."}
-        </p>
-      </div>
+          <p className="text-xs md:text-sm text-[#6B5E5A] mt-1.5 md:mt-2 line-clamp-2">
+            {community.description || "A vibrant community of Odias in this city."}
+          </p>
+        </div>
+      </Link>
 
       {/* Action Button */}
-      <div className="mt-3 md:mt-4 cursor-pointer pt-3 md:pt-4 border-t border-[#E7D7E8]/30 relative z-10">
+      <div className="mx-4 md:mx-5 mt-3 md:mt-4 mb-4 md:mb-5 cursor-pointer pt-3 md:pt-4 border-t border-[#E7D7E8]/30 relative z-10">
         {isAuthenticated && isVerified ? (
           isMember ? (
             <button
@@ -123,7 +125,7 @@ export default function CommunityCard({
           )
         ) : (
           <Link
-            href={isAuthenticated ? "/profile" : "/login"}
+            href={isAuthenticated ? `/communities/${community.slug}` : "/login"}
             className="w-full cursor-pointer px-4 py-2 md:py-2.5 rounded-xl bg-[#D4C8C0] text-white text-xs md:text-sm font-medium text-center block hover:bg-[#C4B8B0] transition-colors"
           >
             {isAuthenticated ? "Verify to Join" : "Login to Join"}

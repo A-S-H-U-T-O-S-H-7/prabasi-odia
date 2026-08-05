@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, X, User, LogOut, Bell, ChevronDown, 
-  Home, Calendar, Users, Settings, HelpCircle 
+  Home, Calendar, Users, Settings, HelpCircle, MapPin 
 } from 'lucide-react';
 import { useAuthStore, useUserStore } from '@/lib/store';
 
@@ -66,7 +66,6 @@ export default function Navbar() {
     { href: '/', label: 'Home', icon: Home },
     { href: '/communities', label: 'Communities', icon: Users },
     { href: '/events', label: 'Events', icon: Calendar },
-    { href: '/map', label: 'Member Map' },
     { href: '/advisory-board', label: 'Advisory Board' },
     { href: '/about', label: 'About' },
   ];
@@ -161,6 +160,20 @@ export default function Navbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#6B1E5B] transition-all group-hover:w-full" />
               </Link>
             ))}
+            <Link
+              href="/map"
+              aria-label="Member Map"
+              title="Member Map"
+              className="relative w-8 h-8 flex-shrink-0 transition-transform duration-200 hover:scale-110"
+            >
+              <Image
+                src="/mapicon.png"
+                alt="Member Map"
+                fill
+                className="object-contain"
+              />
+            </Link>
+
             {!loading && (
               <Link href={donateHref}>
                 <button className="px-5 py-2 text-sm font-semibold text-white bg-[#D9772B] hover:bg-[#B8621E] rounded-lg transition-all shadow-lg shadow-[#D9772B]/25 hover:shadow-[#D9772B]/40">
@@ -242,6 +255,15 @@ export default function Navbar() {
                         <User className="h-4 w-4" />
                         Profile
                       </Link>
+
+                      <Link 
+                        href="/map" 
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-[#2C2420] hover:bg-[#E7D7E8]/30 transition-colors"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <MapPin className="h-4 w-4" />
+                        Member Map
+                      </Link>
                       
                       <hr className="my-1 border-[#E7D7E8]" />
                       
@@ -302,6 +324,22 @@ export default function Navbar() {
                   <span>{link.label}</span>
                 </Link>
               ))}
+              <Link
+                href="/map"
+                className="flex items-center gap-3 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                <span className="relative w-6 h-6 flex-shrink-0">
+                  <Image
+                    src="/mapicon.png"
+                    alt="Member Map"
+                    fill
+                    className="object-contain"
+                  />
+                </span>
+                <span>Member Map</span>
+              </Link>
+
               {!loading && (
                 <Link
                   href={donateHref}

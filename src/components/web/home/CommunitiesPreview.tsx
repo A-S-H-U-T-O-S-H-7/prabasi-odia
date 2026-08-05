@@ -87,7 +87,7 @@ export default function CommunitiesPreview() {
               viewport={{ once: true }}
               className="group"
             >
-              <Link href={`/communities/${community.id}`} className="block">
+              <Link href={`/communities/${community.slug}`} className="block">
                 {/* Image */}
                 <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-[#F0EAE6] shadow-sm group-hover:shadow-md transition-shadow duration-300">
                   {community.coverImage ? (

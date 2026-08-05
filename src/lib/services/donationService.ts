@@ -41,6 +41,7 @@ export interface DonationData {
   };
   transactionId?: string;
   paymentDetails?: any;
+  completedAt?: any;
   createdAt: any;
   updatedAt: any;
 }

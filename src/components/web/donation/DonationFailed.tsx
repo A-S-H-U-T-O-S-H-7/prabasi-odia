@@ -27,31 +27,65 @@ function DonationFailedContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const order_id = searchParams.get("order_id");
-      const message = searchParams.get("message") || "Payment failed. Please try again.";
-      const failure_message = searchParams.get("failure_message") || message;
-      const amount = searchParams.get("amount");
-      const status_message = searchParams.get("status_message") || "Failed";
+    let cancelled = false;
 
-      setErrorInfo({
-        order_id: order_id || "Unknown",
-        message: message,
-        failure_message: failure_message,
-        amount: amount ? parseInt(amount) : 0,
-        status_message: status_message,
-      });
-    } catch (error) {
-      console.error("Error processing payment params:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    const loadFailureDetails = async () => {
+      const order_id = searchParams.get('order_id');
+      const message = searchParams.get('message') || 'Payment failed. Please try again.';
+      const failure_message = searchParams.get('failure_message') || message;
+      const amount = searchParams.get('amount');
+      const status_message = searchParams.get('status_message') || 'Failed';
+
+      if (order_id) {
+        try {
+          const response = await fetch(`/api/donations/${encodeURIComponent(order_id)}`);
+          const result = await response.json();
+
+          if (!cancelled && response.ok && result.success && result.data) {
+            setErrorInfo({
+              order_id,
+              message:
+                result.data.failureMessage ||
+                failure_message ||
+                message,
+              failure_message:
+                result.data.failureMessage ||
+                failure_message ||
+                message,
+              amount: result.data.amount || (amount ? parseInt(amount) : 0),
+              status_message: result.data.status || status_message,
+            });
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error loading failed donation details:', error);
+        }
+      }
+
+      if (!cancelled) {
+        setErrorInfo({
+          order_id: order_id || 'Unknown',
+          message,
+          failure_message,
+          amount: amount ? parseInt(amount) : 0,
+          status_message,
+        });
+        setIsLoading(false);
+      }
+    };
+
+    loadFailureDetails();
+
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
-  const handleTryAgain = () => router.push("/donate");
+  const handleTryAgain = () => router.push('/donation');
   const handleGoHome = () => router.push("/");
 
-  if (isLoading) {
+  if (isLoading || !errorInfo) {
     return <LoadingDonationFailed />;
   }
 

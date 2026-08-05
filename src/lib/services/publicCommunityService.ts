@@ -10,10 +10,13 @@ import {
   updateDoc,
   arrayUnion,
   arrayRemove,
+  limit,
 } from 'firebase/firestore';
+import { getCommunitySlug, looksLikeFirestoreId } from '@/lib/utils/slug';
 
 export interface PublicCommunity {
   id: string;
+  slug: string;
   name: string;
   city: string;
   state: string;
@@ -40,6 +43,7 @@ export const publicCommunityService = {
         const data = doc.data();
         communities.push({
           id: doc.id,
+          slug: getCommunitySlug({ slug: data.slug, name: data.name, id: doc.id }),
           name: data.name || '',
           city: data.city || '',
           state: data.state || '',
@@ -73,6 +77,7 @@ export const publicCommunityService = {
         success: true,
         community: {
           id: docSnap.id,
+          slug: getCommunitySlug({ slug: data.slug, name: data.name, id: docSnap.id }),
           name: data.name || '',
           city: data.city || '',
           state: data.state || '',
@@ -86,6 +91,44 @@ export const publicCommunityService = {
       };
     } catch (error: any) {
       console.error('Error getting community:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Resolves a community from a URL segment. Prefers the stored `slug` field,
+   * then a slug derived from the name (for documents created before slugs),
+   * and finally treats the segment as a document ID so old links keep working.
+   */
+  async getCommunityBySlug(slugOrId: string) {
+    try {
+      const slugQuery = query(
+        collection(db, 'communities'),
+        where('slug', '==', slugOrId),
+        limit(1)
+      );
+      const slugSnapshot = await getDocs(slugQuery);
+
+      if (!slugSnapshot.empty) {
+        return this.getCommunityById(slugSnapshot.docs[0].id);
+      }
+
+      const allSnapshot = await getDocs(collection(db, 'communities'));
+      const match = allSnapshot.docs.find(
+        d => getCommunitySlug({ slug: d.data().slug, name: d.data().name, id: d.id }) === slugOrId
+      );
+
+      if (match) {
+        return this.getCommunityById(match.id);
+      }
+
+      if (looksLikeFirestoreId(slugOrId)) {
+        return this.getCommunityById(slugOrId);
+      }
+
+      return { success: false, error: 'Community not found' };
+    } catch (error: any) {
+      console.error('Error getting community by slug:', error);
       return { success: false, error: error.message };
     }
   },
@@ -182,6 +225,7 @@ export const publicCommunityService = {
         const data = doc.data();
         communities.push({
           id: doc.id,
+          slug: getCommunitySlug({ slug: data.slug, name: data.name, id: doc.id }),
           name: data.name || '',
           city: data.city || '',
           state: data.state || '',

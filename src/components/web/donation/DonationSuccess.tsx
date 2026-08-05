@@ -33,45 +33,81 @@ function DonationSuccessContent() {
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
-    try {
-      const order_id = searchParams.get("order_id");
-      const amount = searchParams.get("amount");
-      const tracking_id = searchParams.get("tracking_id");
-      const status = searchParams.get("status");
-      const donorName = searchParams.get("name") || "Anonymous Donor";
-      const donorEmail = searchParams.get("email") || "donor@email.com";
+    let cancelled = false;
 
-      setDonationData({
-        id: order_id || "DN" + Date.now(),
-        amount: amount ? parseInt(amount) : 0,
-        donorName: donorName,
-        email: donorEmail,
-        transactionId: tracking_id || "TXN" + Date.now().toString().slice(-8),
-        date: new Date().toLocaleDateString('en-US', { 
-          weekday: 'long',
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        }),
-        status: status || "completed"
-      });
-    } catch (error) {
-      console.error("Error processing payment params:", error);
-    } finally {
-      setIsLoading(false);
+    const loadDonation = async () => {
+      const orderId = searchParams.get('order_id');
+
+      if (!orderId) {
+        router.replace('/donation/failed?message=Missing donation reference');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/donations/${encodeURIComponent(orderId)}`);
+        const result = await response.json();
+
+        if (cancelled) return;
+
+        if (!response.ok || !result.success || !result.data) {
+          router.replace(
+            `/donation/failed?order_id=${encodeURIComponent(orderId)}&message=${encodeURIComponent(result.error || 'Donation not found')}`
+          );
+          return;
+        }
+
+        if (result.data.status !== 'completed') {
+          router.replace(
+            `/donation/failed?order_id=${encodeURIComponent(orderId)}&message=${encodeURIComponent('Payment was not completed')}&status_message=${encodeURIComponent(result.data.status)}`
+          );
+          return;
+        }
+
+        setDonationData({
+          id: result.data.id,
+          amount: result.data.amount,
+          donorName: result.data.donorName,
+          email: result.data.email,
+          transactionId: result.data.transactionId,
+          date: new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+          status: result.data.status,
+        });
+      } catch (error) {
+        console.error('Error loading donation:', error);
+        if (!cancelled) {
+          router.replace(
+            `/donation/failed?order_id=${encodeURIComponent(orderId)}&message=${encodeURIComponent('Unable to verify donation')}`
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadDonation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
+
+  useEffect(() => {
+    if (!isLoading && countdown === 0) {
+      router.push('/');
     }
-  }, [searchParams]);
+  }, [countdown, isLoading, router]);
 
   useEffect(() => {
     if (!isLoading) {
       const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
+        setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
       }, 1000);
       return () => clearInterval(timer);
     }
@@ -139,7 +175,7 @@ function DonationSuccessContent() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !donationData) {
     return <LoadingDonationSuccess />;
   }
 

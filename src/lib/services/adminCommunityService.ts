@@ -12,11 +12,13 @@ import {
   where,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { slugify, getCommunitySlug } from '@/lib/utils/slug';
 
 const COLLECTION = 'communities';
 
 export interface Community {
   id: string;
+  slug: string;
   name: string;
   country: string;
   state: string;
@@ -32,6 +34,24 @@ export interface Community {
 }
 
 export const adminCommunityService = {
+  // ✅ Build a URL slug that no other community is already using
+  async generateUniqueSlug(name: string, excludeId?: string) {
+    const base = slugify(name) || 'community';
+    const snapshot = await getDocs(collection(db, COLLECTION));
+
+    const taken = new Set(
+      snapshot.docs
+        .filter(d => d.id !== excludeId)
+        .map(d => getCommunitySlug({ slug: d.data().slug, name: d.data().name, id: d.id }))
+    );
+
+    if (!taken.has(base)) return base;
+
+    let suffix = 2;
+    while (taken.has(`${base}-${suffix}`)) suffix++;
+    return `${base}-${suffix}`;
+  },
+
   // ✅ Upload cover image to Firebase Storage
   async uploadCoverImage(file: File, communityId: string): Promise<string> {
     try {
@@ -73,6 +93,7 @@ export const adminCommunityService = {
         const data = doc.data();
         communities.push({
           id: doc.id,
+          slug: getCommunitySlug({ slug: data.slug, name: data.name, id: doc.id }),
           name: data.name || '',
           country: data.country || 'India',
           state: data.state || '',
@@ -110,6 +131,7 @@ export const adminCommunityService = {
         success: true,
         community: {
           id: docSnap.id,
+          slug: getCommunitySlug({ slug: data.slug, name: data.name, id: docSnap.id }),
           name: data.name || '',
           country: data.country || 'India',
           state: data.state || '',
@@ -147,6 +169,7 @@ export const adminCommunityService = {
       
       const communityData = {
         name: data.name,
+        slug: await this.generateUniqueSlug(data.name),
         country: data.country || 'India',
         state: data.state,
         city: data.city,
@@ -187,6 +210,7 @@ export const adminCommunityService = {
       
       const updateData: any = {
         name: data.name,
+        slug: await this.generateUniqueSlug(data.name, id),
         country: data.country || 'India',
         state: data.state,
         city: data.city,
@@ -264,6 +288,7 @@ export const adminCommunityService = {
         ) {
           results.push({
             id: doc.id,
+            slug: getCommunitySlug({ slug: data.slug, name: data.name, id: doc.id }),
             name: data.name || '',
             country: data.country || 'India',
             state: data.state || '',

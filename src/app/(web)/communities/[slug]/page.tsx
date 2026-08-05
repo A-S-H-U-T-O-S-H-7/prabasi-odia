@@ -13,7 +13,7 @@ import CommunityEventsList from "@/components/web/community/CommunityEventsList"
 import { Calendar, Users } from "lucide-react";
 
 export default function CommunityDetailsPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ slug: string }>();
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   
@@ -24,22 +24,29 @@ export default function CommunityDetailsPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(true);
 
-  const communityId = params?.id;
+  const communitySlug = params?.slug;
 
   // Load community and check membership
   const loadCommunity = useCallback(async () => {
-    if (!communityId) return;
+    if (!communitySlug) return;
     
     setLoading(true);
     try {
       // Load community details
-      const communityResult = await publicCommunityService.getCommunityById(communityId);
+      const communityResult = await publicCommunityService.getCommunityBySlug(communitySlug);
       if (!communityResult.success || !communityResult.community) {
         toast.error("Community not found");
         router.replace("/communities");
         return;
       }
       setCommunity(communityResult.community);
+
+      // Old ID-based links land here too, so swap the URL for the readable slug
+      if (communityResult.community.slug && communityResult.community.slug !== communitySlug) {
+        router.replace(`/communities/${communityResult.community.slug}`);
+      }
+
+      const communityId = communityResult.community.id;
 
       // Check if user is member
       if (isAuthenticated && user?.uid) {
@@ -61,7 +68,7 @@ export default function CommunityDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }, [communityId, isAuthenticated, user?.uid, router]);
+  }, [communitySlug, isAuthenticated, user?.uid, router]);
 
   useEffect(() => {
     loadCommunity();

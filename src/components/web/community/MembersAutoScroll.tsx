@@ -24,6 +24,20 @@ export default function MembersAutoScroll({ memberIds, communityId }: MembersAut
   const [visibleCount, setVisibleCount] = useState(8);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Array of gradient colors for user icons
+  const avatarColors = [
+    "from-[#6B1E5B] to-[#D9772B]",
+    "from-[#1E6B5B] to-[#2BD9B7]",
+    "from-[#1E3B6B] to-[#2B97D9]",
+    "from-[#6B1E3B] to-[#D92B6B]",
+    "from-[#3B6B1E] to-[#97D92B]",
+    "from-[#6B4B1E] to-[#D9B72B]",
+    "from-[#1E4B6B] to-[#2B6BD9]",
+    "from-[#6B1E4B] to-[#D92B97]",
+    "from-[#4B6B1E] to-[#B7D92B]",
+    "from-[#6B2B1E] to-[#D95B2B]",
+  ];
+
   useEffect(() => {
     const fetchMembers = async () => {
       if (!memberIds || memberIds.length === 0) {
@@ -136,21 +150,11 @@ export default function MembersAutoScroll({ memberIds, communityId }: MembersAut
               transition={{ delay: index * 0.05 }}
               className="flex items-center gap-3 p-3 rounded-xl bg-white/60 hover:bg-white/90 transition-all duration-300 border border-[#E7D7E8]/30 hover:border-[#6B1E5B]/20 shadow-sm hover:shadow-md group"
             >
-              {/* Avatar */}
+              {/* Avatar - Always show User Icon for privacy */}
               <div className="relative flex-shrink-0">
-                {member.photoURL ? (
-                  <Image
-                    src={member.photoURL}
-                    alt={member.displayName}
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6B1E5B] to-[#D9772B] flex items-center justify-center text-white font-semibold text-sm border-2 border-white shadow-sm">
-                    {member.displayName.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarColors[index % avatarColors.length]} flex items-center justify-center text-white font-semibold text-sm border-2 border-white shadow-sm`}>
+                  <User className="w-5 h-5" />
+                </div>
                 {member.isVerified && (
                   <div className="absolute -bottom-0.5 -right-0.5 bg-green-500 rounded-full p-0.5 border-2 border-white">
                     <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
