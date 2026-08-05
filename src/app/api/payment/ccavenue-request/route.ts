@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 type Body = {
   order_id?: string;
   purpose?: string;
-  amount?: number;
+  amount?: number | string;
   name?: string;
   email?: string;
   phone?: string;
@@ -12,31 +12,62 @@ type Body = {
   country?: string;
 };
 
-function generateMockEncRequest(payload: Body) {
-  const str = JSON.stringify({ payload, ts: Date.now() });
-  return Buffer.from(str).toString('base64');
-}
-
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Body;
 
-    // Basic validation
     const required = ['order_id', 'amount', 'name', 'email'];
-    const missing = required.filter((k) => !body[k as keyof Body]);
+    const missing = required.filter((key) => {
+      const value = body[key as keyof Body];
+      return value === undefined || value === null || value === '';
+    });
+
     if (missing.length > 0) {
-      return NextResponse.json({ status: false, errors: [`Missing fields: ${missing.join(', ')}`] }, { status: 400 });
+      return NextResponse.json(
+        { status: false, errors: [`Missing fields: ${missing.join(', ')}`] },
+        { status: 400 }
+      );
     }
 
-    // In production this handler should call your CC Avenue integration or server-side SDK.
-    // For local development we return a mock encrypted request and an access code.
-    const encRequest = generateMockEncRequest(body);
-    const access_code = process.env.CCAVENUE_ACCESS_CODE || process.env.NEXT_PUBLIC_CCAVENUE_ACCESS_CODE || 'TEST_ACCESS_CODE';
+    const payload = {
+      order_id: String(body.order_id).trim(),
+      amount: parseFloat(String(body.amount)).toFixed(2),
+      name: String(body.name).trim(),
+      email: String(body.email).trim().toLowerCase(),
+      phone: String(body.phone || '').replace(/\D/g, ''),
+      address: String(body.address || 'Delhi, India').trim(),
+      purpose: String(body.purpose || 'donation').trim(),
+      donor_type: String(body.donor_type || 'indian').trim(),
+      country: String(body.country || 'india').trim(),
+    };
 
-    return NextResponse.json({ status: true, encRequest, access_code });
-  } catch (err) {
-    console.error('ccavenue-request error:', err);
-    return NextResponse.json({ status: false, errors: ['Internal server error'] }, { status: 500 });
+    const formData = new FormData();
+    Object.entries(payload).forEach(([key, value]) => formData.append(key, value));
+
+    const response = await fetch('https://svsamiti.com/rajaparba/ccavenueRequest.php', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`CCAvenue request endpoint returned ${response.status}`);
+    }
+
+    const text = await response.text();
+    const parsed = JSON.parse(text);
+
+    return NextResponse.json({
+      status: parsed.status ?? true,
+      encRequest: parsed.encRequest,
+      access_code: parsed.access_code,
+      order_id: parsed.order_id || payload.order_id,
+    });
+  } catch (error: any) {
+    console.error('ccavenue-request error:', error);
+    return NextResponse.json(
+      { status: false, errors: [error.message || 'Internal server error'] },
+      { status: 500 }
+    );
   }
 }
 
