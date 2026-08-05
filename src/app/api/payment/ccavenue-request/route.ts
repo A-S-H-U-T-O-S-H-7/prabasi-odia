@@ -15,8 +15,6 @@ type Body = {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Body;
-    const requestUrl = new URL(request.url);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${requestUrl.protocol}//${requestUrl.host}`;
 
     const required = ['order_id', 'amount', 'name', 'email'];
     const missing = required.filter((key) => {
