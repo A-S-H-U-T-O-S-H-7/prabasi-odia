@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getDonationById } from '@/lib/services/donationServerService';
 
 type Body = {
   order_id?: string;
@@ -30,45 +29,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const orderId = String(body.order_id).trim();
-    const donation = await getDonationById(orderId);
-
-    if (!donation) {
-      return NextResponse.json(
-        { status: false, errors: ['Donation record not found. Please submit the form again.'] },
-        { status: 404 }
-      );
-    }
-
-    if (donation.status === 'completed') {
-      return NextResponse.json(
-        { status: false, errors: ['This donation has already been completed.'] },
-        { status: 409 }
-      );
-    }
-
-    const requestedAmount = parseFloat(String(body.amount));
-    if (Number.isNaN(requestedAmount) || Math.abs(donation.amount - requestedAmount) >= 0.01) {
-      return NextResponse.json(
-        { status: false, errors: ['Payment amount does not match the donation record.'] },
-        { status: 400 }
-      );
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
     const payload = {
-      order_id: orderId,
-      amount: donation.amount.toFixed(2),
-      name: donation.donorDetails?.name || String(body.name).trim(),
-      email: (donation.donorDetails?.email || String(body.email)).trim().toLowerCase(),
-      phone: (donation.donorDetails?.mobile || String(body.phone || '')).replace(/\D/g, ''),
-      address:
-        donation.donorDetails?.address ||
-        String(body.address || 'Delhi, India').trim(),
-      purpose: String(body.purpose || donation.purpose || 'donation').trim(),
-      donor_type: String(body.donor_type || donation.donorType || 'indian').trim(),
-      country: String(body.country || donation.donorDetails?.country || 'india').trim(),
+      order_id: String(body.order_id).trim(),
+      amount: parseFloat(String(body.amount)).toFixed(2),
+      name: String(body.name).trim(),
+      email: String(body.email).trim().toLowerCase(),
+      phone: String(body.phone || '').replace(/\D/g, ''),
+      address: String(body.address || 'Delhi, India').trim(),
+      purpose: String(body.purpose || 'donation').trim(),
+      donor_type: String(body.donor_type || 'indian').trim(),
+      country: String(body.country || 'india').trim(),
       redirect_url: `${baseUrl}/api/payment/ccavenue-response`,
       cancel_url: `${baseUrl}/api/payment/ccavenue-cancel`,
     };
