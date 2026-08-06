@@ -146,7 +146,7 @@ export default function PartnersSection() {
         >
           <div className="flex-1 max-w-24 h-px bg-gradient-to-r from-transparent via-[#6B1E5B] to-transparent opacity-40" />
           <span className="text-sm md:text-base font-serif font-semibold text-[#2A1636] whitespace-nowrap tracking-wide">
-            Trusted by Community Partners
+            Trusted by Community Associates
           </span>
           <div className="flex-1 max-w-24 h-px bg-gradient-to-l from-transparent via-[#6B1E5B] to-transparent opacity-40" />
         </motion.div>

@@ -163,10 +163,7 @@ export default function WelcomePopup({ onClose }: WelcomePopupProps) {
             onClick={handleClose}
           />
 
-          {/* Centering wrapper — flex-centers on every breakpoint instead of
-              relying on manual top/inset math, which is what let content
-              overflow past the viewport before. Padding here guarantees
-              breathing room from the screen edge at every size. */}
+          {/* Centering wrapper */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -176,39 +173,58 @@ export default function WelcomePopup({ onClose }: WelcomePopupProps) {
               className="pointer-events-auto w-full sm:max-w-[560px] md:max-w-[640px] lg:max-w-[680px] max-h-[92vh] sm:max-h-[85vh] flex flex-col overflow-hidden rounded-[28px] bg-white/97 backdrop-blur-xl shadow-2xl border border-white/60"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header bar — close + language switcher live here, outside the
-                  scroll area, so they never scroll away or overlap content */}
-              <div className="relative shrink-0 flex items-center justify-end gap-2 px-4 pt-4 pb-1">
-                <div className="flex items-center gap-1 bg-[#4A1942]/[0.06] rounded-full p-0.5 border border-[#DDD0BC]/60">
-                  {languageOptions.map((lang) => (
-                    <button
-                      key={lang.code}
-                      type="button"
-                      onClick={() => setLanguage(lang.code)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer ${
-                        language === lang.code
-                          ? "bg-[#4A1942] text-white shadow-sm"
-                          : "text-[#7A6A5E] hover:text-[#4A1942] hover:bg-[#4A1942]/5"
-                      }`}
-                    >
-                      {lang.label}
-                    </button>
-                  ))}
+              {/* Header bar — Left: SVS Logo + Text | Right: Language + Close */}
+              <div className="relative shrink-0 flex items-center justify-between gap-2 px-4 pt-4 pb-1">
+                {/* Left: SVS Logo + Text */}
+                <div className="flex items-center gap-2.5">
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden border border-amber-200/60 shadow-sm flex-shrink-0 bg-white/50">
+                    <Image
+                      src="/svslogo.png"
+                      alt="Samudayik Vikas Samiti"
+                      fill
+                      className="object-contain p-1"
+                    />
+                  </div>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-[10px] font-bold text-amber-800 leading-none">
+                      Samudayik Vikas
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-800 leading-none -mt-0.5">
+                      Samiti
+                    </span>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  aria-label="Close"
-                  className="p-1.5 rounded-full hover:bg-[#4A1942]/5 transition-all duration-300 hover:rotate-90 cursor-pointer text-[#7A6A5E] hover:text-[#4A1942]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+
+                {/* Right: Language Switcher + Close */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-[#4A1942]/[0.06] rounded-full p-0.5 border border-[#DDD0BC]/60">
+                    {languageOptions.map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => setLanguage(lang.code)}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer ${
+                          language === lang.code
+                            ? "bg-[#4A1942] text-white shadow-sm"
+                            : "text-[#7A6A5E] hover:text-[#4A1942] hover:bg-[#4A1942]/5"
+                        }`}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    aria-label="Close"
+                    className="p-1.5 rounded-full hover:bg-[#4A1942]/5 transition-all duration-300 hover:rotate-90 cursor-pointer text-[#7A6A5E] hover:text-[#4A1942]"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
-              {/* Scrollable content — min-h-0 is the actual fix: without it,
-                  a flex-1 child refuses to shrink below its content height,
-                  so it silently overflowed the modal's max-height and the
-                  bottom got clipped by overflow-hidden instead of scrolling. */}
+              {/* Scrollable content */}
               <div className="popup-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 pb-5">
                 {/* Header */}
                 <div className="text-center mb-4">
@@ -320,11 +336,7 @@ export default function WelcomePopup({ onClose }: WelcomePopupProps) {
             </motion.div>
           </div>
 
-          {/* Real custom scrollbar — the scrollbar-thin / scrollbar-thumb-*
-              utility classes used before require the tailwind-scrollbar
-              plugin; without it they're inert and you fall back to the
-              browser default, which auto-hides on macOS/most mobile
-              browsers and looks like "no scrolling" even when it works. */}
+          {/* Custom scrollbar */}
           <style jsx global>{`
             .popup-scroll::-webkit-scrollbar {
               width: 6px;

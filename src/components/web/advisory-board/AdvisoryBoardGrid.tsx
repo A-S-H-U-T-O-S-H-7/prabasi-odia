@@ -45,7 +45,7 @@ export default function AdvisoryBoardGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-6">
       {members.map((member, index) => (
         <AdvisoryBoardCard key={member.id} member={member} index={index} />
       ))}
