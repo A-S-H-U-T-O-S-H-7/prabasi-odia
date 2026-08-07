@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { Heart, Users, Droplet, Handshake, Sparkles, GraduationCap, Network, AlertCircle } from "lucide-react";
+import { Heart, Users, Droplet, Handshake, Sparkles, GraduationCap, Network, AlertCircle, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 
@@ -22,30 +22,33 @@ const interestOptions = [
   { id: "startupNetworking", label: "Startup Networking", icon: Network, color: "bg-teal-100 text-teal-700 border-teal-200" },
 ];
 
+// Aadhar numbers never start with 0 or 1
+const sanitizeAadhar = (raw: string, previous: string): string => {
+  const digits = raw.replace(/\D/g, "").slice(0, 12);
+  if (digits.length === 0) return "";
+  if (/^[01]/.test(digits)) return previous;
+  return digits;
+};
+
 export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) {
   const { register, watch, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const selectedInterests = watch("interests") || [];
   const aadharNumber = watch("aadharNumber") || "";
 
-  const shouldShowError = (name: string) =>
-    Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
+  const shouldShowError = (name: string) => Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
 
   const toggleInterest = (id: string) => {
     const current = selectedInterests || [];
-    const updated = current.includes(id)
-      ? current.filter((i: string) => i !== id)
-      : [...current, id];
+    const updated = current.includes(id) ? current.filter((i: string) => i !== id) : [...current, id];
     setValue("interests", updated, { shouldValidate: true });
   };
 
   const handleAadharChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
-    if (value.length <= 12) {
-      setValue("aadharNumber", value, { shouldValidate: true });
-      if (hasAttemptedSubmit || touchedFields.aadharNumber) {
-        trigger("aadharNumber");
-      }
+    const sanitized = sanitizeAadhar(e.target.value, aadharNumber);
+    setValue("aadharNumber", sanitized, { shouldValidate: true });
+    if (hasAttemptedSubmit || touchedFields.aadharNumber) {
+      trigger("aadharNumber");
     }
   };
 
@@ -94,33 +97,55 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => toggleInterest(option.id)}
-                className={`flex flex-col items-center gap-2 p-3 md:p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
-                  isSelected
-                    ? `${option.color} shadow-md`
-                    : 'border-[#D4C8C0]/30 bg-white/40 hover:border-[#6B1E5B]/30 hover:bg-white/60'
+                // Fixed height every state - the checkmark is an absolutely
+                // positioned overlay so selecting never changes card height.
+                className={`relative flex flex-col items-center justify-center gap-2 h-[92px] md:h-[104px] p-3 rounded-2xl border-2 transition-colors duration-300 cursor-pointer ${
+                  isSelected ? `${option.color} shadow-md` : "border-[#D4C8C0]/30 bg-white/40 hover:border-[#6B1E5B]/30 hover:bg-white/60"
                 }`}
               >
-                <Icon className={`w-5 h-5 md:w-6 md:h-6 ${isSelected ? 'text-current' : 'text-[#6B5E5A]/40'}`} />
-                <span className={`text-[10px] md:text-xs font-medium text-center ${isSelected ? 'text-current' : 'text-[#6B5E5A]'}`}>
+                <AnimatePresence>
+                  {isSelected && (
+                    <motion.span
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                      className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center"
+                    >
+                      <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <Icon className={`w-5 h-5 md:w-6 md:h-6 ${isSelected ? "text-current" : "text-[#6B5E5A]/40"}`} />
+                <span className={`text-[10px] md:text-xs font-medium text-center leading-tight ${isSelected ? "text-current" : "text-[#6B5E5A]"}`}>
                   {option.label}
                 </span>
-                {isSelected && <span className="text-xs text-green-500">✅</span>}
               </motion.button>
             );
           })}
         </div>
         <div className="min-h-6 mt-2">
-          {shouldShowError("interests") && (
-            <p className="text-red-400 text-sm">{errors.interests?.message as string}</p>
-          )}
+          <AnimatePresence mode="wait">
+            {shouldShowError("interests") ? (
+              <motion.p key="err" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="text-red-400 text-sm">
+                {errors.interests?.message as string}
+              </motion.p>
+            ) : selectedInterests.length > 0 ? (
+              <motion.p
+                key="count"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className={`text-xs ${selectedInterests.length >= 2 ? "text-green-600" : "text-[#6B5E5A]"}`}
+              >
+                {selectedInterests.length} of minimum 2 selected
+                {selectedInterests.length >= 2 && " ✅"}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
         </div>
-        {selectedInterests.length > 0 && (
-          <p className={`text-xs mt-2 ${selectedInterests.length >= 2 ? 'text-green-600' : 'text-[#6B5E5A]'}`}>
-            {selectedInterests.length} of minimum 2 selected
-            {selectedInterests.length >= 2 && ' ✅'}
-          </p>
-        )}
       </div>
 
       {/* Aadhar Number */}
@@ -130,9 +155,10 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
         </label>
         <div className="relative">
           <input
-            {...register("aadharNumber")}
             type="text"
+            inputMode="numeric"
             maxLength={12}
+            value={aadharNumber}
             placeholder="Enter 12-digit Aadhar number"
             className={`w-full px-4 py-3 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 ${
               shouldShowError("aadharNumber")
@@ -143,31 +169,36 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
             }`}
             onChange={handleAadharChange}
           />
-          {aadharNumber.length === 12 && (
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 text-sm">✅</span>
-          )}
+          <AnimatePresence>
+            {aadharNumber.length === 12 && (
+              <motion.span
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 text-sm"
+              >
+                ✅
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
-        
+
         <div className="flex items-start gap-1.5 mt-2">
           <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-600">
-            <span className="font-semibold">Important:</span> Please ensure your Aadhar number is correct. 
-            This will be verified by our team. Incorrect information may lead to rejection.
+            <span className="font-semibold">Important:</span> 12 digits, and can&apos;t start with 0 or 1. This will be verified by our team.
           </p>
         </div>
-        
-        <AnimatePresence>
-          {shouldShowError("aadharNumber") && (
-            <motion.p
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="text-red-400 text-sm mt-1"
-            >
-              {errors.aadharNumber?.message as string}
-            </motion.p>
-          )}
-        </AnimatePresence>
+
+        <div className="min-h-5 mt-1">
+          <AnimatePresence mode="wait">
+            {shouldShowError("aadharNumber") && (
+              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
+                {errors.aadharNumber?.message as string}
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Navigation Buttons */}

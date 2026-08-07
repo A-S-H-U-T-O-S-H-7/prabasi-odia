@@ -8,8 +8,9 @@ import { toast } from "react-hot-toast";
 import { useLocationData } from "@/hooks/useLocationData";
 import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCommunityService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
+import CommunitySelect, { CANT_FIND_COMMUNITY } from "./Communityselect";
 
-export const CANT_FIND_COMMUNITY = "__cant_find__";
+export { CANT_FIND_COMMUNITY };
 
 interface Step2AddressProps {
   onNext: () => void;
@@ -24,8 +25,18 @@ const odishaDistricts = [
   "Puri", "Rayagada", "Sambalpur", "Subarnapur", "Sundargarh"
 ];
 
-const isOdishaState = (name: string) =>
-  /^(odisha|orissa)$/i.test((name || "").trim());
+const isOdishaState = (name: string) => /^(odisha|orissa)$/i.test((name || "").trim());
+
+// Odisha PIN codes: 6 digits, first digit 7, second digit 5/6/7 (covers 75x-77x ranges used across Odisha)
+const sanitizeOdishaPin = (raw: string, previous: string): string => {
+  const digits = raw.replace(/\D/g, "").slice(0, 6);
+  if (digits.length === 0) return "";
+  if (digits[0] !== "7") return previous;
+  if (digits.length >= 2 && !["5", "6", "7"].includes(digits[1])) return previous;
+  return digits;
+};
+
+const sanitizeGenericPin = (raw: string): string => raw.replace(/\D/g, "").slice(0, 6);
 
 export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
   const { register, watch, trigger, setValue, formState: { errors, touchedFields } } = useFormContext();
@@ -35,7 +46,6 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
-  // ✅ FIX: Single watch() call for better performance
   const formData = watch();
   const nearbyCommunityId = formData.nearbyCommunityId || "";
   const currentState = formData.currentState;
@@ -46,39 +56,29 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
   const showRequestedCommunity = nearbyCommunityId === CANT_FIND_COMMUNITY;
 
   const { countries, states, cities, loading } = useLocationData({
-    country: formData.currentCountry || '',
-    state: formData.currentState || ''
+    country: formData.currentCountry || "",
+    state: formData.currentState || "",
   });
 
-  const availableStates = useMemo(
-    () => states.filter((state) => !isOdishaState(state.name)),
-    [states]
-  );
+  const availableStates = useMemo(() => states.filter((state) => !isOdishaState(state.name)), [states]);
 
-  // Load communities
   useEffect(() => {
     let cancelled = false;
     const loadCommunities = async () => {
       setLoadingCommunities(true);
       try {
         const result = await publicCommunityService.getActiveCommunities();
-        if (!cancelled) {
-          setCommunities(result.communities || []);
-        }
+        if (!cancelled) setCommunities(result.communities || []);
       } finally {
-        if (!cancelled) {
-          setLoadingCommunities(false);
-        }
+        if (!cancelled) setLoadingCommunities(false);
       }
     };
-
     loadCommunities();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Clear Odisha if selected
   useEffect(() => {
     if (currentState && isOdishaState(currentState)) {
       setValue("currentState", "", { shouldValidate: true });
@@ -89,7 +89,6 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
     }
   }, [currentState, setValue]);
 
-  // Geocode when city/state/country changes
   useEffect(() => {
     const canGeocode = currentCity && currentState && currentCountry;
     if (!canGeocode) {
@@ -103,11 +102,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       try {
         setIsGeocoding(true);
         setGeocodeError(null);
-        const result = await geocodeLocation({
-          city: currentCity,
-          state: currentState,
-          country: currentCountry,
-        });
+        const result = await geocodeLocation({ city: currentCity, state: currentState, country: currentCountry });
 
         if (result) {
           setValue("currentLatitude", result.lat, { shouldValidate: false });
@@ -128,7 +123,6 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
     return () => clearTimeout(timer);
   }, [currentCity, currentState, currentCountry, setValue]);
 
-  // Community name sync
   useEffect(() => {
     if (!nearbyCommunityId || nearbyCommunityId === CANT_FIND_COMMUNITY) {
       setValue("nearbyCommunityName", "", { shouldValidate: false });
@@ -152,27 +146,18 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
     ...(showRequestedCommunity ? ["requestedCommunityName"] : []),
   ];
 
-  const shouldShowError = (name: string) =>
-    Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
+  const shouldShowError = (name: string) => Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
 
   const inputClass = (name: string) => `
     w-full px-4 py-3 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30
-    ${shouldShowError(name)
-      ? "border-red-400 focus:border-red-400 focus:ring-red-200"
-      : "border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20"
-    }
+    ${shouldShowError(name) ? "border-red-400 focus:border-red-400 focus:ring-red-200" : "border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20"}
   `;
 
   const ErrorMessage = ({ name }: { name: string }) => (
-    <div className="min-h-6 mt-1" aria-live="polite">
-      <AnimatePresence>
+    <div className="min-h-5 mt-1" aria-live="polite">
+      <AnimatePresence mode="wait">
         {shouldShowError(name) && (
-          <motion.p
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="text-red-400 text-sm"
-          >
+          <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
             {errors[name]?.message as string}
           </motion.p>
         )}
@@ -189,13 +174,16 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
     }
   };
 
+  const odishaPin = formData.odishaPinCode || "";
+  const currentPin = formData.currentPinCode || "";
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4 }}
-      className="space-y-5 md:space-y-6"
+      className="space-y-6"
     >
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center flex-shrink-0">
@@ -209,7 +197,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
 
       {/* Odisha Address Section */}
       <div className="bg-[#6B1E5B]/5 rounded-2xl p-4 border border-[#6B1E5B]/10">
-        <h3 className="text-sm font-semibold text-[#2A1636] mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-[#2A1636] mb-4 flex items-center gap-2">
           <Home className="w-4 h-4 text-[#6B1E5B]" /> Odisha Home Address
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -246,7 +234,24 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Pin Code <span className="text-red-400">*</span>
             </label>
-            <input {...register("odishaPinCode")} type="text" className={inputClass("odishaPinCode")} placeholder="6 digit pin" maxLength={6} />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={odishaPin}
+              className={inputClass("odishaPinCode")}
+              placeholder="7XXXXX"
+              maxLength={6}
+              onChange={(e) => {
+                const sanitized = sanitizeOdishaPin(e.target.value, odishaPin);
+                setValue("odishaPinCode", sanitized, { shouldValidate: hasAttemptedSubmit || touchedFields.odishaPinCode });
+              }}
+              onBlur={() => trigger("odishaPinCode")}
+            />
+            <div className="min-h-5 mt-1">
+              {!shouldShowError("odishaPinCode") && (
+                <p className="text-[10px] text-[#6B5E5A]/60">Starts with 7, second digit 5-7 · 6 digits</p>
+              )}
+            </div>
             <ErrorMessage name="odishaPinCode" />
           </div>
         </div>
@@ -254,12 +259,10 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
 
       {/* Current Address Section */}
       <div className="bg-[#D9772B]/5 rounded-2xl p-4 border border-[#D9772B]/10">
-        <h3 className="text-sm font-semibold text-[#2A1636] mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-[#2A1636] mb-1 flex items-center gap-2">
           <Building className="w-4 h-4 text-[#D9772B]" /> Current Address
         </h3>
-        <p className="text-xs text-[#D9772B] mb-3">
-          Current address must be outside Odisha (Prabasi living elsewhere).
-        </p>
+        <p className="text-xs text-[#D9772B] mb-4">Current address must be outside Odisha (Prabasi living elsewhere).</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
@@ -286,7 +289,9 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
                 ))}
               </select>
             </div>
-            {loading.countries && <p className="text-xs text-[#6B5E5A] mt-1">Loading countries...</p>}
+            <div className="min-h-5 mt-1">
+              {loading.countries && <p className="text-xs text-[#6B5E5A]">Loading countries...</p>}
+            </div>
             <ErrorMessage name="currentCountry" />
           </div>
 
@@ -304,7 +309,9 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
                 <option key={state.iso2} value={state.name}>{state.name}</option>
               ))}
             </select>
-            {loading.states && <p className="text-xs text-[#6B5E5A] mt-1">Loading states...</p>}
+            <div className="min-h-5 mt-1">
+              {loading.states && <p className="text-xs text-[#6B5E5A]">Loading states...</p>}
+            </div>
             <ErrorMessage name="currentState" />
           </div>
 
@@ -322,33 +329,50 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
                 <option key={city.id} value={city.name}>{city.name}</option>
               ))}
             </select>
-            {loading.cities && <p className="text-xs text-[#6B5E5A] mt-1">Loading cities...</p>}
+
+            <div className="min-h-5 mt-1">
+              <AnimatePresence mode="wait">
+                {loading.cities && (
+                  <motion.p key="loading" className="text-xs text-[#6B5E5A]">Loading cities...</motion.p>
+                )}
+                {!loading.cities && isGeocoding && (
+                  <motion.div key="geocoding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-[#6B1E5B] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs text-[#6B5E5A]">Fetching map coordinates...</p>
+                  </motion.div>
+                )}
+                {!loading.cities && !isGeocoding && currentLatitude && currentLongitude && !geocodeError && (
+                  <motion.p key="success" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-emerald-700">
+                    ✅ Coordinates captured for map display
+                  </motion.p>
+                )}
+                {!loading.cities && geocodeError && (
+                  <motion.p key="error" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-amber-600">
+                    ⚠️ {geocodeError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
             <ErrorMessage name="currentCity" />
-            
-            {/* ✅ FIX: Geocoding loading state */}
-            {isGeocoding && (
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-3 h-3 border-2 border-[#6B1E5B] border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs text-[#6B5E5A]">Fetching map coordinates...</p>
-              </div>
-            )}
-            
-            {/* ✅ FIX: Geocoding success state */}
-            {!isGeocoding && currentLatitude && currentLongitude && !geocodeError && (
-              <p className="text-xs text-emerald-700 mt-1">✅ Coordinates captured for map display</p>
-            )}
-            
-            {/* ✅ FIX: Geocoding error state */}
-            {geocodeError && (
-              <p className="text-xs text-amber-600 mt-1">⚠️ {geocodeError}</p>
-            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Pin Code <span className="text-red-400">*</span>
             </label>
-            <input {...register("currentPinCode")} type="text" className={inputClass("currentPinCode")} placeholder="6 digit pin" maxLength={6} />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={currentPin}
+              className={inputClass("currentPinCode")}
+              placeholder="6 digit pin"
+              maxLength={6}
+              onChange={(e) => {
+                const sanitized = sanitizeGenericPin(e.target.value);
+                setValue("currentPinCode", sanitized, { shouldValidate: hasAttemptedSubmit || touchedFields.currentPinCode });
+              }}
+              onBlur={() => trigger("currentPinCode")}
+            />
             <ErrorMessage name="currentPinCode" />
           </div>
         </div>
@@ -356,7 +380,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
 
       {/* Nearby Community Section */}
       <div className="bg-[#6B1E5B]/5 rounded-2xl p-4 border border-[#6B1E5B]/10">
-        <h3 className="text-sm font-semibold text-[#2A1636] mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-[#2A1636] mb-4 flex items-center gap-2">
           <Users className="w-4 h-4 text-[#6B1E5B]" /> Your Nearby Community
         </h3>
         <div className="space-y-4">
@@ -364,33 +388,23 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Nearby Community <span className="text-red-400">*</span>
             </label>
-            <select
-              {...register("nearbyCommunityId")}
-              className={`${inputClass("nearbyCommunityId")} appearance-none cursor-pointer`}
-              disabled={loadingCommunities}
-            >
-              <option value="">
-                {loadingCommunities ? "Loading communities..." : communities.length > 0 ? "Select your nearby community" : "No communities available"}
-              </option>
-              {communities.length > 0 && communities.map((community) => (
-                <option key={community.id} value={community.id}>
-                  {community.name}
-                  {community.city ? ` — ${community.city}` : ""}
-                  {community.state ? `, ${community.state}` : ""}
-                </option>
-              ))}
-              <option value={CANT_FIND_COMMUNITY}>Can&apos;t find nearby community</option>
-            </select>
+            <CommunitySelect
+              communities={communities}
+              value={nearbyCommunityId}
+              onChange={(id) => {
+                setValue("nearbyCommunityId", id, { shouldValidate: true });
+              }}
+              loading={loadingCommunities}
+              currentCity={currentCity}
+              currentState={currentState}
+              hasError={shouldShowError("nearbyCommunityId")}
+            />
             {!loadingCommunities && communities.length === 0 && (
-              <p className="text-xs text-[#6B5E5A] mt-1">
-                No communities are available yet. You can request a new one below.
-              </p>
+              <p className="text-xs text-[#6B5E5A] mt-1">No communities are available yet. You can request a new one below.</p>
             )}
             <ErrorMessage name="nearbyCommunityId" />
             {!showRequestedCommunity && nearbyCommunityId && (
-              <p className="text-xs text-[#6B1E5B] mt-1">
-                You will be added as a member of this community after submission.
-              </p>
+              <p className="text-xs text-[#6B1E5B] mt-1">You will be added as a member of this community after submission.</p>
             )}
           </div>
 
@@ -400,20 +414,15 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
                 className="overflow-hidden"
               >
                 <label className="block text-sm font-medium text-[#2A1636] mb-2">
                   Suggest Community Name <span className="text-red-400">*</span>
                 </label>
-                <input
-                  {...register("requestedCommunityName")}
-                  className={inputClass("requestedCommunityName")}
-                  placeholder="Enter your community / city name"
-                />
+                <input {...register("requestedCommunityName")} className={inputClass("requestedCommunityName")} placeholder="Enter your community / city name" />
                 <ErrorMessage name="requestedCommunityName" />
-                <p className="text-xs text-[#D9772B] mt-1">
-                  Your request will go to admin for verification. Admin will create the community manually.
-                </p>
+                <p className="text-xs text-[#D9772B] mt-1">Your request will go to admin for verification. Admin will create the community manually.</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -422,7 +431,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
 
       <input type="hidden" {...register("currentLatitude", { valueAsNumber: true })} />
       <input type="hidden" {...register("currentLongitude", { valueAsNumber: true })} />
-      
+
       <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6">
         <button onClick={onBack} className="px-6 py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer">
           ← Back

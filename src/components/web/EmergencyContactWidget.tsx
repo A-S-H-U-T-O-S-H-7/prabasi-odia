@@ -89,8 +89,8 @@ export default function EmergencyContactWidget() {
     >
       {/* Panel */}
       {open && (
-        <div className="w-[min(92vw,340px)] max-h-[70vh] overflow-hidden rounded-2xl bg-white border border-[#E7D7E8] shadow-2xl shadow-[#2A1636]/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="bg-gradient-to-r from-[#B91C1C] via-[#DC2626] to-[#D9772B] px-4 py-3.5 flex items-center justify-between">
+        <div className="w-7xl max-h-[70vh] overflow-hidden rounded-2xl bg-white border border-[#E7D7E8] shadow-2xl shadow-[#2A1636]/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="bg-gradient-to-r from-[#B91C1C] via-[#DC2626] to-[#D9772B] px-4 py-3 flex items-center justify-between">
             <div>
               <p className="text-white font-serif font-bold text-base leading-tight">
                 Emergency Contact
@@ -182,10 +182,10 @@ export default function EmergencyContactWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? "Close emergency contacts" : "Open emergency contacts"}
-        className="flex items-center gap-2 rounded-full shadow-lg shadow-red-500/40 cursor-pointer transition-transform hover:scale-105 active:scale-95 bg-gradient-to-r from-[#B91C1C] to-[#DC2626] text-white pl-3.5 pr-5 py-3.5"
+        className="flex items-center gap-2 rounded-full shadow-lg shadow-red-500/40 cursor-pointer transition-transform hover:scale-105 active:scale-95 bg-gradient-to-r from-[#B91C1C] to-[#DC2626] text-white pl-3.5 pr-4 md:pr-5 py-1 md:py-3"
       >
-        <span className="flex items-center justify-center rounded-full bg-white/20 w-9 h-9">
-          {open ? <X className="w-[18px] h-[18px]" /> : <Phone className="w-[18px] h-[18px]" />}
+        <span className="flex items-center justify-center rounded-full bg-white/20 w-7 h-7 md:w-9 md:h-9">
+          {open ? <X className="w-4 h-4 md:w-[18px] md:h-[18px]" /> : <Phone className="w-4 h-4 md:w-[18px] md:h-[18px]" />}
         </span>
         <span className="text-sm font-semibold whitespace-nowrap">
           {open ? "Close" : "Emergency"}

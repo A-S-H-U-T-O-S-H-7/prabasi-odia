@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { Upload, User, Users, Plus, X, Phone, Calendar, Briefcase, AlertCircle } from "lucide-react";
+import { Upload, User, Users, Plus, X, Phone, Calendar, Briefcase, AlertCircle, Check } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-hot-toast";
@@ -33,6 +33,17 @@ const calculateAge = (dob: string): number => {
     age--;
   }
   return age;
+};
+
+// Indian mobile numbers start with 6, 7, 8, or 9
+const sanitizeMobile = (raw: string, previous: string): string => {
+  const digitsOnly = raw.replace(/\D/g, "").slice(0, 10);
+  if (digitsOnly.length === 0) return "";
+  if (!/^[6-9]/.test(digitsOnly)) {
+    // Reject a first digit that isn't 6-9 instead of silently accepting it
+    return previous;
+  }
+  return digitsOnly;
 };
 
 export default function Step1Personal({ onNext, onBack, isFirstStep = true }: Step1PersonalProps) {
@@ -66,13 +77,9 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
   const [familyAgeErrors, setFamilyAgeErrors] = useState<Record<string, boolean>>({});
 
-  const watchFullName = watch("fullName");
   const watchDob = watch("dob");
-  const watchGender = watch("gender");
-  const watchBloodGroup = watch("bloodGroup");
   const watchMobileNumber = watch("mobileNumber");
   const watchPhoto = watch("photo");
-  const watchOccupation = watch("occupation");
 
   // Calculate age when DOB changes
   useEffect(() => {
@@ -91,15 +98,15 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+      const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
       if (!validTypes.includes(file.type)) {
-        setPhotoError('Please upload a valid image (JPEG, PNG, WEBP)');
+        setPhotoError("Please upload a valid image (JPEG, PNG, WEBP)");
         setValue("photo", null);
         return;
       }
-      
+
       if (file.size > 5 * 1024 * 1024) {
-        setPhotoError('Image size should be less than 5MB');
+        setPhotoError("Image size should be less than 5MB");
         setValue("photo", null);
         return;
       }
@@ -127,51 +134,37 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   };
 
   const updateFamilyMember = (id: string, field: string, value: string) => {
-    setFamilyMembers(familyMembers.map((m) => m.id === id ? { ...m, [field]: value } : m));
-    
-    // Check age validation for this member
-    if (field === 'dob') {
+    setFamilyMembers(familyMembers.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
+
+    if (field === "dob") {
       const age = calculateAge(value);
       if (age >= 18 && value) {
-        setFamilyAgeErrors(prev => ({ ...prev, [id]: true }));
+        setFamilyAgeErrors((prev) => ({ ...prev, [id]: true }));
         toast.error(`Family member is ${age} years old. They need to join separately.`);
       } else {
-        setFamilyAgeErrors(prev => ({ ...prev, [id]: false }));
+        setFamilyAgeErrors((prev) => ({ ...prev, [id]: false }));
       }
     }
   };
 
-  const getFamilyMemberAge = (dob: string): number => {
-    return calculateAge(dob);
-  };
+  const getFamilyMemberAge = (dob: string): number => calculateAge(dob);
 
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
-    
-    // Check for family members who are 18+
-    const adultMembers = familyMembers.filter(m => {
+
+    const adultMembers = familyMembers.filter((m) => {
       const age = getFamilyMemberAge(m.dob);
       return age >= 18 && m.dob && m.name;
     });
-    
+
     if (adultMembers.length > 0) {
-      toast.error(`Family members ${adultMembers.map(m => m.name).join(', ')} are 18+ and need to join separately.`);
+      toast.error(`Family members ${adultMembers.map((m) => m.name).join(", ")} are 18+ and need to join separately.`);
       return;
     }
 
-    // Validate required fields
-    const fieldsToValidate = [
-      "fullName",
-      "dob",
-      "gender",
-      "bloodGroup",
-      "mobileNumber",
-      "photo",
-      "occupation"
-    ];
-    
+    const fieldsToValidate = ["fullName", "dob", "gender", "bloodGroup", "mobileNumber", "photo", "occupation"];
     const isValid = await trigger(fieldsToValidate);
-    
+
     if (isValid) {
       onNext();
     } else {
@@ -180,8 +173,20 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   };
 
   const shouldShowError = (fieldName: string) => {
-    return (hasAttemptedSubmit || touchedFields[fieldName]) && errors[fieldName];
+    return Boolean((hasAttemptedSubmit || touchedFields[fieldName]) && errors[fieldName]);
   };
+
+  // Consistent, reserved-height message slot so content below never jumps
+  const FieldHint = ({ children }: { children: React.ReactNode }) => (
+    <div className="min-h-5 mt-1" aria-live="polite">
+      <AnimatePresence mode="wait">{children}</AnimatePresence>
+    </div>
+  );
+
+  const inputClass = (name: string) => `
+    w-full px-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 bg-white/50 focus:ring-2
+    ${shouldShowError(name) ? "border-red-400 focus:border-red-400 focus:ring-red-200" : "border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20"}
+  `;
 
   return (
     <motion.div
@@ -201,22 +206,22 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Profile Photo */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#2A1636] mb-2">
-            Profile Photo <span className="text-red-400">*</span>
-          </label>
+      {/* Profile Photo - fixed-height wrapper prevents layout jump when messages appear */}
+      <div>
+        <label className="block text-sm font-medium text-[#2A1636] mb-2">
+          Profile Photo <span className="text-red-400">*</span>
+        </label>
+        <div className="flex items-start gap-4">
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => fileInputRef.current?.click()}
-            className={`relative w-24 h-24 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden flex items-center justify-center bg-gradient-to-br from-white/40 to-[#6B1E5B]/5 hover:from-white/60 hover:to-[#6B1E5B]/10 group ${
-              watchPhoto instanceof File 
-                ? 'border-green-500 bg-green-50/30' 
-                : (shouldShowError("photo") || photoError)
-                ? 'border-red-400 bg-red-50/30'
-                : 'border-[#D4C8C0] hover:border-[#6B1E5B]'
+            className={`relative w-24 h-24 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden flex items-center justify-center bg-gradient-to-br from-white/40 to-[#6B1E5B]/5 hover:from-white/60 hover:to-[#6B1E5B]/10 group flex-shrink-0 ${
+              watchPhoto instanceof File
+                ? "border-green-500 bg-green-50/30"
+                : shouldShowError("photo") || photoError
+                ? "border-red-400 bg-red-50/30"
+                : "border-[#D4C8C0] hover:border-[#6B1E5B]"
             }`}
           >
             {photoPreview ? (
@@ -229,106 +234,149 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
             )}
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           </motion.div>
-          <AnimatePresence>
-            {(shouldShowError("photo") || photoError) && (
-              <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-red-400 text-sm mt-1">
-                {photoError || (errors.photo?.message as string)}
-              </motion.p>
-            )}
-          </AnimatePresence>
-          {watchPhoto instanceof File && !photoError && !errors.photo && (
-            <p className="text-green-500 text-sm mt-1">✅ Photo uploaded</p>
-          )}
-        </div>
 
-        {/* Full Name */}
+          {/* Reserved-height status column beside the photo, so it never pushes the form down */}
+          <div className="flex-1 min-h-24 flex items-center">
+            <AnimatePresence mode="wait">
+              {(shouldShowError("photo") || photoError) && (
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="flex items-start gap-1.5 text-red-400 text-sm"
+                >
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{photoError || (errors.photo?.message as string)}</span>
+                </motion.div>
+              )}
+              {watchPhoto instanceof File && !photoError && !errors.photo && (
+                <motion.div
+                  key="success"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="flex items-center gap-1.5 text-green-600 text-sm"
+                >
+                  <Check className="w-4 h-4" /> Photo uploaded
+                </motion.div>
+              )}
+              {!photoPreview && !photoError && !errors.photo && (
+                <motion.p key="hint" className="text-xs text-[#6B5E5A]/50">
+                  JPEG, PNG or WEBP · up to 5MB
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 1: Full Name, Date of Birth */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Full Name <span className="text-red-400">*</span>
           </label>
-          <input
-            {...register("fullName")}
-            className={`w-full px-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 bg-white/50 focus:ring-2 ${
-              shouldShowError("fullName") ? 'border-red-400 focus:border-red-400 focus:ring-red-200' : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
-            }`}
-            placeholder="Your full name"
-          />
-          <AnimatePresence>
+          <input {...register("fullName")} className={inputClass("fullName")} placeholder="Your full name" />
+          <FieldHint>
             {shouldShowError("fullName") && (
-              <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-red-400 text-sm mt-1">
+              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
                 {errors.fullName?.message as string}
               </motion.p>
             )}
-          </AnimatePresence>
+          </FieldHint>
         </div>
 
-        {/* Date of Birth */}
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Date of Birth <span className="text-red-400">*</span>
           </label>
           <div className="relative">
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-            <input
-              {...register("dob")}
-              type="date"
-              className={`w-full pl-12 pr-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] bg-white/50 focus:ring-2 ${
-                shouldShowError("dob") ? 'border-red-400 focus:border-red-400 focus:ring-red-200' : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
-              }`}
-            />
+            <input {...register("dob")} type="date" className={`${inputClass("dob")} pl-12`} />
           </div>
-          {calculatedAge !== null && (
-            <p className="text-sm mt-1 text-[#6B5E5A]">Age: <span className="font-semibold text-[#2A1636]">{calculatedAge} years</span></p>
-          )}
-          <AnimatePresence>
+          <FieldHint>
+            {calculatedAge !== null && !shouldShowError("dob") && (
+              <motion.p key="age" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-sm text-[#6B5E5A]">
+                Age: <span className="font-semibold text-[#2A1636]">{calculatedAge} years</span>
+              </motion.p>
+            )}
             {shouldShowError("dob") && (
-              <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-red-400 text-sm mt-1">
+              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
                 {errors.dob?.message as string}
               </motion.p>
             )}
-          </AnimatePresence>
+          </FieldHint>
         </div>
       </div>
 
-      {/* Gender, Blood Group, Mobile Number */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Gender */}
+      {/* Row 2: Gender, Mobile Number */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Gender <span className="text-red-400">*</span>
           </label>
-          <select
-            {...register("gender")}
-            className={`w-full px-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] appearance-none cursor-pointer bg-white/50 focus:ring-2 ${
-              shouldShowError("gender") ? 'border-red-400 focus:border-red-400 focus:ring-red-200' : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
-            }`}
-          >
+          <select {...register("gender")} className={`${inputClass("gender")} appearance-none cursor-pointer`}>
             <option value="">Select</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
             <option value="prefer-not-to-say">Prefer not to say</option>
           </select>
-          <AnimatePresence>
+          <FieldHint>
             {shouldShowError("gender") && (
-              <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-red-400 text-sm mt-1">
+              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
                 {errors.gender?.message as string}
               </motion.p>
             )}
-          </AnimatePresence>
+          </FieldHint>
         </div>
 
-        {/* Blood Group */}
+        <div>
+          <label className="block text-sm font-medium text-[#2A1636] mb-2">
+            Mobile Number <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+            <input
+              {...register("mobileNumber")}
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              value={watchMobileNumber || ""}
+              className={`${inputClass("mobileNumber")} pl-12`}
+              placeholder="10-digit number starting 6-9"
+              onChange={(e) => {
+                const sanitized = sanitizeMobile(e.target.value, watchMobileNumber || "");
+                setValue("mobileNumber", sanitized);
+                if (hasAttemptedSubmit || touchedFields.mobileNumber) {
+                  trigger("mobileNumber");
+                }
+              }}
+            />
+          </div>
+          <FieldHint>
+            {shouldShowError("mobileNumber") ? (
+              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
+                {errors.mobileNumber?.message as string}
+              </motion.p>
+            ) : (
+              <motion.div key="hint" className="flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                <p className="text-[10px] text-amber-600">Must start with 6, 7, 8 or 9. We will verify it.</p>
+              </motion.div>
+            )}
+          </FieldHint>
+        </div>
+      </div>
+
+      {/* Row 3: Blood Group, Occupation */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Blood Group <span className="text-red-400">*</span>
           </label>
-          <select
-            {...register("bloodGroup")}
-            className={`w-full px-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] appearance-none cursor-pointer bg-white/50 focus:ring-2 ${
-              shouldShowError("bloodGroup") ? 'border-red-400 focus:border-red-400 focus:ring-red-200' : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
-            }`}
-          >
+          <select {...register("bloodGroup")} className={`${inputClass("bloodGroup")} appearance-none cursor-pointer`}>
             <option value="">Select</option>
             <option value="A+">A+</option>
             <option value="A-">A-</option>
@@ -339,77 +387,31 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
             <option value="O+">O+</option>
             <option value="O-">O-</option>
           </select>
-          <AnimatePresence>
+          <FieldHint>
             {shouldShowError("bloodGroup") && (
-              <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-red-400 text-sm mt-1">
+              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
                 {errors.bloodGroup?.message as string}
               </motion.p>
             )}
-          </AnimatePresence>
+          </FieldHint>
         </div>
 
-        {/* Mobile Number */}
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
-            Mobile Number <span className="text-red-400">*</span>
+            Occupation <span className="text-red-400">*</span>
           </label>
           <div className="relative">
-            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-            <input
-              {...register("mobileNumber")}
-              type="tel"
-              maxLength={10}
-              className={`w-full pl-12 pr-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 bg-white/50 focus:ring-2 ${
-                shouldShowError("mobileNumber") ? 'border-red-400 focus:border-red-400 focus:ring-red-200' : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
-              }`}
-              placeholder="Enter 10-digit number"
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '');
-                if (value.length <= 10) {
-                  setValue("mobileNumber", value);
-                  if (hasAttemptedSubmit || touchedFields.mobileNumber) {
-                    trigger("mobileNumber");
-                  }
-                }
-              }}
-            />
+            <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+            <input {...register("occupation")} className={`${inputClass("occupation")} pl-12`} placeholder="Your profession / job title" />
           </div>
-          <div className="flex items-center gap-1.5 mt-1">
-            <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-            <p className="text-[10px] text-amber-600">Please ensure your mobile number is correct. We will verify it.</p>
-          </div>
-          <AnimatePresence>
-            {shouldShowError("mobileNumber") && (
-              <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-red-400 text-sm mt-1">
-                {errors.mobileNumber?.message as string}
+          <FieldHint>
+            {shouldShowError("occupation") && (
+              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
+                {errors.occupation?.message as string}
               </motion.p>
             )}
-          </AnimatePresence>
+          </FieldHint>
         </div>
-      </div>
-
-      {/* Occupation */}
-      <div>
-        <label className="block text-sm font-medium text-[#2A1636] mb-2">
-          Occupation <span className="text-red-400">*</span>
-        </label>
-        <div className="relative">
-          <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-          <input
-            {...register("occupation")}
-            className={`w-full pl-12 pr-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 bg-white/50 focus:ring-2 ${
-              shouldShowError("occupation") ? 'border-red-400 focus:border-red-400 focus:ring-red-200' : 'border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20'
-            }`}
-            placeholder="Your profession / job title"
-          />
-        </div>
-        <AnimatePresence>
-          {shouldShowError("occupation") && (
-            <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-red-400 text-sm mt-1">
-              {errors.occupation?.message as string}
-            </motion.p>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Family Members Section */}
@@ -434,63 +436,75 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
 
         <div className="space-y-3">
-          {familyMembers.map((member, index) => {
-            const age = getFamilyMemberAge(member.dob);
-            const isAdult = age >= 18 && member.dob;
-            const memberKey = member.id || `family-fallback-${index}`;
-            
-            return (
-              <motion.div
-                key={memberKey}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-white/60 border border-[#D4C8C0]/30"
-              >
-                <input
-                  placeholder="Name"
-                  value={member.name}
-                  onChange={(e) => updateFamilyMember(memberKey, "name", e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
-                />
-                <div className="relative">
-                  <input
-                    type="date"
-                    placeholder="DOB"
-                    value={member.dob}
-                    onChange={(e) => updateFamilyMember(memberKey, "dob", e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
-                  />
-                  {member.dob && (
-                    <p className={`text-[10px] mt-1 ${isAdult ? 'text-red-500' : 'text-green-500'}`}>
-                      {isAdult ? `⚠️ ${age} yrs - Must join separately` : `${age} yrs`}
-                    </p>
-                  )}
-                  {isAdult && (
-                    <p className="text-[10px] text-red-500 flex items-center gap-1 mt-0.5">
-                      <AlertCircle className="w-3 h-3" /> They need to join separately
-                    </p>
-                  )}
-                </div>
-                <select
-                  value={member.relation}
-                  onChange={(e) => updateFamilyMember(memberKey, "relation", e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm appearance-none"
+          <AnimatePresence initial={false}>
+            {familyMembers.map((member, index) => {
+              const age = getFamilyMemberAge(member.dob);
+              const isAdult = age >= 18 && !!member.dob;
+              const memberKey = member.id || `family-fallback-${index}`;
+
+              return (
+                <motion.div
+                  key={memberKey}
+                  layout
+                  initial={{ opacity: 0, y: 8, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="relative grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-white/60 border border-[#D4C8C0]/30 overflow-hidden"
                 >
-                  <option value="">Relation</option>
-                  {relations.map((relation) => <option key={relation} value={relation}>{relation}</option>)}
-                </select>
-                {familyMembers.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeFamilyMember(memberKey)}
-                    className="absolute -top-2 -right-2 p-1.5 rounded-full bg-white border border-[#D4C8C0]/40 text-[#6B5E5A] hover:text-red-500 hover:border-red-200 shadow-sm"
+                  <input
+                    placeholder="Name"
+                    value={member.name}
+                    onChange={(e) => updateFamilyMember(memberKey, "name", e.target.value)}
+                    className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
+                  />
+                  <div>
+                    <input
+                      type="date"
+                      placeholder="DOB"
+                      value={member.dob}
+                      onChange={(e) => updateFamilyMember(memberKey, "dob", e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
+                    />
+                    <div className="min-h-4 mt-1">
+                      {member.dob && (
+                        <p className={`text-[10px] flex items-center gap-1 ${isAdult ? "text-red-500" : "text-green-500"}`}>
+                          {isAdult ? (
+                            <>
+                              <AlertCircle className="w-3 h-3" /> {age} yrs - must join separately
+                            </>
+                          ) : (
+                            `${age} yrs`
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <select
+                    value={member.relation}
+                    onChange={(e) => updateFamilyMember(memberKey, "relation", e.target.value)}
+                    className="px-4 py-2.5 rounded-xl border border-[#D4C8C0]/40 bg-white/70 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm appearance-none h-fit"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </motion.div>
-            );
-          })}
+                    <option value="">Relation</option>
+                    {relations.map((relation) => (
+                      <option key={relation} value={relation}>
+                        {relation}
+                      </option>
+                    ))}
+                  </select>
+                  {familyMembers.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeFamilyMember(memberKey)}
+                      className="absolute -top-2 -right-2 p-1.5 rounded-full bg-white border border-[#D4C8C0]/40 text-[#6B5E5A] hover:text-red-500 hover:border-red-200 shadow-sm transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
         <p className="text-[10px] text-[#6B5E5A] mt-2">Family members under 18 can be added. Members 18+ need to join separately.</p>
       </div>
