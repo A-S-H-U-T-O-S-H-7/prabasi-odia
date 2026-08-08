@@ -79,7 +79,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
     });
   };
 
-  // Function to round corners of a canvas
   const roundCanvasCorners = (canvas: HTMLCanvasElement, radius: number) => {
     const width = canvas.width;
     const height = canvas.height;
@@ -90,7 +89,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
     
     if (!ctx) return canvas;
     
-    // Draw rounded rectangle path
     ctx.beginPath();
     ctx.moveTo(radius, 0);
     ctx.lineTo(width - radius, 0);
@@ -103,7 +101,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
     ctx.quadraticCurveTo(0, 0, radius, 0);
     ctx.closePath();
     
-    // Clip and draw the original canvas
     ctx.clip();
     ctx.drawImage(canvas, 0, 0);
     
@@ -138,7 +135,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       const originalFlipperTransform = flipper.style.transform;
       const originalFlipperTransition = flipper.style.transition;
 
-      // Capture front
       flipper.style.transition = "none";
       flipper.style.transform = "none";
       frontEl.style.transform = "none";
@@ -150,7 +146,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       let frontCanvas = await captureFace(frontEl, "#F7F1E3");
       frontCanvas = roundCanvasCorners(frontCanvas, 16 * 2);
 
-      // Capture back
       frontEl.style.visibility = "hidden";
       backEl.style.visibility = "visible";
       void flipper.offsetHeight;
@@ -158,7 +153,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       let backCanvas = await captureFace(backEl, "#4A1942");
       backCanvas = roundCanvasCorners(backCanvas, 16 * 2);
 
-      // Restore
       frontEl.style.visibility = originalFrontVisibility || "visible";
       backEl.style.visibility = originalBackVisibility || "hidden";
       frontEl.style.transform = originalFrontTransform || "";
@@ -209,16 +203,16 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
   const joinedDate = formatMemberDate(profile?.createdAt);
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-sm w-full mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-[#2A1636]">Member Card</h3>
-        <span className="text-[11px] text-[#7A6A5E] hidden sm:flex items-center gap-1">
-          <ArrowLeftRight className="w-3 h-3 animate-pulse" /> Tap card to flip
+    <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/50 p-3 sm:p-6 shadow-sm w-full mx-auto">
+      <div className="flex items-center justify-between mb-2 sm:mb-4">
+        <h3 className="text-xs sm:text-sm font-semibold text-[#2A1636]">Member Card</h3>
+        <span className="text-[10px] sm:text-[11px] text-[#7A6A5E] hidden xs:flex items-center gap-1">
+          <ArrowLeftRight className="w-3 h-3 animate-pulse" /> Tap to flip
         </span>
       </div>
 
       <div
-        className="relative w-full aspect-[7/3]"
+        className="relative w-full aspect-[7/4] sm:aspect-[7/3] min-h-[240px] sm:min-h-[0]"
         style={{ perspective: "1800px" }}
       >
         <div
@@ -262,14 +256,14 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
               <div className="absolute inset-0 bg-gradient-to-r from-[#F7F1E3] via-[#F7F1E3]/75 to-transparent" />
             </div>
 
-            {/* Prabasi Odia wordmark - Increased size */}
-            <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-3.5">
-              <div className="flex items-center gap-3 bg-white/95 backdrop-blur-md border border-white/60 rounded-full pl-3 pr-5 py-2 shadow-lg whitespace-nowrap">
-                <div className="relative h-8 w-8 shrink-0 rounded-full overflow-hidden bg-white">
+            {/* Prabasi Odia wordmark */}
+            <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-2 sm:pt-3.5">
+              <div className="flex items-center gap-2 sm:gap-3 bg-white/95 backdrop-blur-md border border-white/60 rounded-full pl-2 sm:pl-3 pr-3.5 sm:pr-5 py-1.5 sm:py-2 shadow-lg whitespace-nowrap">
+                <div className="relative h-6 w-6 sm:h-8 sm:w-8 shrink-0 rounded-full overflow-hidden bg-white">
                   <Image src="/logoicon.png" alt="" fill className="object-contain" />
                 </div>
                 <span
-                  className="text-base font-bold tracking-wide font-serif md:text-lg"
+                  className="text-xs sm:text-base md:text-lg font-bold tracking-wide font-serif"
                   style={{ color: THEME.primary }}
                 >
                   Prabasi Odia
@@ -277,33 +271,34 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
               </div>
             </div>
 
-            {/* Flip hint - hidden in PDF - Changed to ArrowLeftRight */}
+            {/* Flip hint - hidden in PDF */}
             <div 
               data-hide-for-pdf
-              className="absolute top-3.5 right-3.5 z-20 flex items-center justify-center h-7 w-7 rounded-full bg-white/90 shadow-md text-[#4A1942] animate-bounce"
+              className="absolute top-2 sm:top-3.5 right-2 sm:right-3.5 z-20 flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-white/90 shadow-md text-[#4A1942] animate-bounce"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5" />
+              <ArrowLeftRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
 
             {/* Issuer */}
-            <div className="absolute bottom-3 right-3.5 z-20 flex items-center gap-2">
-              <div className="relative h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full bg-white ring-2 ring-white/70 shadow-md overflow-hidden">
-                <Image src="/svslogo.png" alt="Samudayik Vikas Samiti" fill className="object-contain p-1" sizes="36px" />
+            <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3.5 z-20 flex items-center gap-1.5 sm:gap-2">
+              <div className="relative h-6 w-6 sm:h-9 sm:w-9 shrink-0 rounded-full bg-white ring-2 ring-white/70 shadow-md overflow-hidden">
+                <Image src="/svslogo.png" alt="Samudayik Vikas Samiti" fill className="object-contain p-0.5 sm:p-1" sizes="36px" />
               </div>
               <div className="leading-tight text-left" style={boldTextHalo}>
-                <p className="text-[7.5px] sm:text-[8px] tracking-wide uppercase font-semibold text-[#C1440E]">
+                <p className="text-[5px] sm:text-[8px] tracking-wide uppercase font-semibold text-[#C1440E]">
                   Issued by
                 </p>
-                <p className="text-[9px] sm:text-[10px] font-bold uppercase leading-tight text-[#4A1942]">
+                <p className="text-[6px] sm:text-[10px] font-bold uppercase leading-tight text-[#4A1942]">
                   Samudayik Vikas Samiti
                 </p>
               </div>
             </div>
 
             {/* Main content */}
-            <div className="absolute left-4 top-[72px] bottom-[52px] z-10 grid w-[66%] grid-cols-[76px_minmax(0,1fr)] items-start gap-3 sm:left-5 sm:w-[62%] sm:grid-cols-[88px_minmax(0,1fr)] sm:gap-4 md:grid-cols-[96px_minmax(0,1fr)]">
-              <div className="self-center">
-                <div className="relative h-[76px] w-[76px] overflow-hidden rounded-xl border-[3px] border-white bg-white shadow-lg sm:h-[88px] sm:w-[88px] md:h-[96px] md:w-[96px]">
+            <div className="absolute left-2 sm:left-4 top-[42px] sm:top-[72px] bottom-[30px] sm:bottom-[52px] z-10 flex items-center w-[72%] sm:w-[66%] gap-2 sm:gap-4 sm:left-5 sm:w-[62%]">
+              {/* Photo */}
+              <div className="flex-shrink-0 self-center">
+                <div className="relative h-[60px] w-[60px] sm:h-[88px] sm:w-[88px] md:h-[96px] md:w-[96px] overflow-hidden rounded-lg sm:rounded-xl border-2 sm:border-[3px] border-white bg-white shadow-lg">
                   {profile?.photoURL ? (
                     <Image
                       src={profile.photoURL}
@@ -314,13 +309,13 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full w-full bg-[#4A1942]/10 text-[#4A1942]">
-                      <span className="text-3xl">👤</span>
+                      <span className="text-2xl sm:text-3xl">👤</span>
                     </div>
                   )}
                 </div>
-                <div className="mt-2 flex justify-center">
+                <div className="mt-1 sm:mt-2 flex justify-center">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${
+                    className={`inline-flex items-center gap-0.5 sm:gap-1 rounded-full px-1.5 sm:px-2.5 py-0.5 text-[8px] sm:text-[10px] font-semibold border ${
                       profile?.isVerified
                         ? "bg-emerald-50 border-emerald-300 text-emerald-700"
                         : "bg-white/85 border-[#DDD0BC] text-[#7A6A5E]"
@@ -329,7 +324,7 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
                   >
                     {profile?.isVerified ? (
                       <>
-                        <CheckCircle className="w-3 h-3" /> Verified
+                        <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Verified
                       </>
                     ) : (
                       "Unverified"
@@ -338,21 +333,23 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
                 </div>
               </div>
 
-              <div className="min-w-0">
+              {/* Details - Increased font sizes */}
+              <div className="flex-1 min-w-0 self-center">
                 <h2
-                  className="truncate font-serif text-lg font-bold leading-tight tracking-tight text-[#4A1942] sm:text-xl md:text-2xl mb-2"
+                  className="truncate font-serif text-sm sm:text-lg md:text-2xl font-bold leading-tight tracking-tight text-[#4A1942] mb-1 sm:mb-2"
                   style={boldTextHalo}
                 >
                   {profile?.displayName || "Member Name"}
                 </h2>
 
-                <div className="space-y-1.5 text-[11px] sm:text-xs md:text-sm">
-                  <div className="flex items-center gap-1.5 h-5">
-                    <IdCard className="w-3.5 h-3.5 shrink-0 text-[#C1440E]" />
-                    <span className="text-[#2A1636] opacity-70 whitespace-nowrap" style={darkTextHalo}>Member ID</span>
-                    <span className="text-[#2A1636] opacity-70">—</span>
+                <div className="space-y-1 sm:space-y-1.5">
+                  {/* Member ID */}
+                  <div className="flex items-center gap-1.5 sm:gap-1.5 h-4 sm:h-5">
+                    <IdCard className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-[#C1440E]" />
+                    <span className="text-[#2A1636] opacity-70 whitespace-nowrap text-[9px] sm:text-xs" style={darkTextHalo}>Member ID</span>
+                    <span className="text-[#2A1636] opacity-70 text-[9px] sm:text-xs">—</span>
                     <span 
-                      className="font-mono font-medium text-[#2A1636] truncate max-w-[120px]" 
+                      className="font-semibold text-[#2A1636] truncate max-w-[60px] sm:max-w-[120px] text-[9px] sm:text-xs" 
                       style={boldTextHalo}
                       title={profile?.memberId || "Pending"}
                     >
@@ -360,29 +357,32 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 h-5">
-                    <Droplet className="w-3.5 h-3.5 shrink-0 text-[#C1440E]" />
-                    <span className="text-[#2A1636] opacity-70 whitespace-nowrap" style={darkTextHalo}>Blood Group</span>
-                    <span className="text-[#2A1636] opacity-70">—</span>
-                    <span className="font-semibold text-red-600" style={boldTextHalo}>
+                  {/* Blood Group */}
+                  <div className="flex items-center gap-1.5 sm:gap-1.5 h-4 sm:h-5">
+                    <Droplet className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-[#C1440E]" />
+                    <span className="text-[#2A1636] opacity-70 whitespace-nowrap text-[9px] sm:text-xs" style={darkTextHalo}>Blood Group</span>
+                    <span className="text-[#2A1636] opacity-70 text-[9px] sm:text-xs">—</span>
+                    <span className="font-semibold text-red-600 text-[9px] sm:text-xs" style={boldTextHalo}>
                       {profile?.bloodGroup || "—"}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 h-5">
-                    <MapPin className="w-3.5 h-3.5 shrink-0 text-[#C1440E]" />
-                    <span className="text-[#2A1636] opacity-70 whitespace-nowrap" style={darkTextHalo}>Location</span>
-                    <span className="text-[#2A1636] opacity-70">—</span>
-                    <span className="text-[#2A1636] truncate" style={boldTextHalo}>
+                  {/* Location */}
+                  <div className="flex items-center gap-1.5 sm:gap-1.5 h-4 sm:h-5">
+                    <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-[#C1440E]" />
+                    <span className="text-[#2A1636] opacity-70 whitespace-nowrap text-[9px] sm:text-xs" style={darkTextHalo}>Location</span>
+                    <span className="text-[#2A1636] opacity-70 text-[9px] sm:text-xs">—</span>
+                    <span className="font-semibold text-[#2A1636] truncate text-[9px] sm:text-xs" style={boldTextHalo}>
                       {profile?.currentCity || "Not set"}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 h-5">
-                    <Calendar className="w-3.5 h-3.5 shrink-0 text-[#C1440E]" />
-                    <span className="text-[#2A1636] opacity-70 whitespace-nowrap" style={darkTextHalo}>Joined</span>
-                    <span className="text-[#2A1636] opacity-70">—</span>
-                    <span className="text-[#2A1636]" style={boldTextHalo}>
+                  {/* Joined */}
+                  <div className="flex items-center gap-1.5 sm:gap-1.5 h-4 sm:h-5">
+                    <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-[#C1440E]" />
+                    <span className="text-[#2A1636] opacity-70 whitespace-nowrap text-[9px] sm:text-xs" style={darkTextHalo}>Joined</span>
+                    <span className="text-[#2A1636] opacity-70 text-[9px] sm:text-xs">—</span>
+                    <span className="font-semibold text-[#2A1636] text-[9px] sm:text-xs" style={boldTextHalo}>
                       {joinedDate || "Recently"}
                     </span>
                   </div>
@@ -414,44 +414,46 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
                 "repeating-linear-gradient(45deg, #fff 0px, #fff 1px, transparent 1px, transparent 14px)",
             }} />
 
-            {/* Terms & Use - Keep original size */}
-            <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-3.5">
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full pl-2 pr-4 py-1.5 whitespace-nowrap">
-                <ScrollText className="w-4 h-4 text-[#E8A33D]" />
-                <span className="text-sm font-bold tracking-wide font-serif text-white">
+            {/* Terms & Use */}
+            <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-2 sm:pt-3.5">
+              <div className="flex items-center gap-2 sm:gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full pl-2 sm:pl-2 pr-3.5 sm:pr-4 py-1.5 sm:py-1.5 whitespace-nowrap">
+                <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#E8A33D]" />
+                <span className="text-[10px] sm:text-sm font-bold tracking-wide font-serif text-white">
                   Terms &amp; Use
                 </span>
               </div>
             </div>
 
-            {/* Flip hint - hidden in PDF - Changed to ArrowLeftRight */}
+            {/* Flip hint - hidden in PDF */}
             <div 
               data-hide-for-pdf
-              className="absolute top-3.5 right-3.5 z-20 flex items-center justify-center h-7 w-7 rounded-full bg-white/10 border border-white/20 text-white animate-bounce"
+              className="absolute top-2 sm:top-3.5 right-2 sm:right-3.5 z-20 flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-white/10 border border-white/20 text-white animate-bounce"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5" />
+              <ArrowLeftRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
 
-            <div className="absolute left-4 right-4 top-[54px] bottom-[44px] sm:left-6 sm:right-6">
-              <ul className="h-full flex flex-col justify-center gap-1.5 sm:gap-2">
+            {/* Terms list */}
+            <div className="absolute left-2 sm:left-4 right-2 sm:right-4 top-[32px] sm:top-[54px] bottom-[28px] sm:bottom-[44px] sm:left-6 sm:right-6">
+              <ul className="h-full flex flex-col justify-center gap-1 sm:gap-1.5">
                 {TERMS.map((term, i) => (
-                  <li key={i} className="flex items-start gap-2 text-white/90 text-[9.5px] leading-snug sm:text-[11px] md:text-xs">
-                    <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 mt-[2px] text-[#E8A33D]" />
+                  <li key={i} className="flex items-start gap-1.5 sm:gap-2 text-white/90 text-[8px] sm:text-[9.5px] leading-snug sm:leading-snug sm:text-[11px] md:text-xs">
+                    <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 mt-[1px] sm:mt-[2px] text-[#E8A33D]" />
                     <span>{term}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="absolute bottom-3 left-4 right-3.5 z-20 flex items-center justify-between">
-              <span className="text-[8px] sm:text-[9px] font-mono text-white/60">
+            {/* Bottom */}
+            <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-4 right-2 sm:right-3.5 z-20 flex items-center justify-between">
+              <span className="text-[6px] sm:text-[9px] font-mono text-white/60">
                 ID: {profile?.memberId || "Pending"}
               </span>
-              <div className="flex items-center gap-2">
-                <div className="relative h-6 w-6 sm:h-7 sm:w-7 shrink-0 rounded-full bg-white ring-2 ring-white/40 overflow-hidden">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="relative h-4 w-4 sm:h-7 sm:w-7 shrink-0 rounded-full bg-white ring-2 ring-white/40 overflow-hidden">
                   <Image src="/svslogo.png" alt="Samudayik Vikas Samiti" fill className="object-contain p-0.5" sizes="28px" />
                 </div>
-                <p className="text-[7.5px] sm:text-[8.5px] font-semibold uppercase leading-tight text-white/80">
+                <p className="text-[5px] sm:text-[8.5px] font-semibold uppercase leading-tight text-white/80">
                   Samudayik Vikas Samiti
                 </p>
               </div>
@@ -460,21 +462,21 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
         </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-3 sm:mt-5">
         <button
           onClick={downloadCard}
           disabled={isDownloading}
           style={{ background: `linear-gradient(120deg, ${THEME.primary} 0%, ${THEME.terracotta} 100%)` }}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white text-sm font-semibold hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:scale-100 cursor-pointer disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-white text-[11px] sm:text-sm font-semibold hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:scale-100 cursor-pointer disabled:cursor-not-allowed"
         >
           {isDownloading ? (
             <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               Preparing PDF...
             </span>
           ) : (
             <>
-              <Download className="w-4 h-4" /> Download as PDF
+              <Download className="w-3 h-3 sm:w-4 sm:h-4" /> Download as PDF
             </>
           )}
         </button>

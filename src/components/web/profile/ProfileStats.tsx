@@ -7,15 +7,15 @@ interface ProfileStatsProps {
 }
 
 export default function ProfileStats({ profile }: ProfileStatsProps) {
-  // Format date to show Month Year (e.g., "July 2026")
+  // Format date to show "08 Aug 2026" format
   const formatMemberSince = (dateString: string) => {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long' 
-      });
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = date.toLocaleDateString('en-US', { month: 'short' });
+      const year = date.getFullYear();
+      return `${day} ${month} ${year}`;
     } catch {
       return "N/A";
     }

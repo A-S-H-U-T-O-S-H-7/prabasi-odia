@@ -12,6 +12,7 @@ import ProfileMemberCard from "@/components/web//profile/ProfileMemberCard";
 import ProfileActivity from "@/components/web//profile/ProfileActivity";
 import ProfileAddresses from "@/components/web/profile/ProfileAddresses";
 import { Loader2 } from "lucide-react";
+import ProfilePeopleNearby from "@/components/web/profile/ProfilePeopleNearby";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -71,6 +72,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
+            <ProfilePeopleNearby profile={profile} />
             <ProfileAbout profile={profile} />
             <ProfileInterests interests={profile.interests || []} />
             <ProfileFamily familyMembers={profile.familyMembers || []} />
