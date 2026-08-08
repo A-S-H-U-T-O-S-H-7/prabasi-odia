@@ -7,10 +7,10 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useLocationData } from "@/hooks/useLocationData";
 import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCommunityService";
-import { geocodeLocation } from "@/lib/utils/locationGeocode";
+import { geocodeLocation } from "@/lib/utils/clientGeocode";
 import CommunitySelect, { CANT_FIND_COMMUNITY } from "./Communityselect";
 
-export { CANT_FIND_COMMUNITY };
+export { CANT_FIND_COMMUNITY }; 
 
 interface Step2AddressProps {
   onNext: () => void;
