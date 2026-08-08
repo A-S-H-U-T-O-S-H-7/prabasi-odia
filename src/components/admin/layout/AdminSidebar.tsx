@@ -34,6 +34,7 @@ const navigationItems = [
   { name: "Notices", href: "/admin/notices", icon: Megaphone },
   { name: "Contacts", href: "/admin/contact", icon: Mail },
   { name: "Partners", href: "/admin/partners", icon: Handshake },
+  { name: "Associates", href: "/admin/associates", icon: Handshake },
   { name: "Advisory Board", href: "/admin/advisory-board", icon: Award },
   { name: "Emergency Contacts", href: "/admin/emergency-contacts", icon: Phone },
   { name: "Testimonials", href: "/admin/testimonials", icon: Star },

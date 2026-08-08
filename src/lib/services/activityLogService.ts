@@ -43,7 +43,8 @@ export const ActivityEntityTypes = {
   PARTNER:'partner',
   ADVISORY_BOARD: 'advisory_board',
   EMERGENCY_CONTACT: 'emergency_contact',
-  CONTACT:'contact' 
+  CONTACT:'contact' ,
+  ASSOCIATE: 'associate',
 } as const;
 
 export type ActivityAction = typeof ActivityActions[keyof typeof ActivityActions];

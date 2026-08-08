@@ -68,7 +68,7 @@ export default function Navbar() {
     { href: '/events', label: 'Events', icon: Calendar },
     { href: '/advisory-board', label: 'Advisory Board' },
     { href: '/associates', label: 'Associates' },
-    { href: '/partnes', label: 'Partners' },
+    { href: '/partners', label: 'Partners' },
     { href: '/about', label: 'About' },
   ];
   const donateHref = isAuthenticated ? '/donation' : '/signup';

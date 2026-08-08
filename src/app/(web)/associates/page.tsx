@@ -17,14 +17,14 @@ import {
   ChevronRight,
   Loader2
 } from 'lucide-react';
-import { adminPartnerService, Partner } from '@/lib/services/adminPartnerService';
+import { adminAssociateService, Associate } from '@/lib/services/adminAssociateService';
 
 export default function AssociatesPage() {
-  const [associates, setAssociates] = useState<Partner[]>([]);
-  const [filteredAssociates, setFilteredAssociates] = useState<Partner[]>([]);
+  const [associates, setAssociates] = useState<Associate[]>([]);
+  const [filteredAssociates, setFilteredAssociates] = useState<Associate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAssociate, setSelectedAssociate] = useState<Partner | null>(null);
+  const [selectedAssociate, setSelectedAssociate] = useState<Associate | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -33,10 +33,10 @@ export default function AssociatesPage() {
 
   const fetchAssociates = async () => {
     try {
-      const result = await adminPartnerService.getActivePartners();
+      const result = await adminAssociateService.getActiveAssociates();
       if (result.success) {
-        setAssociates(result.partners);
-        setFilteredAssociates(result.partners);
+        setAssociates(result.associates);
+        setFilteredAssociates(result.associates);
       }
     } catch (error) {
       console.error('Error fetching associates:', error);
@@ -57,7 +57,7 @@ export default function AssociatesPage() {
     }
   }, [searchTerm, associates]);
 
-  const openModal = (associate: Partner) => {
+  const openModal = (associate: Associate) => {
     setSelectedAssociate(associate);
     setIsModalOpen(true);
     document.body.style.overflow = 'hidden';
@@ -78,24 +78,24 @@ export default function AssociatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFF9F2] to-[#FDE8D0]/10 py-8 sm:py-12 px-3 sm:px-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFF9F2] to-[#FDE8D0]/10 py-2 sm:py-4 px-3 sm:px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-8 sm:mb-12"
+          className="text-center mb-6 sm:mb-8"
         >
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-[#2A1636] mb-3 sm:mb-4">
             Our <span className="text-[#6B1E5B]">Associates</span>
           </h1>
           <p className="text-sm sm:text-lg text-[#5A4A4A] max-w-2xl mx-auto px-4">
-            Meet our trusted community partners and associates who help us create meaningful impact.
+            Meet our trusted community associates who help us create meaningful impact.
           </p>
           
           {/* Decorative divider */}
-          <div className="flex items-center justify-center gap-4 mt-4 sm:mt-6">
+          <div className="flex items-center justify-center gap-4 mt-2 sm:mt-4">
             <div className="flex-1 max-w-20 h-px bg-gradient-to-r from-transparent via-[#D9772B] to-transparent" />
             <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#D9772B]" />
             <div className="flex-1 max-w-20 h-px bg-gradient-to-l from-transparent via-[#D9772B] to-transparent" />
@@ -107,7 +107,7 @@ export default function AssociatesPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="max-w-md mx-auto mb-8 sm:mb-12 px-3 sm:px-0"
+          className="max-w-md mx-auto mb-6 sm:mb-8 px-3 sm:px-0"
         >
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-[#6B1E5B]/40" />
@@ -238,8 +238,10 @@ export default function AssociatesPage() {
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 text-center border border-[#6B1E5B]/10">
               <Award className="w-6 h-6 sm:w-8 sm:h-8 text-[#D4AF37] mx-auto mb-1 sm:mb-2" />
-              <p className="text-xl sm:text-2xl font-bold text-[#2A1636]">100%</p>
-              <p className="text-xs sm:text-sm text-[#5A4A4A]">Active Partners</p>
+              <p className="text-xl sm:text-2xl font-bold text-[#2A1636]">
+                {associates.filter(a => a.isActive).length}
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A4A4A]">Active Associates</p>
             </div>
           </motion.div>
         )}
@@ -320,7 +322,7 @@ export default function AssociatesPage() {
                       </p>
                     </div>
                     <div className="bg-[#FDF5F8] rounded-xl p-3 sm:p-4 text-center">
-                      <p className="text-[10px] sm:text-xs text-[#5A4A4A] uppercase tracking-wide">Partner Since</p>
+                      <p className="text-[10px] sm:text-xs text-[#5A4A4A] uppercase tracking-wide">Associate Since</p>
                       <p className="text-sm sm:text-base font-medium text-[#2A1636] mt-1">
                         {selectedAssociate.createdAt 
                           ? new Date(selectedAssociate.createdAt).toLocaleDateString('en-US', {
