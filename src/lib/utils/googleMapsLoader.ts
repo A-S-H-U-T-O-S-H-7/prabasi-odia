@@ -1,7 +1,9 @@
+// lib/utils/googleMapsLoader.ts
 let isScriptLoaded = false;
 let loadPromise: Promise<void> | null = null;
 
 export const loadGoogleMapsScript = (): Promise<void> => {
+  // If already loaded, resolve immediately
   if (typeof window !== "undefined" && window.google?.maps) {
     return Promise.resolve();
   }
@@ -10,6 +12,7 @@ export const loadGoogleMapsScript = (): Promise<void> => {
     return loadPromise;
   }
 
+  // Check if script already exists
   const existingScript = document.querySelector(
     'script[src*="/api/maps/script"]'
   );
@@ -26,14 +29,27 @@ export const loadGoogleMapsScript = (): Promise<void> => {
 
   loadPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = `/api/maps/script?libraries=places`;
+    // ✅ Include marker library
+    script.src = `/api/maps/script?libraries=places,marker`;
     script.async = true;
     script.defer = true;
 
     script.onload = () => {
-      isScriptLoaded = true;
-      loadPromise = null;
-      resolve();
+      // ✅ Wait for google.maps to be available
+      let attempts = 0;
+      const maxAttempts = 30;
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (window.google?.maps) {
+          clearInterval(checkInterval);
+          isScriptLoaded = true;
+          loadPromise = null;
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          reject(new Error("Google Maps failed to initialize"));
+        }
+      }, 100);
     };
 
     script.onerror = () => {

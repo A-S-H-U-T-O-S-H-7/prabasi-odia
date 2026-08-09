@@ -9,7 +9,7 @@ import { toast } from "react-hot-toast";
 import { useAuthStore } from "@/lib/store";
 import JoinCommunityLayout from "@/components/web/join-community/JoinCommunityLayout";
 import Step1Personal from "@/components/web/join-community/Step1Personal";
-import Step2Address, { CANT_FIND_COMMUNITY } from "@/components/web/join-community/Step2Address";
+import Step2Address,{ CANT_FIND_COMMUNITY} from "@/components/web/join-community/Step2Address";
 import Step3Interests from "@/components/web/join-community/Step3Interests";
 import Step4Review from "@/components/web/join-community/Step4Review";
 import SuccessPage from "@/components/web/join-community/SuccessPage";

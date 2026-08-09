@@ -11,6 +11,7 @@
     "@fontsource/libre-baskerville": "^5.2.10",
     "@fontsource/poppins": "^5.2.7",
     "@hookform/resolvers": "^5.4.0",
+    "@react-google-maps/api": "^2.20.8",
     "@tabler/icons-react": "^3.44.0",
     "@types/leaflet": "^1.9.21",
     "axios": "^1.19.0",

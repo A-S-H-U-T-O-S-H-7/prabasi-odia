@@ -3,10 +3,8 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { MapMember } from "@/lib/services/mapService";
 import { Loader2, Users, MapPin } from "lucide-react";
-import { useGoogleMaps } from "./MapScript";
+import { loadGoogleMapsScript } from "@/lib/utils/googleMapsLoader";
 import useAuthStore from "@/lib/store/authStore";
-
-// ✅ Remove local declaration - use global types from types/global.d.ts
 
 interface MapViewProps {
   members: MapMember[];
@@ -93,11 +91,13 @@ const buildLocationClusters = (
 export default function MapView({ members, isLoading = false }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
+  const markersRef = useRef<any[]>([]);
   const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
   const isInitializedRef = useRef(false);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [isLoadingScript, setIsLoadingScript] = useState(true);
   const { user } = useAuthStore();
-  const { isLoaded: isMapLoaded, error: mapError } = useGoogleMaps();
 
   const currentUserLocation = useMemo(() => {
     const lat = Number(user?.currentLatitude ?? user?.latitude ?? null);
@@ -120,6 +120,61 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     [members, currentUserLocation]
   );
 
+  // ✅ Load Google Maps script once
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadMap = async () => {
+      try {
+        setIsLoadingScript(true);
+        await loadGoogleMapsScript();
+        
+        // ✅ Wait for google.maps to be fully available
+        const checkGoogleMaps = () => {
+          if (window.google?.maps) {
+            setIsMapLoaded(true);
+            setIsLoadingScript(false);
+            return true;
+          }
+          return false;
+        };
+
+        // Check immediately
+        if (checkGoogleMaps()) return;
+
+        // If not ready, wait with interval
+        let attempts = 0;
+        const maxAttempts = 50;
+        const interval = setInterval(() => {
+          attempts++;
+          if (checkGoogleMaps()) {
+            clearInterval(interval);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            setIsLoadingScript(false);
+            setMapError("Failed to load Google Maps - timeout");
+            console.error("Google Maps load timeout");
+          }
+        }, 200);
+
+        return () => clearInterval(interval);
+        
+      } catch (error) {
+        if (isMounted) {
+          setMapError(error instanceof Error ? error.message : "Failed to load map");
+          setIsLoadingScript(false);
+        }
+      }
+    };
+
+    loadMap();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Initialize map - only once when Google Maps is ready
   const initializeMap = useCallback(() => {
     if (!mapRef.current || isInitializedRef.current || !window.google?.maps) {
       return;
@@ -129,6 +184,7 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
       const mapInstance = new window.google.maps.Map(mapRef.current, {
         center: { lat: 20.5937, lng: 78.9629 },
         zoom: 5,
+        mapId: "DEMO_MAP_ID",
         styles: [
           {
             featureType: "poi",
@@ -144,32 +200,43 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
 
       mapInstanceRef.current = mapInstance;
       isInitializedRef.current = true;
-      window.google.maps.event.trigger(mapInstance, "resize");
+      
+      // ✅ Trigger resize after a short delay to ensure container is ready
+      setTimeout(() => {
+        if (window.google?.maps) {
+          window.google.maps.event.trigger(mapInstance, "resize");
+        }
+      }, 100);
     } catch (error) {
       console.error("Error initializing map:", error);
+      setMapError("Failed to initialize map");
     }
   }, []);
 
+  // Initialize map when loaded and the container is ready
   useEffect(() => {
-    if (!isMapLoaded || isLoading) return;
+    if (!isMapLoaded || isLoading || isLoadingScript) {
+      return;
+    }
 
-    const frameId = window.requestAnimationFrame(() => {
+    // ✅ Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
       initializeMap();
-    });
+    }, 300);
 
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [isMapLoaded, isLoading, initializeMap]);
+    return () => clearTimeout(timer);
+  }, [isMapLoaded, isLoading, isLoadingScript, initializeMap]);
 
+  // Add markers when members or map change
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !isMapLoaded || !window.google?.maps) return;
 
-    markersRef.current.forEach((marker) => marker.setMap(null));
+    // Clear existing markers
+    markersRef.current.forEach((marker) => marker.map = null);
     infoWindowsRef.current.forEach((infoWindow) => infoWindow.close());
 
-    const newMarkers: google.maps.Marker[] = [];
+    const newMarkers: any[] = [];
     const newInfoWindows: google.maps.InfoWindow[] = [];
 
     const PIN_PATH =
@@ -281,14 +348,15 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     }
 
     return () => {
-      newMarkers.forEach((marker) => marker.setMap(null));
+      newMarkers.forEach((marker) => marker.map = null);
       newInfoWindows.forEach((infoWindow) => infoWindow.close());
     };
   }, [locationClusters, isMapLoaded]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      markersRef.current.forEach((marker) => marker.setMap(null));
+      markersRef.current.forEach((marker) => marker.map = null);
       infoWindowsRef.current.forEach((infoWindow) => infoWindow.close());
       markersRef.current = [];
       infoWindowsRef.current = [];
@@ -303,13 +371,13 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
         <div className="text-center">
           <MapPin className="w-12 h-12 text-[#6B5E5A]/30 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-[#2A1636]">Map Unavailable</h3>
-          <p className="text-sm text-[#6B5E5A] mt-2">{mapError.message}</p>
+          <p className="text-sm text-[#6B5E5A] mt-2">{mapError}</p>
         </div>
       </div>
     );
   }
 
-  if (!isMapLoaded || isLoading) {
+  if (!isMapLoaded || isLoading || isLoadingScript) {
     return (
       <div className="flex flex-col items-center justify-center h-[400px] md:h-[500px] bg-white/60 backdrop-blur-sm rounded-2xl border border-white/50">
         <Loader2 className="w-8 h-8 text-[#6B1E5B] animate-spin" />

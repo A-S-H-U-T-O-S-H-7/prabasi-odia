@@ -1,3 +1,4 @@
+// lib/services/adminUserService.ts
 import { db } from '@/lib/firebase/config';
 import {
   collection,
@@ -15,9 +16,12 @@ export interface UserData {
   email: string;
   photoURL?: string;
   mobileNumber?: string;
+  phoneNumber?: string; // ✅ Added
   age?: number;
   gender?: string;
   bloodGroup?: string;
+  dob?: string; // ✅ Added
+  aadharNumber?: string; // ✅ Added
   odishaHomeAddress?: string;
   odishaDistrict?: string;
   odishaCity?: string;
@@ -25,6 +29,9 @@ export interface UserData {
   currentAddress?: string;
   currentCity?: string;
   currentState?: string;
+  currentCountry?: string; // ✅ Added
+  currentLatitude?: number; // ✅ Added
+  currentLongitude?: number; // ✅ Added
   currentPinCode?: string;
   nearbyCommunityId?: string | null;
   nearbyCommunityName?: string | null;
