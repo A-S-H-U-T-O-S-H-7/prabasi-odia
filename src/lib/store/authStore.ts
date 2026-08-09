@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase/config';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { emailService } from '@/lib/services/emailService';
 
 interface AuthState {
   user: any | null;
@@ -154,6 +155,18 @@ const useAuthStore = create<AuthState>()(
         
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
         
+        // ✅ SEND WELCOME EMAIL (after successful signup)
+        try {
+          await emailService.sendWelcomeEmail({
+            name: name,
+            email: email,
+          });
+          console.log("✅ Welcome email sent successfully");
+        } catch (emailError) {
+          console.error("Welcome email error:", emailError);
+          // Don't block the flow if email fails
+        }
+        
         set({
           user: {
             uid: firebaseUser.uid,
@@ -246,62 +259,58 @@ const useAuthStore = create<AuthState>()(
         const userCredential = await signInWithPopup(auth, provider);
         const firebaseUser = userCredential.user;
         
-        try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (!userDoc.exists()) {
-            const userData = {
-              uid: firebaseUser.uid,
-              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              email: firebaseUser.email,
-              photoURL: firebaseUser.photoURL,
-              role: 'user',
-              hasJoinedCommunity: false,
-              memberId: '',
-              isVerified: false,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+        // ✅ Check if user already exists in Firestore
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        const isNewUser = !userDoc.exists();
+        
+        if (isNewUser) {
+          // Create user document for new Google users
+          const userData = {
+            uid: firebaseUser.uid,
+            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            email: firebaseUser.email,
+            photoURL: firebaseUser.photoURL,
+            role: 'user',
+            hasJoinedCommunity: false,
+            memberId: '',
+            isVerified: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+          
+          // ✅ SEND WELCOME EMAIL (only for new Google signups)
+          try {
+            await emailService.sendWelcomeEmail({
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+              email: firebaseUser.email || '',
+            });
+            console.log("✅ Welcome email sent for Google signup");
+          } catch (emailError) {
+            console.error("Welcome email error:", emailError);
+            // Don't block the flow if email fails
           }
-          
-          const userDocData = (await getDoc(doc(db, 'users', firebaseUser.uid))).data() || {};
-          
-          set({
-            user: {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || userDocData.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              photoURL: firebaseUser.photoURL || userDocData.photoURL || null,
-              role: userDocData.role || 'user',
-              hasJoinedCommunity: userDocData.hasJoinedCommunity || false,
-              memberId: userDocData.memberId || '',
-              isVerified: userDocData.isVerified || false,
-              ...userDocData,
-            },
-            isAuthenticated: true,
-            isAdmin: firebaseUser.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL || userDocData.role === 'admin',
-            loading: false,
-            error: null,
-          });
-        } catch (error) {
-          // If Firestore fails, still set user with basic info
-          set({
-            user: {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              photoURL: firebaseUser.photoURL,
-              role: 'user',
-              hasJoinedCommunity: false,
-              memberId: '',
-              isVerified: false,
-            },
-            isAuthenticated: true,
-            isAdmin: firebaseUser.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL,
-            loading: false,
-            error: null,
-          });
         }
+        
+        const userDocData = (await getDoc(doc(db, 'users', firebaseUser.uid))).data() || {};
+        
+        set({
+          user: {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || userDocData.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            photoURL: firebaseUser.photoURL || userDocData.photoURL || null,
+            role: userDocData.role || 'user',
+            hasJoinedCommunity: userDocData.hasJoinedCommunity || false,
+            memberId: userDocData.memberId || '',
+            isVerified: userDocData.isVerified || false,
+            ...userDocData,
+          },
+          isAuthenticated: true,
+          isAdmin: firebaseUser.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL || userDocData.role === 'admin',
+          loading: false,
+          error: null,
+        });
         
         return { success: true };
       } catch (error: any) {

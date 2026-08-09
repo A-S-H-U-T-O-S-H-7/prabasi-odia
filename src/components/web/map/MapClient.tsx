@@ -1,11 +1,10 @@
-// app/(web)/map/MapClient.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, MapPin, Shield, Search, Filter, X } from "lucide-react";
 import MapView from "@/components/web/map/MapView";
-import { mapService, MapMember, maskName } from "@/lib/services/mapService";
+import { mapService, MapMember } from "@/lib/services/mapService";
 
 export default function MapClient() {
   const [members, setMembers] = useState<MapMember[]>([]);
@@ -25,7 +24,6 @@ export default function MapClient() {
         setMembers(data);
         setFilteredMembers(data);
 
-        // Extract unique cities
         const uniqueCities = Array.from(
           new Set(data.map((m) => m.currentCity).filter((city) => city !== "Unknown"))
         );
@@ -44,7 +42,6 @@ export default function MapClient() {
   useEffect(() => {
     let filtered = [...members];
 
-    // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
@@ -56,7 +53,6 @@ export default function MapClient() {
       );
     }
 
-    // City filter
     if (selectedCity !== "all") {
       filtered = filtered.filter((m) => m.currentCity === selectedCity);
     }
@@ -72,7 +68,6 @@ export default function MapClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFF9F2] via-white to-[#FFF0EB] py-6 md:py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -96,7 +91,6 @@ export default function MapClient() {
           </p>
         </motion.div>
 
-        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -123,7 +117,6 @@ export default function MapClient() {
           </div>
         </motion.div>
 
-        {/* Search & Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -164,7 +157,6 @@ export default function MapClient() {
           </div>
         </motion.div>
 
-        {/* City Filter Dropdown */}
         {showFilters && cities.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -200,7 +192,6 @@ export default function MapClient() {
           </motion.div>
         )}
 
-        {/* Map */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -209,7 +200,6 @@ export default function MapClient() {
           <MapView members={filteredMembers} isLoading={isLoading} />
         </motion.div>
 
-        {/* Footer Info */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

@@ -1,4 +1,3 @@
-// app/api/geocode/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -10,10 +9,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Address is required" }, { status: 400 });
     }
 
-    // ✅ API key is on the server - NEVER exposed to browser
     const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
     
-    // Try Google Maps Geocoding API
     if (API_KEY) {
       try {
         const response = await fetch(

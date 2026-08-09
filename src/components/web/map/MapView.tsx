@@ -1,18 +1,12 @@
-// components/web/map/MapView.tsx
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { MapMember } from "@/lib/services/mapService";
 import { Loader2, Users, MapPin } from "lucide-react";
-import { loadGoogleMapsScript } from "@/lib/utils/googleMapsLoader";
+import { useGoogleMaps } from "./MapScript";
 import useAuthStore from "@/lib/store/authStore";
 
-// ✅ Declare google globally for TypeScript
-declare global {
-  interface Window {
-    google: typeof google;
-  }
-}
+// ✅ Remove local declaration - use global types from types/global.d.ts
 
 interface MapViewProps {
   members: MapMember[];
@@ -101,10 +95,9 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
   const isInitializedRef = useRef(false);
   const { user } = useAuthStore();
+  const { isLoaded: isMapLoaded, error: mapError } = useGoogleMaps();
 
   const currentUserLocation = useMemo(() => {
     const lat = Number(user?.currentLatitude ?? user?.latitude ?? null);
@@ -127,31 +120,6 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     [members, currentUserLocation]
   );
 
-  // Load Google Maps script once
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadMap = async () => {
-      try {
-        await loadGoogleMapsScript();
-        if (isMounted && window.google?.maps) {
-          setIsMapLoaded(true);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setMapError(error instanceof Error ? error.message : "Failed to load map");
-        }
-      }
-    };
-
-    loadMap();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Initialize map - only once
   const initializeMap = useCallback(() => {
     if (!mapRef.current || isInitializedRef.current || !window.google?.maps) {
       return;
@@ -179,15 +147,11 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
       window.google.maps.event.trigger(mapInstance, "resize");
     } catch (error) {
       console.error("Error initializing map:", error);
-      setMapError("Failed to initialize map");
     }
   }, []);
 
-  // Initialize map when loaded and the container is ready
   useEffect(() => {
-    if (!isMapLoaded || isLoading) {
-      return;
-    }
+    if (!isMapLoaded || isLoading) return;
 
     const frameId = window.requestAnimationFrame(() => {
       initializeMap();
@@ -198,12 +162,10 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     };
   }, [isMapLoaded, isLoading, initializeMap]);
 
-  // Add markers when members or map change
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !isMapLoaded || !window.google?.maps) return;
 
-    // Clear existing markers
     markersRef.current.forEach((marker) => marker.setMap(null));
     infoWindowsRef.current.forEach((infoWindow) => infoWindow.close());
 
@@ -216,7 +178,6 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     const createMarkerIcon = (cluster: LocationCluster) => {
       const fillColor = cluster.isCurrentUser ? "#22c55e" : cluster.count > 1 ? "#6B1E5B" : "#D9772B";
 
-      // Clusters keep a circular badge so the member count stays readable.
       if (cluster.count > 1) {
         return {
           path: window.google.maps.SymbolPath.CIRCLE,
@@ -325,7 +286,6 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     };
   }, [locationClusters, isMapLoaded]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       markersRef.current.forEach((marker) => marker.setMap(null));
@@ -343,7 +303,7 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
         <div className="text-center">
           <MapPin className="w-12 h-12 text-[#6B5E5A]/30 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-[#2A1636]">Map Unavailable</h3>
-          <p className="text-sm text-[#6B5E5A] mt-2">{mapError}</p>
+          <p className="text-sm text-[#6B5E5A] mt-2">{mapError.message}</p>
         </div>
       </div>
     );
