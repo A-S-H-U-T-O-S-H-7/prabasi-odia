@@ -95,6 +95,7 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
   const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
   const isInitializedRef = useRef(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoadingScript, setIsLoadingScript] = useState(true);
   const { user } = useAuthStore();
@@ -181,10 +182,11 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     }
 
     try {
+      // Do not set mapId here — classic google.maps.Marker does not render
+      // reliably on vector maps (mapId). Matches ProfilePeopleNearby pattern.
       const mapInstance = new window.google.maps.Map(mapRef.current, {
         center: { lat: 20.5937, lng: 78.9629 },
         zoom: 5,
-        mapId: "DEMO_MAP_ID",
         styles: [
           {
             featureType: "poi",
@@ -200,7 +202,8 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
 
       mapInstanceRef.current = mapInstance;
       isInitializedRef.current = true;
-      
+      setIsMapReady(true);
+
       // ✅ Trigger resize after a short delay to ensure container is ready
       setTimeout(() => {
         if (window.google?.maps) {
@@ -227,16 +230,17 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     return () => clearTimeout(timer);
   }, [isMapLoaded, isLoading, isLoadingScript, initializeMap]);
 
-  // Add markers when members or map change
+  // Add markers when members or map change — depends on isMapReady so we
+  // re-run after the delayed map init (otherwise mapInstanceRef is still null).
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !isMapLoaded || !window.google?.maps) return;
+    if (!map || !isMapReady || !isMapLoaded || !window.google?.maps) return;
 
     // Clear existing markers
-    markersRef.current.forEach((marker) => marker.map = null);
+    markersRef.current.forEach((marker) => marker.setMap(null));
     infoWindowsRef.current.forEach((infoWindow) => infoWindow.close());
 
-    const newMarkers: any[] = [];
+    const newMarkers: google.maps.Marker[] = [];
     const newInfoWindows: google.maps.InfoWindow[] = [];
 
     const PIN_PATH =
@@ -348,15 +352,15 @@ export default function MapView({ members, isLoading = false }: MapViewProps) {
     }
 
     return () => {
-      newMarkers.forEach((marker) => marker.map = null);
+      newMarkers.forEach((marker) => marker.setMap(null));
       newInfoWindows.forEach((infoWindow) => infoWindow.close());
     };
-  }, [locationClusters, isMapLoaded]);
+  }, [locationClusters, isMapLoaded, isMapReady]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      markersRef.current.forEach((marker) => marker.map = null);
+      markersRef.current.forEach((marker) => marker.setMap(null));
       infoWindowsRef.current.forEach((infoWindow) => infoWindow.close());
       markersRef.current = [];
       infoWindowsRef.current = [];

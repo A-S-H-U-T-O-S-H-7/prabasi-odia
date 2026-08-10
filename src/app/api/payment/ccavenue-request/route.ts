@@ -29,8 +29,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-
     const payload = {
       order_id: String(body.order_id).trim(),
       amount: parseFloat(String(body.amount)).toFixed(2),
@@ -41,14 +39,14 @@ export async function POST(request: Request) {
       purpose: String(body.purpose || 'donation').trim(),
       donor_type: String(body.donor_type || 'indian').trim(),
       country: String(body.country || 'india').trim(),
-      redirect_url: `${baseUrl}/api/payment/ccavenue-response`,
-      cancel_url: `${baseUrl}/api/payment/ccavenue-cancel`,
+      redirect_url: 'https://prabasiodia.svsamiti.com/api/payment/ccavenue-response',
+      cancel_url: 'https://prabasiodia.svsamiti.com/api/payment/ccavenue-cancel',
     };
 
     const formData = new FormData();
     Object.entries(payload).forEach(([key, value]) => formData.append(key, value));
 
-    const response = await fetch('https://svsamiti.com/rajaparba/ccavenueRequest.php', {
+    const response = await fetch('https://svsamiti.com/prabasiodia/ccavenueRequest.php', {
       method: 'POST',
       body: formData,
     });

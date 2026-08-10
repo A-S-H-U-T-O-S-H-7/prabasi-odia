@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: false, message: 'Missing encrypted response' }, { status: 400 });
     }
 
-    const response = await fetch('https://svsamiti.com/rajaparba/ccavResponseHandler.php', {
+    const response = await fetch('https://svsamiti.com/prabasiodia/ccavResponseHandler.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

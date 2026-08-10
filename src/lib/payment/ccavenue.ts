@@ -15,7 +15,7 @@ export type CCAvenuePaymentData = {
 
 export type DonationPaymentStatus = 'completed' | 'failed' | 'cancelled';
 
-const CCAVENUE_RESPONSE_URL = 'https://svsamiti.com/rajaparba/ccavResponseHandler.php';
+const CCAVENUE_RESPONSE_URL = 'https://svsamiti.com/prabasiodia/ccavResponseHandler.php';
 
 export function getRequestBaseUrl(request: Request): string {
   return process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin;

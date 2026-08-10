@@ -9,6 +9,18 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { adminCommunityService } from './adminCommunityService';
+
+export type CommunityAssignmentAction = 'auto' | 'existing' | 'create';
+
+export interface VerifyUserCommunityOptions {
+  action: CommunityAssignmentAction;
+  /** Required when action is "existing" */
+  communityId?: string;
+  communityName?: string;
+  /** Optional override name when creating a community */
+  createName?: string;
+}
+
 export interface UserData {
   uid: string;
   displayName: string;
@@ -222,8 +234,12 @@ export const adminUserService = {
     }
   },
 
-  // Verify user
-  async verifyUser(uid: string, memberId: string) {
+  // Verify user and assign community based on admin selection
+  async verifyUser(
+    uid: string,
+    memberId: string,
+    communityOptions: VerifyUserCommunityOptions = { action: 'auto' }
+  ) {
     try {
       const docRef = doc(db, 'users', uid);
       const userDoc = await getDoc(docRef);
@@ -241,38 +257,95 @@ export const adminUserService = {
         updatedAt: new Date().toISOString(),
       };
 
-      if (userData.communityRequestStatus === 'pending' && userData.requestedCommunityName) {
-        const requestedName = String(userData.requestedCommunityName).trim();
+      const assignToExisting = async (communityId: string, communityName?: string) => {
+        const addResult = await adminCommunityService.addMemberToCommunity(communityId, uid);
+        if (!addResult.success) {
+          throw new Error(addResult.error || 'Failed to add member to community');
+        }
+        updates.nearbyCommunityId = communityId;
+        if (communityName) {
+          updates.nearbyCommunityName = communityName;
+        }
+        updates.communityRequestStatus = 'joined';
+        updates.requestedCommunityName = null;
+      };
+
+      const createAndAssign = async (name: string) => {
+        const communityName = name.trim();
+        if (!communityName) {
+          throw new Error('Community name is required to create a community');
+        }
+
         const createdCommunityResult = await adminCommunityService.createCommunity({
-          name: requestedName,
+          name: communityName,
           city: userData.currentCity || userData.odishaCity || '',
           state: userData.currentState || '',
-          description: `Community requested by ${userData.displayName || 'a member'}`,
+          description: `Community created during verification of ${userData.displayName || 'a member'}`,
           createdBy: 'admin',
         });
 
-        if (createdCommunityResult.success && createdCommunityResult.id) {
-          await adminCommunityService.addMemberToCommunity(createdCommunityResult.id, uid);
-          updates.communityRequestStatus = 'created';
-          updates.nearbyCommunityId = createdCommunityResult.id;
-          updates.nearbyCommunityName = requestedName;
-          updates.requestedCommunityName = null;
-        } else {
-          updates.communityRequestStatus = 'pending';
+        if (!createdCommunityResult.success || !createdCommunityResult.id) {
+          throw new Error(createdCommunityResult.error || 'Failed to create community');
         }
-      } else if (userData.nearbyCommunityId) {
-        await adminCommunityService.addMemberToCommunity(userData.nearbyCommunityId, uid);
-        updates.communityRequestStatus = userData.communityRequestStatus || 'joined';
-        updates.nearbyCommunityName = userData.nearbyCommunityName || updates.nearbyCommunityName;
-      } else if (userData.communityRequestStatus === 'joined') {
-        updates.communityRequestStatus = 'joined';
+
+        const addResult = await adminCommunityService.addMemberToCommunity(
+          createdCommunityResult.id,
+          uid
+        );
+        if (!addResult.success) {
+          throw new Error(addResult.error || 'Failed to add member to new community');
+        }
+
+        updates.nearbyCommunityId = createdCommunityResult.id;
+        updates.nearbyCommunityName = communityName;
+        updates.communityRequestStatus = 'created';
+        updates.requestedCommunityName = null;
+      };
+
+      const action = communityOptions.action || 'auto';
+
+      if (action === 'existing') {
+        if (!communityOptions.communityId) {
+          return { success: false, error: 'Please select a community' };
+        }
+        await assignToExisting(
+          communityOptions.communityId,
+          communityOptions.communityName
+        );
+      } else if (action === 'create') {
+        const createName =
+          communityOptions.createName ||
+          userData.requestedCommunityName ||
+          userData.currentCity ||
+          userData.odishaCity ||
+          '';
+        await createAndAssign(String(createName));
+      } else {
+        // auto: join nearby if present, otherwise create from request/city
+        if (userData.nearbyCommunityId) {
+          await assignToExisting(
+            userData.nearbyCommunityId,
+            userData.nearbyCommunityName || undefined
+          );
+        } else {
+          const createName =
+            communityOptions.createName ||
+            userData.requestedCommunityName ||
+            userData.currentCity ||
+            userData.odishaCity ||
+            '';
+          await createAndAssign(String(createName));
+        }
       }
 
       await updateDoc(docRef, updates);
       return { success: true };
     } catch (error) {
       console.error('Error verifying user:', error);
-      return { success: false, error: 'Error verifying user' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error verifying user',
+      };
     }
   },
 

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
-import { adminUserService, UserData } from "@/lib/services/adminUserService";
+import { adminUserService, UserData, VerifyUserCommunityOptions } from "@/lib/services/adminUserService";
 import UserStats from "@/components/admin/users/UserStats";
 import UserFilters from "@/components/admin/users/UserFilters";
 import UserTable from "@/components/admin/users/UserTable";
@@ -89,10 +89,14 @@ export default function AdminUsersPage() {
     setIsModalOpen(true);
   };
 
-  const handleVerify = async (uid: string, memberId: string) => {
+  const handleVerify = async (
+    uid: string,
+    memberId: string,
+    communityOptions: VerifyUserCommunityOptions
+  ) => {
     setIsVerifying(true);
     try {
-      const result = await adminUserService.verifyUser(uid, memberId);
+      const result = await adminUserService.verifyUser(uid, memberId, communityOptions);
       if (result.success) {
         toast.success("User verified successfully!");
         setIsModalOpen(false);
