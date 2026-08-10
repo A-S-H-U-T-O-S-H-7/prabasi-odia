@@ -18,7 +18,15 @@ export type DonationPaymentStatus = 'completed' | 'failed' | 'cancelled';
 const CCAVENUE_RESPONSE_URL = 'https://svsamiti.com/prabasiodia/ccavResponseHandler.php';
 
 export function getRequestBaseUrl(request: Request): string {
-  return process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin;
+  // Prefer the host that received the CCAvenue callback so redirects
+  // stay on the live donation domain even if BASE_URL differs.
+  try {
+    const origin = new URL(request.url).origin;
+    if (origin) return origin;
+  } catch {
+    // fall through
+  }
+  return process.env.NEXT_PUBLIC_BASE_URL || 'https://prabasiodia.svsamiti.com';
 }
 
 export async function extractEncResp(request: Request): Promise<string | null> {
@@ -89,9 +97,15 @@ export async function decryptCCAvenueResponse(
       status?: boolean;
       data?: unknown;
       message?: string;
+      order_id?: string;
+      [key: string]: unknown;
     };
 
-    const paymentData = normalizePaymentData(parsed.data);
+    // PHP may return { status, data: {...} } or a flat payment object
+    const paymentData =
+      normalizePaymentData(parsed.data) ||
+      (parsed.order_id ? normalizePaymentData(parsed) : null);
+
     if (!paymentData?.order_id) {
       return {
         ok: false,

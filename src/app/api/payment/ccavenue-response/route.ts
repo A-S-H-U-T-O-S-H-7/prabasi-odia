@@ -1,45 +1,118 @@
 import { NextResponse } from 'next/server';
+import { donationService } from '@/lib/services/donationService';
+import {
+  amountsMatch,
+  buildFailedRedirect,
+  buildSuccessRedirect,
+  decryptCCAvenueResponse,
+  extractEncResp,
+  getRequestBaseUrl,
+  mapOrderStatus,
+} from '@/lib/payment/ccavenue';
 
-export async function POST(request: Request) {
+async function handlePaymentResponse(request: Request) {
+  const baseUrl = getRequestBaseUrl(request);
+
   try {
-    const contentType = request.headers.get('content-type') || '';
-    let encResp: string | null = null;
-
-    if (contentType.includes('application/x-www-form-urlencoded')) {
-      const formData = await request.formData();
-      encResp = formData.get('encResp') as string | null;
-    } else if (contentType.includes('application/json')) {
-      const body = await request.json();
-      encResp = body?.encResp || null;
-    }
+    const encResp = await extractEncResp(request);
 
     if (!encResp) {
-      return NextResponse.json({ status: false, message: 'Missing encrypted response' }, { status: 400 });
+      return NextResponse.redirect(
+        buildFailedRedirect(baseUrl, { message: 'Missing encrypted payment response' }),
+        303
+      );
     }
 
-    const response = await fetch('https://svsamiti.com/prabasiodia/ccavResponseHandler.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Prabasi-Odia-Donation/1.0',
-      },
-      body: new URLSearchParams({ encResp }),
+    const decrypted = await decryptCCAvenueResponse(encResp);
+
+    if (!decrypted.ok || !decrypted.data?.order_id) {
+      return NextResponse.redirect(
+        buildFailedRedirect(baseUrl, {
+          message: decrypted.error || 'Unable to verify payment response',
+        }),
+        303
+      );
+    }
+
+    const data = decrypted.data;
+    const orderId = String(data.order_id);
+    const status = mapOrderStatus(data.order_status);
+
+    const donationResult = await donationService.getDonation(orderId);
+    if (!donationResult.success || !donationResult.data) {
+      return NextResponse.redirect(
+        buildFailedRedirect(baseUrl, {
+          order_id: orderId,
+          message: 'Donation record not found',
+          status_message: data.order_status,
+          failure_message: data.failure_message,
+        }),
+        303
+      );
+    }
+
+    const donation = donationResult.data;
+
+    if (status === 'completed' && !amountsMatch(donation.amount, data.amount)) {
+      await donationService.updateDonationStatus(orderId, 'failed', {
+        ...data,
+        transaction_id: data.tracking_id || data.bank_ref_no,
+        failure_message: 'Amount mismatch',
+      });
+
+      return NextResponse.redirect(
+        buildFailedRedirect(baseUrl, {
+          order_id: orderId,
+          message: 'Payment amount mismatch',
+          amount: data.amount,
+          status_message: data.order_status,
+        }),
+        303
+      );
+    }
+
+    const updateResult = await donationService.updateDonationStatus(orderId, status, {
+      ...data,
+      transaction_id: data.tracking_id || data.bank_ref_no,
+      completedAt: status === 'completed' ? new Date().toISOString() : undefined,
     });
 
-    if (!response.ok) {
-      throw new Error(`CCAvenue response handler returned ${response.status}`);
+    if (!updateResult.success) {
+      console.error('Failed to update donation after payment:', updateResult.error);
     }
 
-    const text = await response.text();
-    const parsed = JSON.parse(text);
+    if (status === 'completed') {
+      return NextResponse.redirect(buildSuccessRedirect(baseUrl, orderId), 303);
+    }
 
-    return NextResponse.json(parsed);
+    return NextResponse.redirect(
+      buildFailedRedirect(baseUrl, {
+        order_id: orderId,
+        message:
+          data.failure_message ||
+          data.status_message ||
+          (status === 'cancelled' ? 'Payment cancelled' : 'Payment failed'),
+        failure_message: data.failure_message,
+        amount: data.amount,
+        status_message: data.order_status || status,
+      }),
+      303
+    );
   } catch (error: any) {
     console.error('ccavenue-response error:', error);
-    return NextResponse.json({ status: false, message: error.message || 'Payment processing failed' }, { status: 500 });
+    return NextResponse.redirect(
+      buildFailedRedirect(baseUrl, {
+        message: error.message || 'Payment processing failed',
+      }),
+      303
+    );
   }
 }
 
-export async function GET() {
-  return NextResponse.json({ status: false, message: 'Use POST' }, { status: 405 });
+export async function POST(request: Request) {
+  return handlePaymentResponse(request);
+}
+
+export async function GET(request: Request) {
+  return handlePaymentResponse(request);
 }

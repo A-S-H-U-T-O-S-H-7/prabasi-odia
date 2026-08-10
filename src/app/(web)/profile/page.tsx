@@ -11,14 +11,18 @@ import ProfileFamily from "@/components/web//profile/ProfileFamily";
 import ProfileMemberCard from "@/components/web//profile/ProfileMemberCard";
 import ProfileActivity from "@/components/web//profile/ProfileActivity";
 import ProfileAddresses from "@/components/web/profile/ProfileAddresses";
-import { Loader2 } from "lucide-react";
 import ProfilePeopleNearby from "@/components/web/profile/ProfilePeopleNearby";
+import ProfileDonations from "@/components/web/profile/ProfileDonations";
+import { Heart, Loader2, User } from "lucide-react";
+
+type ProfileTab = "overview" | "donations";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuthStore();
   const { profile, fetchUserProfile, loading: profileLoading } = useUserStore();
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
 
   useEffect(() => {
     setMounted(true);
@@ -63,29 +67,59 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#FFF9F2] pt-6 pb-12">
-      {/* Background Decoration */}
       <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-[#6B1E5B]/5 to-transparent pointer-events-none" />
-      
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <ProfileHeader profile={profile} />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            <ProfilePeopleNearby profile={profile} />
-            <ProfileAbout profile={profile} />
-            <ProfileInterests interests={profile.interests || []} />
-            <ProfileFamily familyMembers={profile.familyMembers || []} />
-            <ProfileMemberCard profile={profile} />
-          </div>
-          
-          {/* Right Column */}
-          <div className="space-y-6">
-            <ProfileStats profile={profile} />
-            <ProfileAddresses profile={profile} />
-            <ProfileActivity profile={profile} />
-          </div>
+
+        <div className="mt-6 inline-flex p-1 rounded-2xl bg-white/70 border border-white/60 shadow-sm backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              activeTab === "overview"
+                ? "bg-[#6B1E5B] text-white shadow-sm"
+                : "text-[#6B5E5A] hover:text-[#2A1636]"
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("donations")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              activeTab === "donations"
+                ? "bg-[#6B1E5B] text-white shadow-sm"
+                : "text-[#6B5E5A] hover:text-[#2A1636]"
+            }`}
+          >
+            <Heart className="w-4 h-4" />
+            Donations
+          </button>
         </div>
+
+        {activeTab === "overview" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div className="lg:col-span-2 space-y-6">
+              <ProfilePeopleNearby profile={profile} />
+              <ProfileAbout profile={profile} />
+              <ProfileInterests interests={profile.interests || []} />
+              <ProfileFamily familyMembers={profile.familyMembers || []} />
+              <ProfileMemberCard profile={profile} />
+            </div>
+
+            <div className="space-y-6">
+              <ProfileStats profile={profile} />
+              <ProfileAddresses profile={profile} />
+              <ProfileActivity profile={profile} />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6">
+            <ProfileDonations userId={user?.uid || profile.uid} />
+          </div>
+        )}
       </div>
     </div>
   );

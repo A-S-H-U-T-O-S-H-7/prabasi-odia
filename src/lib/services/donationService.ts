@@ -83,7 +83,13 @@ export const donationService = {
         updates.paymentDetails = paymentDetails;
         if (paymentDetails.transaction_id) {
           updates.transactionId = paymentDetails.transaction_id;
+        } else if (paymentDetails.tracking_id) {
+          updates.transactionId = paymentDetails.tracking_id;
         }
+      }
+
+      if (status === 'completed') {
+        updates.completedAt = paymentDetails?.completedAt || new Date().toISOString();
       }
       
       await updateDoc(donationRef, updates);
@@ -112,18 +118,37 @@ export const donationService = {
 
   async getUserDonations(userId: string): Promise<{ success: boolean; donations?: DonationData[]; error?: string }> {
     try {
-      const q = query(
-        collection(db, 'donations'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      
+      const donationsRef = collection(db, 'donations');
+      let snapshot;
+
+      try {
+        const q = query(
+          donationsRef,
+          where('userId', '==', userId),
+          orderBy('createdAt', 'desc')
+        );
+        snapshot = await getDocs(q);
+      } catch {
+        // Fallback when composite index is missing
+        const q = query(donationsRef, where('userId', '==', userId));
+        snapshot = await getDocs(q);
+      }
+
       const donations: DonationData[] = [];
-      snapshot.forEach(doc => {
-        donations.push({ id: doc.id, ...doc.data() } as DonationData);
+      snapshot.forEach((docSnap) => {
+        donations.push({ id: docSnap.id, ...docSnap.data() } as DonationData);
       });
-      
+
+      donations.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.()
+          ? a.createdAt.toDate().getTime()
+          : new Date(a.createdAt || 0).getTime();
+        const bTime = b.createdAt?.toDate?.()
+          ? b.createdAt.toDate().getTime()
+          : new Date(b.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
+
       return { success: true, donations };
     } catch (error: any) {
       console.error('Error getting user donations:', error);
