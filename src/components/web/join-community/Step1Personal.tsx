@@ -1,8 +1,10 @@
+// components/web/join-community/Step1Personal.tsx
+
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { Upload, User, Users, Plus, X, Phone, Calendar, Briefcase, AlertCircle, Check } from "lucide-react";
+import { Upload, User, Users, Plus, X, Phone, Calendar, Briefcase, AlertCircle, Check, Globe } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-hot-toast";
@@ -22,6 +24,54 @@ interface Step1PersonalProps {
 
 const relations = ["Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Grandfather", "Grandmother", "Uncle", "Aunt", "Nephew", "Niece", "Cousin", "Other"];
 
+// Clean, deduplicated country codes - no duplicates
+const countryCodes = [
+  { code: "+91", country: "India" },
+  { code: "+1", country: "USA/Canada" },
+  { code: "+44", country: "UK" },
+  { code: "+61", country: "Australia" },
+  { code: "+971", country: "UAE" },
+  { code: "+966", country: "Saudi Arabia" },
+  { code: "+65", country: "Singapore" },
+  { code: "+60", country: "Malaysia" },
+  { code: "+92", country: "Pakistan" },
+  { code: "+880", country: "Bangladesh" },
+  { code: "+977", country: "Nepal" },
+  { code: "+94", country: "Sri Lanka" },
+  { code: "+64", country: "New Zealand" },
+  { code: "+33", country: "France" },
+  { code: "+49", country: "Germany" },
+  { code: "+39", country: "Italy" },
+  { code: "+81", country: "Japan" },
+  { code: "+86", country: "China" },
+  { code: "+82", country: "South Korea" },
+  { code: "+55", country: "Brazil" },
+  { code: "+27", country: "South Africa" },
+  { code: "+234", country: "Nigeria" },
+  { code: "+62", country: "Indonesia" },
+  { code: "+63", country: "Philippines" },
+  { code: "+66", country: "Thailand" },
+  { code: "+84", country: "Vietnam" },
+  { code: "+90", country: "Turkey" },
+  { code: "+30", country: "Greece" },
+  { code: "+31", country: "Netherlands" },
+  { code: "+32", country: "Belgium" },
+  { code: "+34", country: "Spain" },
+  { code: "+41", country: "Switzerland" },
+  { code: "+46", country: "Sweden" },
+  { code: "+47", country: "Norway" },
+  { code: "+48", country: "Poland" },
+  { code: "+52", country: "Mexico" },
+  { code: "+54", country: "Argentina" },
+  { code: "+56", country: "Chile" },
+  { code: "+57", country: "Colombia" },
+  { code: "+58", country: "Venezuela" },
+  { code: "+20", country: "Egypt" },
+  { code: "+254", country: "Kenya" },
+  { code: "+255", country: "Tanzania" },
+  { code: "+256", country: "Uganda" },
+];
+
 // Calculate age from DOB
 const calculateAge = (dob: string): number => {
   if (!dob) return 0;
@@ -33,17 +83,6 @@ const calculateAge = (dob: string): number => {
     age--;
   }
   return age;
-};
-
-// Indian mobile numbers start with 6, 7, 8, or 9
-const sanitizeMobile = (raw: string, previous: string): string => {
-  const digitsOnly = raw.replace(/\D/g, "").slice(0, 10);
-  if (digitsOnly.length === 0) return "";
-  if (!/^[6-9]/.test(digitsOnly)) {
-    // Reject a first digit that isn't 6-9 instead of silently accepting it
-    return previous;
-  }
-  return digitsOnly;
 };
 
 export default function Step1Personal({ onNext, onBack, isFirstStep = true }: Step1PersonalProps) {
@@ -75,19 +114,28 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
+  const [ageError, setAgeError] = useState<string | null>(null);
   const [familyAgeErrors, setFamilyAgeErrors] = useState<Record<string, boolean>>({});
 
   const watchDob = watch("dob");
   const watchMobileNumber = watch("mobileNumber");
+  const watchMobileCountryCode = watch("mobileCountryCode");
   const watchPhoto = watch("photo");
 
-  // Calculate age when DOB changes
+  // Calculate age and validate 18+ when DOB changes
   useEffect(() => {
     if (watchDob) {
       const age = calculateAge(watchDob);
       setCalculatedAge(age);
+      if (age < 18) {
+        setAgeError("You must be at least 18 years old to join");
+        toast.error("You must be at least 18 years old to join");
+      } else {
+        setAgeError(null);
+      }
     } else {
       setCalculatedAge(null);
+      setAgeError(null);
     }
   }, [watchDob]);
 
@@ -152,6 +200,12 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
 
+    // Check age first
+    if (ageError) {
+      toast.error("You must be at least 18 years old to join");
+      return;
+    }
+
     const adultMembers = familyMembers.filter((m) => {
       const age = getFamilyMemberAge(m.dob);
       return age >= 18 && m.dob && m.name;
@@ -162,7 +216,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       return;
     }
 
-    const fieldsToValidate = ["fullName", "dob", "gender", "bloodGroup", "mobileNumber", "photo", "occupation"];
+    const fieldsToValidate = ["fullName", "dob", "gender", "bloodGroup", "mobileNumber", "mobileCountryCode", "photo", "occupation"];
     const isValid = await trigger(fieldsToValidate);
 
     if (isValid) {
@@ -176,7 +230,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
     return Boolean((hasAttemptedSubmit || touchedFields[fieldName]) && errors[fieldName]);
   };
 
-  // Consistent, reserved-height message slot so content below never jumps
   const FieldHint = ({ children }: { children: React.ReactNode }) => (
     <div className="min-h-5 mt-1" aria-live="polite">
       <AnimatePresence mode="wait">{children}</AnimatePresence>
@@ -206,7 +259,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
       </div>
 
-      {/* Profile Photo - fixed-height wrapper prevents layout jump when messages appear */}
+      {/* Profile Photo */}
       <div>
         <label className="block text-sm font-medium text-[#2A1636] mb-2">
           Profile Photo <span className="text-red-400">*</span>
@@ -235,7 +288,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           </motion.div>
 
-          {/* Reserved-height status column beside the photo, so it never pushes the form down */}
           <div className="flex-1 min-h-24 flex items-center">
             <AnimatePresence mode="wait">
               {(shouldShowError("photo") || photoError) && (
@@ -293,12 +345,22 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
           </label>
           <div className="relative">
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-            <input {...register("dob")} type="date" className={`${inputClass("dob")} pl-12`} />
+            <input 
+              {...register("dob")} 
+              type="date" 
+              className={`${inputClass("dob")} pl-12`}
+              max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+            />
           </div>
           <FieldHint>
-            {calculatedAge !== null && !shouldShowError("dob") && (
+            {ageError && (
+              <motion.p key="age-error" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
+                {ageError}
+              </motion.p>
+            )}
+            {calculatedAge !== null && !ageError && !shouldShowError("dob") && (
               <motion.p key="age" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-sm text-[#6B5E5A]">
-                Age: <span className="font-semibold text-[#2A1636]">{calculatedAge} years</span>
+                Age: <span className="font-semibold text-green-600">{calculatedAge} years</span>
               </motion.p>
             )}
             {shouldShowError("dob") && (
@@ -310,8 +372,8 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
       </div>
 
-      {/* Row 2: Gender, Mobile Number */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Row 2: Gender, Mobile Number with Country Code */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Gender <span className="text-red-400">*</span>
@@ -334,21 +396,43 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
 
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
+            Country Code <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+            <select
+              {...register("mobileCountryCode")}
+              className={`${inputClass("mobileCountryCode")} pl-12 appearance-none cursor-pointer`}
+            >
+              <option value="">Select Country</option>
+              {countryCodes.map(({ code, country }) => (
+                <option key={code} value={code}>{code} ({country})</option>
+              ))}
+            </select>
+          </div>
+          <FieldHint>
+            {shouldShowError("mobileCountryCode") && (
+              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
+                {errors.mobileCountryCode?.message as string}
+              </motion.p>
+            )}
+          </FieldHint>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Mobile Number <span className="text-red-400">*</span>
           </label>
           <div className="relative">
             <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
             <input
-              {...register("mobileNumber")}
               type="tel"
-              inputMode="numeric"
-              maxLength={10}
               value={watchMobileNumber || ""}
               className={`${inputClass("mobileNumber")} pl-12`}
-              placeholder="10-digit number starting 6-9"
+              placeholder="Enter mobile number"
               onChange={(e) => {
-                const sanitized = sanitizeMobile(e.target.value, watchMobileNumber || "");
-                setValue("mobileNumber", sanitized);
+                const value = e.target.value.replace(/[^0-9+\-\s()]/g, '');
+                setValue("mobileNumber", value);
                 if (hasAttemptedSubmit || touchedFields.mobileNumber) {
                   trigger("mobileNumber");
                 }
@@ -363,7 +447,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
             ) : (
               <motion.div key="hint" className="flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                <p className="text-[10px] text-amber-600">Must start with 6, 7, 8 or 9. We will verify it.</p>
+                <p className="text-[10px] text-amber-600">Include country code if outside India</p>
               </motion.div>
             )}
           </FieldHint>

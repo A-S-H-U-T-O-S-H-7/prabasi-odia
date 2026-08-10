@@ -9,19 +9,21 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { adminCommunityService } from './adminCommunityService';
-
 export interface UserData {
   uid: string;
   displayName: string;
   email: string;
   photoURL?: string;
   mobileNumber?: string;
-  phoneNumber?: string; // ✅ Added
+  phoneNumber?: string;
+  mobileCountryCode?: string; // ✅ Added
   age?: number;
   gender?: string;
   bloodGroup?: string;
-  dob?: string; // ✅ Added
-  aadharNumber?: string; // ✅ Added
+  dob?: string;
+  aadharNumber?: string;
+  passportNumber?: string; // ✅ Added
+  idType?: string; // ✅ Added - 'aadhar' or 'passport'
   odishaHomeAddress?: string;
   odishaDistrict?: string;
   odishaCity?: string;
@@ -29,9 +31,9 @@ export interface UserData {
   currentAddress?: string;
   currentCity?: string;
   currentState?: string;
-  currentCountry?: string; // ✅ Added
-  currentLatitude?: number; // ✅ Added
-  currentLongitude?: number; // ✅ Added
+  currentCountry?: string;
+  currentLatitude?: number;
+  currentLongitude?: number;
   currentPinCode?: string;
   nearbyCommunityId?: string | null;
   nearbyCommunityName?: string | null;

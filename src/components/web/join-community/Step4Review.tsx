@@ -1,3 +1,5 @@
+// components/web/join-community/Step4Review.tsx
+
 "use client";
 
 import { motion } from "framer-motion";
@@ -93,6 +95,8 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
   const isOdishaPinValid = formData.odishaPinCode && formData.odishaPinCode.length === 6;
   const isCurrentPinValid = formData.currentPinCode && formData.currentPinCode.length === 6;
   const isAadharValid = formData.aadharNumber && formData.aadharNumber.length === 12;
+  const isPassportValid = formData.passportNumber && formData.passportNumber.length >= 6;
+  const idType = formData.idType || "aadhar";
 
   const sections = [
     {
@@ -106,7 +110,7 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
           <ReviewItem label="Age" value={userAge !== null ? `${userAge} years` : "—"} />
           <ReviewItem label="Gender" value={formData.gender || "—"} />
           <ReviewItem label="Blood Group" value={formData.bloodGroup || "—"} />
-          <ReviewItem label="Mobile Number" value={formData.mobileNumber || "—"} />
+          <ReviewItem label="Mobile" value={formData.mobileCountryCode && formData.mobileNumber ? `${formData.mobileCountryCode} ${formData.mobileNumber}` : "—"} />
           <ReviewItem label="Occupation" value={formData.occupation || "—"} />
           {formData.photo && <ReviewItem label="Photo" value="✅ Uploaded" />}
           <ReviewItem label="Family Members" value={familyDisplay} />
@@ -148,21 +152,22 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
       )
     },
     {
-      title: "💖 Interests & Aadhar",
+      title: "💖 Interests & Identity",
       icon: <Heart className="w-3.5 h-3.5 text-[#6B1E5B]" />,
       step: 3,
       content: (
         <>
           <ReviewItem label="Interests" value={interestsDisplay} />
+          <ReviewItem label="ID Type" value={idType === "aadhar" ? "Aadhar" : "Passport"} />
           <ReviewItem 
-            label="Aadhar Number" 
+            label={idType === "aadhar" ? "Aadhar Number" : "Passport Number"} 
             value={
-              isAadharValid 
-                ? `✅ ${formData.aadharNumber}` 
-                : <span className="text-red-500 font-medium">⚠️ Invalid</span>
+              idType === "aadhar"
+                ? (isAadharValid ? `✅ ${formData.aadharNumber}` : <span className="text-red-500 font-medium">⚠️ Invalid</span>)
+                : (isPassportValid ? `✅ ${formData.passportNumber}` : <span className="text-red-500 font-medium">⚠️ Invalid</span>)
             } 
           />
-          {isAadharValid && (
+          {(isAadharValid || isPassportValid) && (
             <div className="flex items-center gap-1.5 mt-1 text-[10px] text-amber-600">
               <Shield className="w-3 h-3" /> Will be verified by admin
             </div>
@@ -178,6 +183,7 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
     formData.gender && 
     formData.bloodGroup && 
     formData.mobileNumber && 
+    formData.mobileCountryCode &&
     formData.occupation &&
     formData.odishaHomeAddress && 
     formData.odishaDistrict &&
@@ -191,7 +197,8 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
     formData.nearbyCommunityId &&
     (formData.nearbyCommunityId !== "__cant_find__" || (formData.requestedCommunityName || "").trim().length >= 2) &&
     (formData.interests || []).length >= 2 &&
-    isAadharValid;
+    formData.idType &&
+    (formData.idType === "aadhar" ? isAadharValid : isPassportValid);
 
   return (
     <motion.div

@@ -1,3 +1,5 @@
+// components/web/admin/UserVerificationModal.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,8 +8,10 @@ import {
   X, User, Mail, MapPin, Phone, Calendar, Heart, Shield, 
   FileText, Check, XCircle, Loader2, Eye, Briefcase, Users,
   Building2, Home, Globe, Droplet, Sparkles, CreditCard, 
-  CalendarDays, Smartphone, UserCheck, Search, AlertCircle
+  CalendarDays, Smartphone, UserCheck, Search, AlertCircle,
+  ChevronDown, ChevronUp
 } from "lucide-react";
+import { FaPassport } from "react-icons/fa";
 import Image from "next/image";
 import { UserData } from "@/lib/services/adminUserService";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
@@ -23,17 +27,6 @@ interface UserVerificationModalProps {
   onVerify: (uid: string, memberId: string) => Promise<void>;
   onReject: (uid: string, reason: string) => Promise<void>;
   isVerifying?: boolean;
-}
-
-interface AadharVerificationResult {
-  age_range: string;
-  aadhaar_number: string;
-  state: string;
-  gender: string;
-  last_digits: string;
-  is_mobile: boolean;
-  remarks: string;
-  less_info: boolean;
 }
 
 export default function UserVerificationModal({
@@ -56,22 +49,18 @@ export default function UserVerificationModal({
   const [selectedCommunityId, setSelectedCommunityId] = useState<string>("");
   const [communityAction, setCommunityAction] = useState<"auto" | "existing" | "create">("auto");
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [isVerifyingAadhar, setIsVerifyingAadhar] = useState(false);
-  const [aadharResult, setAadharResult] = useState<AadharVerificationResult | null>(null);
-  const [isAadharVerified, setIsAadharVerified] = useState(false);
-  const [aadharError, setAadharError] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedCommunityName, setSelectedCommunityName] = useState("");
 
   useEffect(() => {
     if (isOpen && user) {
       fetchMemberCount();
       loadCommunities();
-      setAadharResult(null);
-      setIsAadharVerified(false);
-      setAadharError(null);
       setSelectedCommunityId("");
       setCommunityAction("auto");
       setSearchTerm("");
+      setSelectedCommunityName("");
+      setIsSearchOpen(false);
     }
   }, [isOpen, user]);
 
@@ -140,27 +129,18 @@ export default function UserVerificationModal({
   };
 
   const handleVerify = async () => {
-    // ✅ Validation: Check Aadhar verification
-    if (!isAadharVerified) {
-      toast.error("Please verify Aadhar number first");
-      return;
-    }
-
-    // ✅ Validation: Check community selection
-    if (communityAction === "existing" && !selectedCommunityId) {
-      toast.error("Please select a community");
-      return;
-    }
-
-    // ✅ Validation: Check Member ID
     if (!memberId || memberId.trim().length === 0) {
       toast.error("Please generate or enter a Member ID");
       return;
     }
 
+    if (communityAction === "existing" && !selectedCommunityId) {
+      toast.error("Please select a community");
+      return;
+    }
+
     const finalMemberId = memberId || generateMemberId(user!, memberCount);
     
-    // Determine which community to use
     let communityId = user!.nearbyCommunityId || undefined;
     let communityName = user!.nearbyCommunityName || undefined;
     
@@ -214,41 +194,11 @@ export default function UserVerificationModal({
     onReject(user!.uid, reason);
   };
 
-  const verifyAadhar = async () => {
-    if (!user?.aadharNumber) {
-      toast.error("No Aadhar number found for this user");
-      return;
-    }
-
-    setIsVerifyingAadhar(true);
-    setAadharError(null);
-    try {
-      const response = await fetch('/api/aadhar/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ aadharno: user.aadharNumber }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setAadharResult(data.data);
-        setIsAadharVerified(true);
-        toast.success("Aadhar verified successfully ✅");
-      } else {
-        // ✅ Show error message in UI
-        setAadharError(data.message || "Verification Failed.");
-        toast.error(data.message || "Aadhar verification failed");
-      }
-    } catch (error) {
-      console.error("Aadhar verification error:", error);
-      setAadharError("Network error. Please try again.");
-      toast.error("Failed to verify Aadhar");
-    } finally {
-      setIsVerifyingAadhar(false);
-    }
+  const handleCommunitySelect = (community: PublicCommunity) => {
+    setSelectedCommunityId(community.id);
+    setSelectedCommunityName(community.name);
+    setSearchTerm(community.name);
+    setIsSearchOpen(false);
   };
 
   if (!user) return null;
@@ -282,7 +232,6 @@ export default function UserVerificationModal({
     }
   };
 
-  // ✅ Fix: Search by community name, city, OR state
   const filteredCommunities = communities.filter((c) => {
     const search = searchTerm.toLowerCase().trim();
     if (!search) return true;
@@ -315,7 +264,6 @@ export default function UserVerificationModal({
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-[#E7D7E8] bg-white/50 flex-shrink-0">
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* ✅ Image with proper container */}
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#6B1E5B] to-[#D9772B] flex items-center justify-center text-white font-bold text-lg flex-shrink-0 overflow-hidden">
                     {user.photoURL ? (
                       <Image
@@ -390,7 +338,10 @@ export default function UserVerificationModal({
                         <span className="text-[#6B5E5A] flex items-center gap-1.5">
                           <Smartphone className="w-3.5 h-3.5" /> Mobile
                         </span>
-                        <span className="font-medium text-[#2A1636]">{user.phoneNumber || user.mobileNumber || "—"}</span>
+                        <span className="font-medium text-[#2A1636]">
+                          {user.mobileCountryCode ? `${user.mobileCountryCode} ` : ""}
+                          {user.phoneNumber || user.mobileNumber || "—"}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-[#6B5E5A] flex items-center gap-1.5">
@@ -454,9 +405,42 @@ export default function UserVerificationModal({
                   </div>
                 </div>
 
-                {/* Aadhar Box - Full Width */}
+                {/* Interests Section */}
                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm mb-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <h4 className="text-sm font-semibold text-[#2A1636] mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#6B1E5B]" />
+                    Interests
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {user.interests && user.interests.length > 0 ? (
+                      user.interests.map((interest: string) => {
+                        const interestMap: Record<string, { label: string; color: string }> = {
+                          volunteering: { label: "🤝 Volunteering", color: "bg-purple-100 text-purple-700" },
+                          bloodDonation: { label: "🩸 Blood Donation", color: "bg-red-100 text-red-700" },
+                          jobHelp: { label: "💼 Job Help", color: "bg-blue-100 text-blue-700" },
+                          socialAwareness: { label: "🌟 Social Awareness", color: "bg-orange-100 text-orange-700" },
+                          cleanlinessDrives: { label: "🧹 Cleanliness Drives", color: "bg-green-100 text-green-700" },
+                          culturalEvents: { label: "🎭 Cultural Events", color: "bg-amber-100 text-amber-700" },
+                          mentorship: { label: "📚 Mentorship", color: "bg-indigo-100 text-indigo-700" },
+                          startupNetworking: { label: "🚀 Startup Networking", color: "bg-teal-100 text-teal-700" },
+                        };
+                        const info = interestMap[interest];
+                        return info ? (
+                          <span key={interest} className={`text-xs px-3 py-1.5 rounded-full ${info.color}`}>
+                            {info.label}
+                          </span>
+                        ) : null;
+                      })
+                    ) : (
+                      <span className="text-sm text-[#6B5E5A]">No interests selected</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Aadhar & Passport Section - Just showing data, no verification */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {/* Aadhar Box */}
+                  <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center">
                         <CreditCard className="w-5 h-5 text-[#6B1E5B]" />
@@ -468,67 +452,40 @@ export default function UserVerificationModal({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {isAadharVerified && (
-                        <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full border border-green-200">
-                          ✅ Verified
-                        </span>
-                      )}
-                      {aadharError && (
-                        <span className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full border border-red-200">
-                          ❌ Failed
-                        </span>
-                      )}
-                      <button
-                        onClick={verifyAadhar}
-                        disabled={isVerifyingAadhar || !user.aadharNumber}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                          isAadharVerified
-                            ? 'bg-green-100 text-green-700 border border-green-200 cursor-default'
-                            : 'bg-[#6B1E5B] text-white hover:bg-[#531547] shadow-sm hover:shadow-md'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {isVerifyingAadhar ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : isAadharVerified ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <Shield className="w-4 h-4" />
-                        )}
-                        {isVerifyingAadhar ? "Verifying..." : isAadharVerified ? "Verified" : "Verify Aadhar"}
-                      </button>
-                    </div>
+                    {user.aadharNumber ? (
+                      <div className="mt-2 text-xs text-green-600 bg-green-50 p-2 rounded-lg">
+                        ✅ Aadhar provided
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">
+                        ⚠️ No Aadhar number provided
+                      </div>
+                    )}
                   </div>
 
-                  {/* ✅ Aadhar Error Display */}
-                  {aadharError && (
-                    <div className="mt-3 p-3 bg-red-50/70 border border-red-200 rounded-xl flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-600" />
-                      <p className="text-sm text-red-700">{aadharError}</p>
-                    </div>
-                  )}
-
-                  {/* Aadhar Result */}
-                  {aadharResult && (
-                    <div className="mt-4 p-4 bg-green-50/70 border border-green-200 rounded-xl grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div>
-                        <p className="text-[10px] text-[#6B5E5A] uppercase">Age Range</p>
-                        <p className="text-sm font-semibold text-[#2A1636]">{aadharResult.age_range}</p>
+                  {/* Passport Box */}
+                  <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#D9772B]/10 flex items-center justify-center">
+                        <FaPassport className="w-5 h-5 text-[#D9772B]" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-[#6B5E5A] uppercase">State</p>
-                        <p className="text-sm font-semibold text-[#2A1636]">{aadharResult.state}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-[#6B5E5A] uppercase">Gender</p>
-                        <p className="text-sm font-semibold text-[#2A1636]">{aadharResult.gender}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-[#6B5E5A] uppercase">Mobile Linked</p>
-                        <p className="text-sm font-semibold text-[#2A1636]">{aadharResult.is_mobile ? "✅ Yes" : "❌ No"}</p>
+                        <p className="text-sm font-semibold text-[#2A1636]">Passport Number</p>
+                        <p className="text-lg font-mono font-bold text-[#2A1636] tracking-wider">
+                          {user.passportNumber || "—"}
+                        </p>
                       </div>
                     </div>
-                  )}
+                    {user.passportNumber ? (
+                      <div className="mt-2 text-xs text-green-600 bg-green-50 p-2 rounded-lg">
+                        ✅ Passport provided
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">
+                        ⚠️ No passport number provided
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Verification & Community Section */}
@@ -548,7 +505,12 @@ export default function UserVerificationModal({
                         <input
                           type="radio"
                           checked={communityAction === "auto"}
-                          onChange={() => setCommunityAction("auto")}
+                          onChange={() => {
+                            setCommunityAction("auto");
+                            setSearchTerm("");
+                            setSelectedCommunityName("");
+                            setSelectedCommunityId("");
+                          }}
                           className="accent-[#6B1E5B]"
                         />
                         Auto
@@ -557,7 +519,10 @@ export default function UserVerificationModal({
                         <input
                           type="radio"
                           checked={communityAction === "existing"}
-                          onChange={() => setCommunityAction("existing")}
+                          onChange={() => {
+                            setCommunityAction("existing");
+                            setIsSearchOpen(true);
+                          }}
                           className="accent-[#6B1E5B]"
                         />
                         Assign Existing
@@ -566,7 +531,12 @@ export default function UserVerificationModal({
                         <input
                           type="radio"
                           checked={communityAction === "create"}
-                          onChange={() => setCommunityAction("create")}
+                          onChange={() => {
+                            setCommunityAction("create");
+                            setSearchTerm("");
+                            setSelectedCommunityName("");
+                            setSelectedCommunityId("");
+                          }}
                           className="accent-[#6B1E5B]"
                         />
                         Create New
@@ -575,42 +545,60 @@ export default function UserVerificationModal({
 
                     {communityAction === "existing" && (
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-                        <input
-                          type="text"
-                          placeholder="Search by community, city, or state..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
-                        />
-                        <div className="mt-2 max-h-40 overflow-y-auto rounded-xl border border-[#D4C8C0]/30 bg-white/80 p-1">
-                          {loadingCommunities ? (
-                            <div className="flex items-center justify-center p-4">
-                              <Loader2 className="w-5 h-5 text-[#6B1E5B] animate-spin" />
-                            </div>
-                          ) : filteredCommunities.length === 0 ? (
-                            <p className="text-sm text-[#6B5E5A] p-3 text-center">
-                              {searchTerm ? "No communities found matching your search" : "No communities available"}
-                            </p>
+                        <div 
+                          className="w-full px-4 py-2.5 rounded-xl border border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm cursor-pointer flex items-center justify-between"
+                          onClick={() => setIsSearchOpen(!isSearchOpen)}
+                        >
+                          <span className={selectedCommunityName ? "text-[#2A1636]" : "text-[#6B5E5A]/50"}>
+                            {selectedCommunityName || "Search and select a community..."}
+                          </span>
+                          {isSearchOpen ? (
+                            <ChevronUp className="w-4 h-4 text-[#6B5E5A]" />
                           ) : (
-                            filteredCommunities.map((c) => (
-                              <button
-                                key={c.id}
-                                onClick={() => setSelectedCommunityId(c.id)}
-                                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                                  selectedCommunityId === c.id
-                                    ? 'bg-[#6B1E5B]/10 text-[#6B1E5B] font-medium'
-                                    : 'hover:bg-[#6B1E5B]/5 text-[#2A1636]'
-                                }`}
-                              >
-                                <div className="font-medium">{c.name}</div>
-                                <div className="text-xs text-[#6B5E5A]">
-                                  {c.city}, {c.state} • {c.memberCount} members
-                                </div>
-                              </button>
-                            ))
+                            <ChevronDown className="w-4 h-4 text-[#6B5E5A]" />
                           )}
                         </div>
+                        
+                        {isSearchOpen && (
+                          <div className="absolute z-10 mt-1 w-full bg-white rounded-xl border border-[#D4C8C0]/30 shadow-lg overflow-hidden">
+                            <div className="p-2">
+                              <input
+                                type="text"
+                                placeholder="Type to search..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg border border-[#D4C8C0]/30 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none text-sm"
+                                autoFocus
+                              />
+                            </div>
+                            <div className="max-h-48 overflow-y-auto">
+                              {loadingCommunities ? (
+                                <div className="flex items-center justify-center p-4">
+                                  <Loader2 className="w-5 h-5 text-[#6B1E5B] animate-spin" />
+                                </div>
+                              ) : filteredCommunities.length === 0 ? (
+                                <p className="text-sm text-[#6B5E5A] p-3 text-center">
+                                  {searchTerm ? "No communities found" : "No communities available"}
+                                </p>
+                              ) : (
+                                filteredCommunities.map((c) => (
+                                  <button
+                                    key={c.id}
+                                    onClick={() => handleCommunitySelect(c)}
+                                    className={`w-full text-left px-3 py-2.5 hover:bg-[#6B1E5B]/5 transition-colors ${
+                                      selectedCommunityId === c.id ? 'bg-[#6B1E5B]/10' : ''
+                                    }`}
+                                  >
+                                    <div className="text-sm font-medium text-[#2A1636]">{c.name}</div>
+                                    <div className="text-xs text-[#6B5E5A]">
+                                      {c.city}, {c.state} • {c.memberCount} members
+                                    </div>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -674,9 +662,9 @@ export default function UserVerificationModal({
                   <div className="flex gap-3">
                     <button
                       onClick={handleVerify}
-                      disabled={isVerifying || isLoadingCount || !isAadharVerified || !memberId}
+                      disabled={isVerifying || isLoadingCount || !memberId}
                       className={`flex-1 py-3 rounded-xl text-white font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                        isVerifying || isLoadingCount || !isAadharVerified || !memberId
+                        isVerifying || isLoadingCount || !memberId
                           ? 'bg-gray-400 cursor-not-allowed opacity-50'
                           : 'bg-gradient-to-r from-green-600 to-green-700 hover:shadow-lg hover:scale-[1.02]'
                       }`}
@@ -697,13 +685,7 @@ export default function UserVerificationModal({
                     </button>
                   </div>
 
-                  {!isAadharVerified && !isVerifyingAadhar && (
-                    <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" /> Please verify Aadhar before verification
-                    </p>
-                  )}
-
-                  {!memberId && isAadharVerified && (
+                  {!memberId && (
                     <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                       <AlertCircle className="w-3.5 h-3.5" /> Please generate or enter a Member ID
                     </p>

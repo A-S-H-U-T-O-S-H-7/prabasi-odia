@@ -1,3 +1,5 @@
+// app/(web)/join-community/page.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,18 +19,44 @@ import { userService, type UserProfileData } from "@/lib/services/userService";
 import { publicCommunityService } from "@/lib/services/publicCommunityService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
 
+// Calculate age from DOB
+const calculateAge = (dob: string): number => {
+  if (!dob) return 0;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// Define the schema
 const schema = z.object({
+  // Personal Info
   photo: z.any().refine((file) => file instanceof File, "Profile photo is required"),
   fullName: z.string().min(2, "Full name is required"),
-  dob: z.string().min(1, "Date of birth is required"),
+  dob: z.string()
+    .min(1, "Date of birth is required")
+    .refine((val) => {
+      if (!val) return false;
+      const age = calculateAge(val);
+      return age >= 18;
+    }, "You must be at least 18 years old"),
   gender: z.string().min(1, "Gender is required"),
   bloodGroup: z.string().min(1, "Blood group is required"),
+  mobileCountryCode: z.string().min(1, "Country code is required"),
   mobileNumber: z.string()
-    .min(10, "Mobile number must be 10 digits")
-    .max(10, "Mobile number must be 10 digits")
-    .regex(/^[6-9][0-9]{9}$/, "Mobile number must start with 6,7,8, or 9"),
+    .min(1, "Mobile number is required")
+    .regex(/^[0-9+\-\s()]+$/, "Invalid mobile number format")
+    .refine((val) => {
+      const cleanNumber = val.replace(/[\s\-()]/g, '');
+      return cleanNumber.length >= 4 && cleanNumber.length <= 15;
+    }, "Mobile number must be 4-15 digits"),
   occupation: z.string().min(2, "Occupation is required"),
 
+  // Address Info
   odishaHomeAddress: z.string().min(5, "Odisha home address is required"),
   odishaDistrict: z.string().min(1, "District is required"),
   odishaCity: z.string().min(2, "City is required"),
@@ -57,14 +85,42 @@ const schema = z.object({
   nearbyCommunityName: z.string().optional(),
   requestedCommunityName: z.string().optional(),
 
+  // Interests
   interests: z.array(z.string()).min(2, "Please select at least 2 interests"),
+  
+  // ID fields - using zod enum with proper type
+  idType: z.enum(["aadhar", "passport"]).default("aadhar"),
   aadharNumber: z.string()
-    .min(12, "Aadhar number must be 12 digits")
-    .max(12, "Aadhar number must be 12 digits")
-    .regex(/^[0-9]+$/, "Aadhar number must contain only numbers"),
+    .optional()
+    .refine((val) => !val || (val.length === 12 && /^[0-9]+$/.test(val)), 
+      "Aadhar must be 12 digits"),
+  passportNumber: z.string()
+    .optional()
+    .refine((val) => !val || (val.length >= 6 && val.length <= 9 && /^[A-Z0-9]+$/.test(val)), 
+      "Passport number must be 6-9 characters"),
 
   familyMembers: z.array(z.any()).optional(),
 }).superRefine((data, ctx) => {
+  // Validate ID based on type
+  if (data.idType === "aadhar") {
+    if (!data.aadharNumber || data.aadharNumber.length !== 12) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Valid 12-digit Aadhar number is required",
+        path: ["aadharNumber"],
+      });
+    }
+  } else if (data.idType === "passport") {
+    if (!data.passportNumber || data.passportNumber.length < 6) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Valid passport number is required (6-9 characters)",
+        path: ["passportNumber"],
+      });
+    }
+  }
+
+  // Validate community request
   if (data.nearbyCommunityId === CANT_FIND_COMMUNITY) {
     if (!data.requestedCommunityName || data.requestedCommunityName.trim().length < 2) {
       ctx.addIssue({
@@ -81,7 +137,7 @@ type FormData = z.infer<typeof schema>;
 const STEPS = [
   { title: "Personal & Family", subtitle: "Tell us about yourself and your family" },
   { title: "Your Roots", subtitle: "Where do you call home?" },
-  { title: "Interests & Aadhar", subtitle: "What drives you? Share your Aadhar" },
+  { title: "Interests & Identity", subtitle: "What drives you? Share your ID" },
   { title: "Review & Submit", subtitle: "Almost there!" },
 ];
 
@@ -92,13 +148,15 @@ export default function JoinCommunityPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // FIX: Cast the resolver to any to bypass the type issue
   const methods = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     defaultValues: {
       fullName: "",
       dob: "",
       gender: "",
       bloodGroup: "",
+      mobileCountryCode: "",
       mobileNumber: "",
       occupation: "",
       odishaHomeAddress: "",
@@ -116,7 +174,9 @@ export default function JoinCommunityPage() {
       nearbyCommunityName: "",
       requestedCommunityName: "",
       interests: [],
+      idType: "aadhar" as "aadhar" | "passport",
       aadharNumber: "",
+      passportNumber: "",
       familyMembers: [{ name: "", dob: "", relation: "" }],
     },
     mode: "onChange",
@@ -155,18 +215,6 @@ export default function JoinCommunityPage() {
     try {
       const data = methods.getValues();
 
-      const calculateAge = (dob: string): number => {
-        if (!dob) return 0;
-        const birthDate = new Date(dob);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
-        return age;
-      };
-
       const age = calculateAge(data.dob);
       const isCommunityRequest = (data.nearbyCommunityId || "") === CANT_FIND_COMMUNITY;
       const selectedCommunityId = isCommunityRequest ? null : (data.nearbyCommunityId || null);
@@ -174,11 +222,9 @@ export default function JoinCommunityPage() {
       const requestedCommunityName = isCommunityRequest ? (data.requestedCommunityName || "").trim() : null;
       const communityRequestStatus: UserProfileData["communityRequestStatus"] = isCommunityRequest ? "pending" : "joined";
 
-      // Get coordinates from form or geocode
       let currentLatitude = data.currentLatitude ?? null;
       let currentLongitude = data.currentLongitude ?? null;
 
-      // Only geocode if we don't have valid coordinates
       if (!currentLatitude || !currentLongitude || currentLatitude === 0 || currentLongitude === 0) {
         const geocoded = await geocodeLocation({
           city: data.currentCity,
@@ -194,12 +240,12 @@ export default function JoinCommunityPage() {
         }
       }
 
-      // Build profile data correctly
       const profileData = {
         uid: user.uid,
         displayName: data.fullName,
         email: user.email || '',
         phoneNumber: data.mobileNumber,
+        mobileCountryCode: data.mobileCountryCode,
         age,
         dob: data.dob,
         gender: data.gender,
@@ -221,7 +267,9 @@ export default function JoinCommunityPage() {
         requestedCommunityName: isCommunityRequest ? requestedCommunityName : null,
         communityRequestStatus,
         interests: data.interests,
-        aadharNumber: data.aadharNumber,
+        idType: data.idType,
+        aadharNumber: data.idType === "aadhar" ? data.aadharNumber : null,
+        passportNumber: data.idType === "passport" ? data.passportNumber : null,
         familyMembers: data.familyMembers || [],
         hasJoinedCommunity: true,
         isVerified: false,
