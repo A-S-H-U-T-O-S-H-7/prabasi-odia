@@ -8,6 +8,8 @@ import HowItWorks from '@/components/web/home/HowItWorks';
 import PartnersSection from '@/components/web/home/AssociatesSection';
 import TestimonialsSection from '@/components/web/home/TestimonialsSection';
 import WelcomePopup from '@/components/web/home/WelcomePopup';
+import PartnersMarquee from '@/components/web/home/PartnersSection';
+import AdvisoryBoardPreview from '@/components/web/home/AdvisoryBoardPreview';
 
 export default function HomePage() {
   return (
@@ -18,9 +20,11 @@ export default function HomePage() {
       <FeaturesSection/>
       <CommunitiesPreview/>
       <CommunityFeatures/>
+      <AdvisoryBoardPreview/>
       <TestimonialsSection/>
       <PartnersSection/>
       <DonationBanner/>
+      <PartnersMarquee/>
       <CTASection/>
 
     </>

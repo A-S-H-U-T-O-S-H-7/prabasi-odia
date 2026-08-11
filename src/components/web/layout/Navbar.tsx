@@ -193,7 +193,7 @@ export default function Navbar() {
                 </Link>
                 <Link href="/signup">
                   <button className="px-5 py-2 text-sm font-medium text-white bg-[#6B1E5B] hover:bg-[#531547] rounded-lg transition-all shadow-lg shadow-[#6B1E5B]/25 hover:shadow-[#6B1E5B]/40">
-                    Register
+                    Sign Up
                   </button>
                 </Link>
               </div>
@@ -368,7 +368,7 @@ export default function Navbar() {
                     className="block text-center bg-[#6B1E5B] text-white hover:bg-[#531547] rounded-lg py-2 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
-                    Register
+                    Sign Up
                   </Link>
                 </>
               )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { UserPlus, ShieldCheck, Users, ArrowRight } from "lucide-react";
+import { UserPlus, Users, ShieldCheck, Handshake, ArrowRight } from "lucide-react";
 
 const steps = [
   {
@@ -12,18 +12,25 @@ const steps = [
     number: "01",
   },
   {
-    icon: ShieldCheck,
-    title: "Get Verified",
-    description: "Complete your profile and verify your identity to build trust.",
+    icon: Users,
+    title: "Join Community",
+    description: "Complete your profile and become a member of the community.",
     color: "from-[#D9772B] to-[#E6A11C]",
     number: "02",
   },
   {
-    icon: Users,
-    title: "Connect",
-    description: "Join communities, attend events, and connect with Odias near you.",
+    icon: ShieldCheck,
+    title: "Get Verified",
+    description: "Verify your identity to build trust and access exclusive features.",
     color: "from-[#059669] to-[#0EA5E9]",
     number: "03",
+  },
+  {
+    icon: Handshake,
+    title: "Connect",
+    description: "Join communities, attend events, and connect with Odias near you.",
+    color: "from-[#8B5CF6] to-[#EC4899]",
+    number: "04",
   },
 ];
 
@@ -43,19 +50,19 @@ export default function HowItWorks() {
             How It Works
           </span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-[#2A1636] mt-3 md:mt-4">
-            Join in <span className="text-[#6B1E5B]">3 Simple Steps</span>
+            Join in <span className="text-[#6B1E5B]">4 Simple Steps</span>
           </h2>
           <p className="text-[#6B5E5A] mt-2 max-w-2xl mx-auto text-sm md:text-base">
             Getting started is quick and easy. Here's how you can become a part of the Prabasi Odia community.
           </p>
         </motion.div>
 
-        {/* ========== DESKTOP VIEW (3 Columns) ========== */}
+        {/* ========== DESKTOP VIEW (4 Columns) ========== */}
         <div className="hidden md:block relative">
           {/* Connecting Line */}
-          <div className="absolute top-1/2 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] to-[#059669] -translate-y-1/2" />
+          <div className="absolute top-1/2 left-[12%] right-[12%] h-0.5 bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] via-[#059669] to-[#8B5CF6] -translate-y-1/2" />
 
-          <div className="grid grid-cols-3 gap-8">
+          <div className="grid grid-cols-4 gap-6">
             {steps.map((step, index) => {
               const Icon = step.icon;
               return (
@@ -68,17 +75,17 @@ export default function HowItWorks() {
                   className="relative flex flex-col items-center text-center"
                 >
                   {/* Step Number */}
-                  <div className="text-5xl font-bold text-[#E7D7E8] select-none absolute -top-4 right-8">
+                  <div className="text-4xl font-bold text-[#E7D7E8] select-none absolute -top-3 right-4">
                     {step.number}
                   </div>
 
                   {/* Icon Circle */}
-                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg mb-5 relative z-10`}>
-                    <Icon className="w-9 h-9 text-white" />
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg mb-4 relative z-10`}>
+                    <Icon className="w-8 h-8 text-white" />
                   </div>
 
-                  <h3 className="text-xl font-bold text-[#2A1636]">{step.title}</h3>
-                  <p className="text-[#6B5E5A] mt-2 max-w-xs mx-auto">
+                  <h3 className="text-lg font-bold text-[#2A1636]">{step.title}</h3>
+                  <p className="text-[#6B5E5A] mt-2 max-w-xs mx-auto text-sm">
                     {step.description}
                   </p>
                 </motion.div>
@@ -90,7 +97,7 @@ export default function HowItWorks() {
         {/* ========== MOBILE VIEW (Timeline) ========== */}
         <div className="md:hidden relative">
           {/* Vertical Timeline Line */}
-          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#6B1E5B] via-[#D9772B] to-[#059669] opacity-20" />
+          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#6B1E5B] via-[#D9772B] via-[#059669] to-[#8B5CF6] opacity-20" />
 
           {steps.map((step, index) => {
             const Icon = step.icon;
@@ -101,7 +108,7 @@ export default function HowItWorks() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.15 }}
                 viewport={{ once: true }}
-                className="relative flex items-start gap-4 mb-8 last:mb-0"
+                className="relative flex items-start gap-4 mb-6 last:mb-0"
               >
                 {/* Timeline Dot */}
                 <div className="relative z-10 flex-shrink-0">

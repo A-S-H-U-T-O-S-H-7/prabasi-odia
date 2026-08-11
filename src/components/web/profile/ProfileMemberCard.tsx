@@ -1,3 +1,5 @@
+// components/web/profile/ProfileMemberCard.tsx
+
 "use client";
 
 import Image from "next/image";
@@ -12,9 +14,11 @@ import {
   ScrollText,
   ShieldCheck,
   ArrowLeftRight,
+  Lock,
 } from "lucide-react";
 import { useRef, useState, type CSSProperties } from "react";
 import { domToCanvas } from "modern-screenshot";
+import { toast } from "react-hot-toast";
 
 interface ProfileMemberCardProps {
   profile: any;
@@ -64,6 +68,10 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
 
+  const isVerified = profile?.isVerified === true;
+  const hasMemberId = profile?.memberId && profile.memberId !== "Pending";
+  const canDownload = isVerified && hasMemberId;
+
   const toggleFlip = () => setIsFlipped((prev) => !prev);
 
   const captureFace = async (faceEl: HTMLElement, bgColor: string) => {
@@ -105,6 +113,20 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
     ctx.drawImage(canvas, 0, 0);
     
     return tempCanvas;
+  };
+
+  const handleDownloadClick = () => {
+    if (!canDownload) {
+      if (!isVerified) {
+        toast.error("Your profile is not verified yet. Please wait for admin verification.");
+      } else if (!hasMemberId) {
+        toast.error("Member ID is pending. Please wait for admin to assign your Member ID.");
+      } else {
+        toast.error("Member card is not available yet. Please complete your profile.");
+      }
+      return;
+    }
+    downloadCard();
   };
 
   const downloadCard = async () => {
@@ -193,14 +215,34 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       );
 
       pdf.save(`${fileName}.pdf`);
+      toast.success("Member card downloaded successfully!");
     } catch (error) {
       console.error("Download error:", error);
+      toast.error("Failed to download member card. Please try again.");
     } finally {
       setIsDownloading(false);
     }
   };
 
   const joinedDate = formatMemberDate(profile?.createdAt);
+
+  // Get download button status message
+  const getDownloadStatusMessage = () => {
+    if (!isVerified) {
+      return "Profile not verified";
+    }
+    if (!hasMemberId) {
+      return "Member ID pending";
+    }
+    return "Download PDF";
+  };
+
+  const getDownloadStatusIcon = () => {
+    if (!canDownload) {
+      return <Lock className="w-3 h-3 sm:w-4 sm:h-4" />;
+    }
+    return <Download className="w-3 h-3 sm:w-4 sm:h-4" />;
+  };
 
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/50 p-3 sm:p-6 shadow-sm w-full mx-auto">
@@ -349,7 +391,11 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
                     <span className="text-[#2A1636] opacity-70 whitespace-nowrap text-[9px] sm:text-xs" style={darkTextHalo}>Member ID</span>
                     <span className="text-[#2A1636] opacity-70 text-[9px] sm:text-xs">—</span>
                     <span 
-                      className="font-semibold text-[#2A1636] truncate max-w-[60px] sm:max-w-[120px] text-[9px] sm:text-xs" 
+                      className={`font-semibold truncate max-w-[60px] sm:max-w-[120px] text-[9px] sm:text-xs ${
+                        profile?.memberId && profile.memberId !== "Pending" 
+                          ? "text-[#2A1636]" 
+                          : "text-[#C1440E]"
+                      }`}
                       style={boldTextHalo}
                       title={profile?.memberId || "Pending"}
                     >
@@ -463,11 +509,21 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       </div>
 
       <div className="mt-3 sm:mt-5">
+        {/* Download Button - Disabled if not verified or no member ID */}
         <button
-          onClick={downloadCard}
-          disabled={isDownloading}
-          style={{ background: `linear-gradient(120deg, ${THEME.primary} 0%, ${THEME.terracotta} 100%)` }}
-          className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-white text-[11px] sm:text-sm font-semibold hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:scale-100 cursor-pointer disabled:cursor-not-allowed"
+          onClick={handleDownloadClick}
+          disabled={isDownloading || !canDownload}
+          style={{ 
+            background: canDownload 
+              ? `linear-gradient(120deg, ${THEME.primary} 0%, ${THEME.terracotta} 100%)`
+              : "#A0A0A0"
+          }}
+          className={`w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-white text-[11px] sm:text-sm font-semibold transition-all duration-300 ${
+            canDownload 
+              ? "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer" 
+              : "cursor-not-allowed opacity-70"
+          } disabled:opacity-60 disabled:scale-100`}
+          title={!canDownload ? "Verification required to download member card" : ""}
         >
           {isDownloading ? (
             <span className="flex items-center gap-2">
@@ -476,10 +532,22 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
             </span>
           ) : (
             <>
-              <Download className="w-3 h-3 sm:w-4 sm:h-4" /> Download as PDF
+              {getDownloadStatusIcon()}
+              {getDownloadStatusMessage()}
             </>
           )}
         </button>
+
+        {/* Status Message for disabled state */}
+        {!canDownload && (
+          <p className="text-[10px] sm:text-xs text-center text-amber-600 mt-2 flex items-center justify-center gap-1">
+            <Lock className="w-3 h-3" />
+            {!isVerified 
+              ? "🔒 Profile verification required to download member card" 
+              : "🔒 Member ID assignment pending from admin"
+            }
+          </p>
+        )}
       </div>
     </div>
   );
