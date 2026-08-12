@@ -22,6 +22,7 @@ import {
   UserCog,
   Award,
   Phone,
+  Heart,
 } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 
@@ -32,6 +33,7 @@ const navigationItems = [
   { name: "Communities", href: "/admin/communities", icon: Building2 },
   { name: "Events", href: "/admin/events", icon: CalendarDays },
   { name: "Notices", href: "/admin/notices", icon: Megaphone },
+  { name: "Donations", href: "/admin/donations", icon: Heart },
   { name: "Contacts", href: "/admin/contact", icon: Mail },
   { name: "Partners", href: "/admin/partners", icon: Handshake },
   { name: "Associates", href: "/admin/associates", icon: Handshake },
@@ -67,8 +69,10 @@ export default function AdminSidebar() {
     if (item.name === "Communities" && permissions.includes("communities")) return true;
     if (item.name === "Events" && permissions.includes("events")) return true;
     if (item.name === "Notices" && permissions.includes("notices")) return true;
-    if (item.name === "Contacts" && permissions.includes("contacts")) return true;
+    if (item.name === "Donations" && permissions.includes("donations")) return true;
+    if (item.name === "Contacts" && (permissions.includes("contacts") || permissions.includes("contact"))) return true;
     if (item.name === "Partners" && permissions.includes("partners")) return true;
+    if (item.name === "Associates" && permissions.includes("associates")) return true;
     if (item.name === "Advisory Board" && permissions.includes("advisory_board")) return true;
     if (item.name === "Emergency Contacts" && permissions.includes("emergency_contacts")) return true;
     if (item.name === "Testimonials" && permissions.includes("testimonials")) return true;

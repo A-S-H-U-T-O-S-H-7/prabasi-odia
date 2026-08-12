@@ -50,10 +50,20 @@ export default function SignupPage() {
         toast.success("Account created successfully! Welcome to Prabasi Odia.");
         router.push("/");
       } else {
-        if (result.error?.includes("email")) {
-          setError("email", { message: result.error });
+        const errorMsg = result.error || "Signup failed. Please try again.";
+        const isExistingAccount =
+          /already have an account|already registered|email-already-in-use|already in use/i.test(
+            errorMsg
+          );
+        if (isExistingAccount) {
+          const message = "You already have an account. Please login.";
+          setError("email", { type: "manual", message });
+          toast.error(message);
+        } else if (/email/i.test(errorMsg)) {
+          setError("email", { type: "manual", message: errorMsg });
+          toast.error(errorMsg);
         } else {
-          toast.error(result.error || "Signup failed. Please try again.");
+          toast.error(errorMsg);
         }
       }
     } catch (error: any) {

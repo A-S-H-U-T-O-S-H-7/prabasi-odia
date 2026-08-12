@@ -307,7 +307,7 @@ export default function SignupForm({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <input type="hidden" {...register("agreeTerms")} value="true" />
           <AuthInput label="Full Name" icon={<User className="w-4 h-4" />} error={errors.name} touched={touchedFields.name} {...register("name")} />
-          <AuthInput label="Email Address" icon={<Mail className="w-4 h-4" />} type="email" error={errors.email} touched={touchedFields.email} {...register("email")} />
+          <AuthInput label="Email Address" icon={<Mail className="w-4 h-4" />} type="email" error={errors.email} touched={touchedFields.email || !!errors.email} {...register("email")} />
 
           {/* Password & Confirm Password: stacked on very small screens, side-by-side from sm up */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

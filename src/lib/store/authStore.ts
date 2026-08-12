@@ -35,7 +35,7 @@ interface AuthState {
 // Helper function for error messages
 function getAuthErrorMessage(code: string): string {
   const messages: Record<string, string> = {
-    'auth/email-already-in-use': 'This email is already registered. Please login.',
+    'auth/email-already-in-use': 'You already have an account. Please login.',
     'auth/invalid-email': 'Invalid email address.',
     'auth/user-disabled': 'This account has been disabled.',
     'auth/user-not-found': 'No account found with this email.',

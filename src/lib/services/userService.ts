@@ -86,6 +86,46 @@ export const userService = {
     return { success: false, data: null };
   },
 
+  /** Public member lookup by memberId or uid (for QR verification). */
+  async getPublicMemberById(id: string) {
+    const toPublic = (docId: string, data: any) => {
+      const createdAt =
+        data.createdAt?.toDate?.()?.toISOString?.() ||
+        (typeof data.createdAt === 'string' ? data.createdAt : data.createdAt || '');
+      return {
+        uid: docId,
+        displayName: data.displayName || '',
+        photoURL: data.photoURL || data.documents?.profilePhoto || '',
+        memberId: data.memberId || '',
+        bloodGroup: data.bloodGroup || '',
+        currentCity: data.currentCity || '',
+        currentState: data.currentState || '',
+        currentCountry: data.currentCountry || '',
+        isVerified: data.isVerified === true,
+        createdAt,
+      };
+    };
+
+    try {
+      const byUid = await getDoc(doc(db, 'users', id));
+      if (byUid.exists()) {
+        return { success: true, data: toPublic(byUid.id, byUid.data()) };
+      }
+
+      const q = query(collection(db, 'users'), where('memberId', '==', id));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const docSnap = snapshot.docs[0];
+        return { success: true, data: toPublic(docSnap.id, docSnap.data()) };
+      }
+
+      return { success: false, data: null, error: 'Member not found' };
+    } catch (error: any) {
+      console.error('Error looking up public member:', error);
+      return { success: false, data: null, error: error.message || 'Lookup failed' };
+    }
+  },
+
   async uploadDocument(uid: string, file: File, type: 'aadharFront' | 'aadharBack' | 'passportFile' | 'profilePhoto') {
     const path = `users/${uid}/documents/${type}`;
     const storageRef = ref(storage, path);

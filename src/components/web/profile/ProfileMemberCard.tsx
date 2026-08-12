@@ -1,5 +1,3 @@
-// components/web/profile/ProfileMemberCard.tsx
-
 "use client";
 
 import Image from "next/image";
@@ -10,15 +8,15 @@ import {
   Calendar,
   Droplet,
   IdCard,
-  RotateCw,
   ScrollText,
   ShieldCheck,
   ArrowLeftRight,
   Lock,
 } from "lucide-react";
-import { useRef, useState, type CSSProperties } from "react";
+import { useRef, useState, useEffect, type CSSProperties } from "react";
 import { domToCanvas } from "modern-screenshot";
 import { toast } from "react-hot-toast";
+import QRCode from "qrcode";
 
 interface ProfileMemberCardProps {
   profile: any;
@@ -63,6 +61,7 @@ const TERMS = [
 export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   const flipperRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLDivElement>(null);
@@ -71,6 +70,38 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
   const isVerified = profile?.isVerified === true;
   const hasMemberId = profile?.memberId && profile.memberId !== "Pending";
   const canDownload = isVerified && hasMemberId;
+
+  // QR links to public member verification page (memberId preferred, else uid)
+  useEffect(() => {
+    const lookupId =
+      (profile?.memberId && profile.memberId !== "Pending" && profile.memberId) ||
+      profile?.uid ||
+      "";
+    if (!lookupId || typeof window === "undefined") {
+      setQrDataUrl("");
+      return;
+    }
+
+    const verifyUrl = `${window.location.origin}/member/${encodeURIComponent(lookupId)}`;
+    let cancelled = false;
+
+    QRCode.toDataURL(verifyUrl, {
+      width: 200,
+      margin: 2,
+      color: { dark: "#4A1942", light: "#FFFFFF" },
+      errorCorrectionLevel: "M",
+    })
+      .then((url: string) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.memberId, profile?.uid]);
 
   const toggleFlip = () => setIsFlipped((prev) => !prev);
 
@@ -244,6 +275,17 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
     return <Download className="w-3 h-3 sm:w-4 sm:h-4" />;
   };
 
+  // Get QR container size matching profile image
+  const getQrSize = () => {
+    // Match the profile image container sizes
+    return {
+      container: "h-[60px] w-[60px] sm:h-[88px] sm:w-[88px] md:h-[96px] md:w-[96px]",
+      image: "h-14 w-14 sm:h-20 sm:w-20 md:h-[88px] md:w-[88px]",
+    };
+  };
+
+  const qrSize = getQrSize();
+
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/50 p-3 sm:p-6 shadow-sm w-full mx-auto">
       <div className="flex items-center justify-between mb-2 sm:mb-4">
@@ -298,9 +340,9 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
               <div className="absolute inset-0 bg-gradient-to-r from-[#F7F1E3] via-[#F7F1E3]/75 to-transparent" />
             </div>
 
-            {/* Prabasi Odia wordmark */}
+            {/* Prabasi Odia wordmark — top center */}
             <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-2 sm:pt-3.5">
-              <div className="flex items-center gap-2 sm:gap-3 bg-white/95 backdrop-blur-md border border-white/60 rounded-full pl-2 sm:pl-3 pr-3.5 sm:pr-5 py-1.5 sm:py-2 shadow-lg whitespace-nowrap">
+              <div className="flex items-center gap-2 sm:gap-3 bg-white/95 backdrop-blur-md border border-white/60 rounded-full pl-2 sm:pl-3 pr-3.5 sm:pr-5 py-1.5 sm:py-2 shadow-lg whitespace-nowrap max-w-full">
                 <div className="relative h-6 w-6 sm:h-8 sm:w-8 shrink-0 rounded-full overflow-hidden bg-white">
                   <Image src="/logoicon.png" alt="" fill className="object-contain" />
                 </div>
@@ -313,13 +355,30 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
               </div>
             </div>
 
-            {/* Flip hint - hidden in PDF */}
-            <div 
+            {/* ✅ Flip hint - TOP RIGHT CORNER */}
+            <div
               data-hide-for-pdf
               className="absolute top-2 sm:top-3.5 right-2 sm:right-3.5 z-20 flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-white/90 shadow-md text-[#4A1942] animate-bounce"
             >
               <ArrowLeftRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
+
+            {/* ✅ QR Code - RIGHT SIDE (matching profile image size) */}
+            {qrDataUrl && (
+              <div
+                className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-20 rounded-lg sm:rounded-xl bg-white p-0.5 sm:p-1 shadow-lg border border-white/80"
+                onClick={(e) => e.stopPropagation()}
+                title="Scan to verify member"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrDataUrl}
+                  alt="Member verification QR"
+                  className="h-[60px] w-[60px] sm:h-[88px] sm:w-[88px] md:h-[96px] md:w-[96px] block rounded-md sm:rounded-lg"
+                  draggable={false}
+                />
+              </div>
+            )}
 
             {/* Issuer */}
             <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3.5 z-20 flex items-center gap-1.5 sm:gap-2">
@@ -336,9 +395,9 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
               </div>
             </div>
 
-            {/* Main content */}
-            <div className="absolute left-2 sm:left-4 top-[42px] sm:top-[72px] bottom-[30px] sm:bottom-[52px] z-10 flex items-center w-[72%] sm:w-[66%] gap-2 sm:gap-4 sm:left-5 sm:w-[62%]">
-              {/* Photo */}
+            {/* Main content - left side */}
+            <div className="absolute left-2 sm:left-4 top-[42px] sm:top-[72px] bottom-[30px] sm:bottom-[52px] z-10 flex items-center w-[55%] sm:w-[50%] gap-2 sm:gap-4">
+              {/* Profile Photo - LEFT SIDE */}
               <div className="flex-shrink-0 self-center">
                 <div className="relative h-[60px] w-[60px] sm:h-[88px] sm:w-[88px] md:h-[96px] md:w-[96px] overflow-hidden rounded-lg sm:rounded-xl border-2 sm:border-[3px] border-white bg-white shadow-lg">
                   {profile?.photoURL ? (
@@ -375,7 +434,7 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
                 </div>
               </div>
 
-              {/* Details - Increased font sizes */}
+              {/* Details */}
               <div className="flex-1 min-w-0 self-center">
                 <h2
                   className="truncate font-serif text-sm sm:text-lg md:text-2xl font-bold leading-tight tracking-tight text-[#4A1942] mb-1 sm:mb-2"
@@ -509,7 +568,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       </div>
 
       <div className="mt-3 sm:mt-5">
-        {/* Download Button - Disabled if not verified or no member ID */}
         <button
           onClick={handleDownloadClick}
           disabled={isDownloading || !canDownload}
@@ -538,7 +596,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
           )}
         </button>
 
-        {/* Status Message for disabled state */}
         {!canDownload && (
           <p className="text-[10px] sm:text-xs text-center text-amber-600 mt-2 flex items-center justify-center gap-1">
             <Lock className="w-3 h-3" />
