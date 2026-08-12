@@ -45,44 +45,7 @@ export default function JoinCommunityLayout({
         />
       </div>
 
-      {/* Decorative Elements */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <Image 
-          src="/patterns/mandala-01.png" 
-          alt="" 
-          width={500} 
-          height={500} 
-          className="absolute -right-32 -top-32 opacity-[0.04]" 
-        />
-        <Image 
-          src="/patterns/mandala-02.png" 
-          alt="" 
-          width={300} 
-          height={300} 
-          className="absolute -bottom-16 -left-16 opacity-[0.05]" 
-        />
-        
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            animate={{
-              y: [Math.random() * 80 - 40, Math.random() * 80 - 40],
-              x: [Math.random() * 80 - 40, Math.random() * 80 - 40],
-              opacity: [0, 0.3, 0],
-            }}
-            transition={{
-              duration: 8 + Math.random() * 12,
-              repeat: Infinity,
-              delay: Math.random() * 10,
-              ease: "easeInOut",
-            }}
-            className="absolute w-2 h-2 rounded-full bg-[#E8B84C]/20 blur-[1px]"
-            style={{ top: `${10 + Math.random() * 80}%`, left: `${10 + Math.random() * 80}%` }}
-          />
-        ))}
-
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#6B1E5B]/5 to-transparent" />
-      </div>
+      
 
       <div className="relative z-10 min-h-screen w-full flex items-center justify-center px-4 sm:px-6 py-8">
         <div className="w-full max-w-4xl">

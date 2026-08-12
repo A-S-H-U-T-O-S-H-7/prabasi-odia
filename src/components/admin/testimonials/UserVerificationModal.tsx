@@ -1,5 +1,3 @@
-// components/web/admin/UserVerificationModal.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,7 +7,7 @@ import {
   FileText, Check, XCircle, Loader2, Eye, Briefcase, Users,
   Building2, Home, Globe, Droplet, Sparkles, CreditCard, 
   CalendarDays, Smartphone, UserCheck, Search, AlertCircle,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Image as ImageIcon, X as XIcon
 } from "lucide-react";
 import { FaPassport } from "react-icons/fa";
 import Image from "next/image";
@@ -32,7 +30,89 @@ interface UserVerificationModalProps {
   onReject: (uid: string, reason: string) => Promise<void>;
   isVerifying?: boolean;
 }
+// ============================================
+// DOCUMENT VIEWER COMPONENT - FIXED
+// ============================================
+function DocumentViewer({ url, label }: { url?: string; label: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
+  if (!url) return null;
+
+  const handleView = () => {
+    setIsOpen(true);
+    setImageError(false);
+  };
+
+  return (
+    <>
+      <button
+        onClick={handleView}
+        className="text-xs text-[#6B1E5B] hover:underline font-medium"
+      >
+        View
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 z-[80]"
+              onClick={() => setIsOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-4 sm:inset-8 md:inset-12 lg:inset-20 z-[90] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-[#E7D7E8] flex-shrink-0">
+                <h3 className="text-lg font-semibold text-[#2A1636]">{label}</h3>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 rounded-full hover:bg-[#6B1E5B]/5 transition-colors"
+                >
+                  <XIcon className="w-5 h-5 text-[#6B5E5A]" />
+                </button>
+              </div>
+              <div className="flex-1 p-4 flex items-center justify-center bg-gray-50 overflow-hidden">
+                {!imageError ? (
+                  <div className="relative w-full h-full max-h-[80vh]">
+                    <img
+                      src={url}
+                      alt={label}
+                      className="w-full h-full object-contain"
+                      onError={() => setImageError(true)}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-8">
+                    <FileText className="w-16 h-16 text-gray-300 mb-4" />
+                    <p className="text-gray-600 font-medium">Unable to load image</p>
+                    <p className="text-gray-400 text-sm mt-1">The document may not be accessible</p>
+                    <button
+                      onClick={() => window.open(url, '_blank')}
+                      className="mt-4 px-4 py-2 bg-[#6B1E5B] text-white rounded-lg hover:bg-[#531547] transition-colors"
+                    >
+                      Open in New Tab
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 export default function UserVerificationModal({
   user,
   isOpen,
@@ -56,20 +136,30 @@ export default function UserVerificationModal({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedCommunityName, setSelectedCommunityName] = useState("");
 
+  // ============================================
+  // EFFECTS
+  // ============================================
   useEffect(() => {
     if (isOpen && user) {
       fetchMemberCount();
       loadCommunities();
-      setSelectedCommunityId("");
-      setCommunityAction("auto");
-      setSearchTerm("");
-      setSelectedCommunityName("");
-      setIsSearchOpen(false);
-      setShowRejectForm(false);
-      setRejectReason("");
+      resetState();
     }
   }, [isOpen, user]);
 
+  const resetState = () => {
+    setSelectedCommunityId("");
+    setCommunityAction("auto");
+    setSearchTerm("");
+    setSelectedCommunityName("");
+    setIsSearchOpen(false);
+    setShowRejectForm(false);
+    setRejectReason("");
+  };
+
+  // ============================================
+  // DATA FETCHING
+  // ============================================
   const loadCommunities = async () => {
     setLoadingCommunities(true);
     try {
@@ -111,6 +201,9 @@ export default function UserVerificationModal({
     }
   };
 
+  // ============================================
+  // MEMBER ID GENERATION
+  // ============================================
   const generateMemberId = (userData: UserData, count: number) => {
     const currentYear = new Date().getFullYear().toString().slice(-2);
     const nameParts = userData.displayName?.split(" ") || [];
@@ -134,6 +227,9 @@ export default function UserVerificationModal({
     }
   };
 
+  // ============================================
+  // HANDLERS
+  // ============================================
   const handleVerify = async () => {
     if (user?.isVerified) {
       toast.error("This member is already verified");
@@ -244,8 +340,9 @@ export default function UserVerificationModal({
     setIsSearchOpen(false);
   };
 
-  if (!user) return null;
-
+  // ============================================
+  // UTILITY FUNCTIONS
+  // ============================================
   const formatDate = (dateString?: string) => {
     if (!dateString) return "—";
     try {
@@ -285,10 +382,26 @@ export default function UserVerificationModal({
     );
   });
 
+  // ============================================
+  // DOCUMENT CHECK
+  // ============================================
+  const hasAadharFront = user?.documents?.aadharFront;
+  const hasAadharBack = user?.documents?.aadharBack;
+  const hasPassportFile = user?.documents?.passportFile;
+
+  // ============================================
+  // EARLY RETURN
+  // ============================================
+  if (!user) return null;
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <AnimatePresence>
       {isOpen && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -297,6 +410,7 @@ export default function UserVerificationModal({
             onClick={onClose}
           />
 
+          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -342,10 +456,10 @@ export default function UserVerificationModal({
                 </button>
               </div>
 
-              {/* Body - Scrollable */}
-              <div className="flex-1 overflow-y-auto p-6">
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* 3 Column Grid - Personal Details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Box 1: Personal Details */}
                   <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
                     <h4 className="text-sm font-semibold text-[#2A1636] mb-4 flex items-center gap-2">
@@ -449,7 +563,7 @@ export default function UserVerificationModal({
                 </div>
 
                 {/* Interests Section */}
-                <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm mb-6">
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
                   <h4 className="text-sm font-semibold text-[#2A1636] mb-3 flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#6B1E5B]" />
                     Interests
@@ -480,8 +594,8 @@ export default function UserVerificationModal({
                   </div>
                 </div>
 
-                {/* Aadhar & Passport Section - Just showing data, no verification */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Aadhar & Passport Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Aadhar Box */}
                   <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
                     <div className="flex items-center gap-3">
@@ -528,6 +642,111 @@ export default function UserVerificationModal({
                         ⚠️ No passport number provided
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* 📄 Documents Section */}
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
+                  <h4 className="text-sm font-semibold text-[#2A1636] mb-4 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#6B1E5B]" />
+                    Uploaded Documents
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* Profile Photo */}
+                    <div className="flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-[#D4C8C0]/30">
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
+                        {user.photoURL ? (
+                          <Image
+                            src={user.photoURL}
+                            alt="Profile"
+                            width={40}
+                            height={40}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <User className="w-5 h-5" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-[#2A1636] truncate">Profile Photo</p>
+                        {user.photoURL ? (
+                          <button 
+                            onClick={() => window.open(user.photoURL, '_blank')}
+                            className="text-xs text-[#6B1E5B] hover:underline"
+                          >
+                            View
+                          </button>
+                        ) : (
+                          <p className="text-xs text-[#6B5E5A]/50">Not uploaded</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Aadhar Front */}
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      hasAadharFront 
+                        ? 'bg-white/50 border-[#D4C8C0]/30' 
+                        : 'bg-gray-50/50 border-[#D4C8C0]/20'
+                    }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        hasAadharFront ? 'bg-[#6B1E5B]/10' : 'bg-gray-100'
+                      }`}>
+                        <FileText className={`w-5 h-5 ${hasAadharFront ? 'text-[#6B1E5B]' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-[#2A1636] truncate">Aadhar Front</p>
+                        {hasAadharFront ? (
+                          <DocumentViewer url={user.documents?.aadharFront} label="Aadhar Front" />
+                        ) : (
+                          <p className="text-xs text-[#6B5E5A]/50">Not uploaded</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Aadhar Back */}
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      hasAadharBack 
+                        ? 'bg-white/50 border-[#D4C8C0]/30' 
+                        : 'bg-gray-50/50 border-[#D4C8C0]/20'
+                    }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        hasAadharBack ? 'bg-[#6B1E5B]/10' : 'bg-gray-100'
+                      }`}>
+                        <FileText className={`w-5 h-5 ${hasAadharBack ? 'text-[#6B1E5B]' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-[#2A1636] truncate">Aadhar Back</p>
+                        {hasAadharBack ? (
+                          <DocumentViewer url={user.documents?.aadharBack} label="Aadhar Back" />
+                        ) : (
+                          <p className="text-xs text-[#6B5E5A]/50">Not uploaded</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Passport File */}
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      hasPassportFile 
+                        ? 'bg-white/50 border-[#D4C8C0]/30' 
+                        : 'bg-gray-50/50 border-[#D4C8C0]/20'
+                    }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        hasPassportFile ? 'bg-[#D9772B]/10' : 'bg-gray-100'
+                      }`}>
+                        <FaPassport className={`w-5 h-5 ${hasPassportFile ? 'text-[#D9772B]' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-[#2A1636] truncate">Passport File</p>
+                        {hasPassportFile ? (
+                          <DocumentViewer url={user.documents?.passportFile} label="Passport Document" />
+                        ) : (
+                          <p className="text-xs text-[#6B5E5A]/50">Not uploaded</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 

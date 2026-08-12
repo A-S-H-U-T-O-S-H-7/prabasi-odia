@@ -9,7 +9,7 @@ import { adminUserService, UserData, VerifyUserCommunityOptions } from "@/lib/se
 import UserStats from "@/components/admin/users/UserStats";
 import UserFilters from "@/components/admin/users/UserFilters";
 import UserTable from "@/components/admin/users/UserTable";
-import UserVerificationModal from "@/components/admin/users/UserVerificationModal";
+import UserVerificationModal from "./UserVerificationModal";
 
 export default function AdminUsersPage() {
   const router = useRouter();

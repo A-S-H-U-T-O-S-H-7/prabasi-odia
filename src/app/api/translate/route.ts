@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "Google Translate API key is not configured." }, { status: 500 });
-  }
+  } 
 
   try {
     const body = (await request.json()) as { target?: string; texts?: unknown };

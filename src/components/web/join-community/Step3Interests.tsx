@@ -2,12 +2,15 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { Heart, Users, Droplet, Handshake, Sparkles, GraduationCap, Network, AlertCircle, Check, Shield, Loader2, XCircle } from "lucide-react";
-import { useState } from "react";
+import { 
+  Heart, Users, Droplet, Handshake, Sparkles, GraduationCap, 
+  Network, AlertCircle, Check, Shield, Loader2, XCircle, 
+  Upload, Camera, FileText, Image as ImageIcon, X
+} from "lucide-react";
+import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { FaPassport } from "react-icons/fa";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
+import Image from "next/image";
 
 interface Step3InterestsProps {
   onNext: () => void;
@@ -25,81 +28,170 @@ const interestOptions = [
   { id: "startupNetworking", label: "Startup Networking", icon: Network, color: "bg-teal-100 text-teal-700 border-teal-200" },
 ];
 
+// ✅ Document upload component - OPTIONAL
+function DocumentUpload({
+  label,
+  name,
+  accept = "image/*",
+  required = false,
+  onUpload,
+}: {
+  label: string;
+  name: string;
+  accept?: string;
+  required?: boolean;
+  onUpload?: (file: File) => void;
+}) {
+  const { setValue, watch, trigger, formState: { errors, touchedFields } } = useFormContext();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const file = watch(name);
+  const error = errors[name];
+  const touched = touchedFields[name];
+  const showError = (touched || false) && error;
+
+  const handleFileUpload = (file: File) => {
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a valid file (JPEG, PNG, WEBP, PDF)');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size should be less than 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result as string);
+      setValue(name, file, { shouldValidate: true });
+      trigger(name);
+      if (onUpload) onUpload(file);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileUpload(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileUpload(file);
+  };
+
+  const removeFile = () => {
+    setPreview(null);
+    setValue(name, null, { shouldValidate: true });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    trigger(name);
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
+        {label} {required && <span className="text-red-400">*</span>}
+        {!required && <span className="text-[#6B5E5A] text-xs ml-1">(Optional)</span>}
+      </label>
+
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`relative w-full rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden ${
+          preview 
+            ? 'border-green-500 bg-green-50/30'
+            : isDragging
+              ? 'border-[#6B1E5B] bg-[#6B1E5B]/10'
+              : showError
+                ? 'border-red-400 bg-red-50/30'
+                : 'border-[#D4C8C0]/50 bg-white/40 hover:border-[#6B1E5B] hover:bg-white/60'
+        }`}
+      >
+        {preview ? (
+          <div className="relative w-full h-28">
+            <Image src={preview} alt={label} fill className="object-cover rounded-xl" />
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); removeFile(); }}
+              className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded">
+              ✅ Uploaded
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-6 px-4">
+            <div className="w-10 h-10 rounded-full bg-[#6B1E5B]/10 flex items-center justify-center mb-2">
+              <Upload className="w-5 h-5 text-[#6B1E5B]/60" />
+            </div>
+            <p className="text-sm font-medium text-[#2A1636]">Click or drag to upload</p>
+            <p className="text-xs text-[#6B5E5A]/60 mt-0.5">PNG, JPG, WEBP, PDF (Max 5MB)</p>
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept={accept} className="hidden" onChange={handleChange} />
+      </div>
+
+      {showError && (
+        <p className="text-red-400 text-xs mt-1">{error?.message as string}</p>
+      )}
+    </div>
+  );
+}
+
 export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) {
   const { watch, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationError, setVerificationError] = useState<string | null>(null);
   const [hasAadhar, setHasAadhar] = useState<"yes" | "no" | null>(null);
-  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   
   const selectedInterests = watch("interests") || [];
   const aadharNumber = watch("aadharNumber") || "";
   const passportNumber = watch("passportNumber") || "";
-  const mobileNumber = watch("mobileNumber") || "";
-  const email = watch("email") || "";
 
   const shouldShowError = (name: string) => Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
-
-  const checkDuplicate = async (field: string, value: string): Promise<boolean> => {
-    if (!value || value.length === 0) return false;
-    
-    try {
-      const q = query(collection(db, 'users'), where(field, '==', value));
-      const snapshot = await getDocs(q);
-      return !snapshot.empty;
-    } catch (error) {
-      console.error(`Error checking duplicate ${field}:`, error);
-      return false;
-    }
-  };
 
   const toggleInterest = (id: string) => {
     const current = selectedInterests || [];
     const updated = current.includes(id) ? current.filter((i: string) => i !== id) : [...current, id];
     setValue("interests", updated, { shouldValidate: true });
-    setVerificationError(null);
   };
 
   const handleHasAadhar = (value: "yes" | "no") => {
     setHasAadhar(value);
+    // Clear the other field when switching
     if (value === "yes") {
       setValue("passportNumber", "");
+      setValue("passportFile", null);
     } else {
       setValue("aadharNumber", "");
-    }
-    setVerificationError(null);
-    // Clear any existing errors for the other field
-    if (value === "yes") {
-      setValue("passportNumber", "");
-    } else {
-      setValue("aadharNumber", "");
-    }
-  };
-
-  const verifyAadhar = async (aadhar: string): Promise<boolean> => {
-    try {
-      const response = await fetch('/api/aadhar/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aadharno: aadhar }),
-      });
-      
-      const result = await response.json();
-      return result.success;
-    } catch (error) {
-      console.error('Aadhar verification error:', error);
-      return false;
+      setValue("aadharFront", null);
+      setValue("aadharBack", null);
     }
   };
 
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
-    setVerificationError(null);
 
     // ✅ 1. Check if at least 2 interests are selected
     if ((selectedInterests || []).length < 2) {
-      setValue("interests", selectedInterests, { shouldValidate: true });
       toast.error("Please select at least 2 interests");
       return;
     }
@@ -110,77 +202,28 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
       return;
     }
 
-    // ✅ 3. Validate Aadhar or Passport number is not empty
+    // ✅ 3. Validate based on selection
     if (hasAadhar === "yes") {
+      // Validate Aadhar number - MANDATORY
       if (!aadharNumber || aadharNumber.length < 12) {
         toast.error("Please enter a valid 12-digit Aadhar number");
         return;
       }
+      
+      // ✅ Document uploads are OPTIONAL - no validation needed
+      // Just trigger the fields so they get marked as touched
+      trigger("aadharFront");
+      trigger("aadharBack");
+      
     } else {
+      // Validate Passport number - MANDATORY
       if (!passportNumber || passportNumber.length < 6) {
         toast.error("Please enter a valid passport number (6-9 characters)");
         return;
       }
-    }
-
-    // ✅ 4. Check for duplicates
-    setIsCheckingDuplicate(true);
-    try {
-      if (mobileNumber) {
-        const mobileExists = await checkDuplicate('phoneNumber', mobileNumber);
-        if (mobileExists) {
-          toast.error("This mobile number is already registered with another account");
-          setIsCheckingDuplicate(false);
-          return;
-        }
-      }
-
-      if (email) {
-        const emailExists = await checkDuplicate('email', email);
-        if (emailExists) {
-          toast.error("This email is already registered");
-          setIsCheckingDuplicate(false);
-          return;
-        }
-      }
-    } catch (error) {
-      console.error("Duplicate check error:", error);
-    }
-    setIsCheckingDuplicate(false);
-
-    // ✅ 5. Verify Aadhar or validate Passport
-    if (hasAadhar === "yes") {
-      // Check duplicate Aadhar
-      const aadharExists = await checkDuplicate('aadharNumber', aadharNumber);
-      if (aadharExists) {
-        toast.error("This Aadhar number is already registered with another account");
-        return;
-      }
-
-      setIsVerifying(true);
-      try {
-        const verified = await verifyAadhar(aadharNumber);
-        if (!verified) {
-          setVerificationError("Aadhar verification failed. Please check your number.");
-          toast.error("Aadhar verification failed. Please check your number.");
-          return;
-        }
-        toast.success("Aadhar verified successfully!");
-      } catch (error) {
-        setVerificationError("Aadhar verification service unavailable. Please try again.");
-        toast.error("Aadhar verification service unavailable. Please try again.");
-        return;
-      } finally {
-        setIsVerifying(false);
-      }
-    } else {
-      // Check duplicate Passport
-      const passportExists = await checkDuplicate('passportNumber', passportNumber);
-      if (passportExists) {
-        toast.error("This passport number is already registered with another account");
-        return;
-      }
-      toast.success("Passport number validated!");
+      
+      // ✅ Document upload is OPTIONAL - no validation needed
+      trigger("passportFile");
     }
 
     onNext();
@@ -234,7 +277,6 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
                       className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center"
                     >
                       <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
@@ -309,11 +351,10 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
             }`}
           >
             <FaPassport className={`w-5 h-5 ${hasAadhar === "no" ? "text-[#D9772B]" : "text-[#6B5E5A]"}`} />
-            <span className={`font-semibold ${hasAadhar === "no" ? "text-[#D9772B]" : "text-[#2A1636]"}`}>No</span>
+            <span className={`font-semibold ${hasAadhar === "no" ? "text-[#D9772B]" : "text-[#2A1636]"}`}>No (Passport)</span>
           </motion.button>
         </div>
 
-        {/* Error if no selection */}
         {hasAttemptedSubmit && !hasAadhar && (
           <p className="text-red-400 text-sm mt-1 flex items-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5" /> Please select whether you have Aadhar or Passport
@@ -321,17 +362,19 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
         )}
       </div>
 
-      {/* ID Number Input */}
-      <div className="relative">
-        <AnimatePresence mode="wait">
-          {hasAadhar === "yes" ? (
-            <motion.div
-              key="aadhar"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
+      {/* ID Number & Document Upload */}
+      <AnimatePresence mode="wait">
+        {hasAadhar === "yes" ? (
+          <motion.div
+            key="aadhar"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-4"
+          >
+            {/* Aadhar Number - MANDATORY */}
+            <div>
               <label className="block text-sm font-medium text-[#2A1636] mb-2">
                 Aadhar Number <span className="text-red-400">*</span>
               </label>
@@ -344,9 +387,7 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
                   value={aadharNumber}
                   placeholder="Enter 12-digit Aadhar number"
                   className={`w-full px-4 py-3 pl-12 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 ${
-                    verificationError
-                      ? "border-red-400 focus:border-red-400 focus:ring-red-200"
-                      : shouldShowError("aadharNumber")
+                    shouldShowError("aadharNumber")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : aadharNumber.length === 12
                       ? "border-green-400 focus:border-green-400 focus:ring-green-200"
@@ -355,116 +396,56 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, "").slice(0, 12);
                     setValue("aadharNumber", value);
-                    setVerificationError(null);
                     if (hasAttemptedSubmit || touchedFields.aadharNumber) {
                       trigger("aadharNumber");
                     }
                   }}
                 />
-                <AnimatePresence>
-                  {isVerifying && (
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2"
-                    >
-                      <Loader2 className="w-5 h-5 text-[#6B1E5B] animate-spin" />
-                    </motion.div>
-                  )}
-                  {!isVerifying && aadharNumber.length === 12 && !verificationError && !shouldShowError("aadharNumber") && (
-                    <motion.span
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 text-sm font-bold"
-                    >
-                      ✅
-                    </motion.span>
-                  )}
-                  {verificationError && !isVerifying && (
-                    <motion.span
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-red-500 text-sm font-bold"
-                    >
-                      ✕
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                {aadharNumber.length === 12 && !shouldShowError("aadharNumber") && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 text-sm font-bold">✅</span>
+                )}
               </div>
+              {shouldShowError("aadharNumber") && (
+                <p className="text-red-400 text-sm mt-1">{errors.aadharNumber?.message as string}</p>
+              )}
+              {!shouldShowError("aadharNumber") && aadharNumber.length > 0 && aadharNumber.length < 12 && (
+                <p className="text-xs text-amber-600 mt-1">12 digits required</p>
+              )}
+              {hasAttemptedSubmit && !aadharNumber && (
+                <p className="text-red-400 text-sm mt-1">Aadhar number is required</p>
+              )}
+            </div>
 
-              <div className="h-12 mt-2">
-                <AnimatePresence mode="wait">
-                  {verificationError && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="flex items-start gap-1.5 text-red-500 text-sm"
-                    >
-                      <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span>{verificationError}</span>
-                    </motion.div>
-                  )}
-                  {shouldShowError("aadharNumber") && !verificationError && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="flex items-start gap-1.5 text-red-400 text-sm"
-                    >
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span>{errors.aadharNumber?.message as string}</span>
-                    </motion.div>
-                  )}
-                  {/* ✅ Fixed: Show error when Aadhar is required but empty */}
-                  {hasAttemptedSubmit && hasAadhar === "yes" && !aadharNumber && !verificationError && !shouldShowError("aadharNumber") && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="flex items-start gap-1.5 text-red-400 text-sm"
-                    >
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span>Aadhar number is required</span>
-                    </motion.div>
-                  )}
-                  {!verificationError && !shouldShowError("aadharNumber") && aadharNumber.length > 0 && aadharNumber.length < 12 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex items-start gap-1.5"
-                    >
-                      <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-600">
-                        <span className="font-semibold">Important:</span> 12 digits, can't start with 0 or 1. Will be verified.
-                      </p>
-                    </motion.div>
-                  )}
-                  {!verificationError && !shouldShowError("aadharNumber") && aadharNumber.length === 12 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex items-start gap-1.5"
-                    >
-                      <p className="text-xs text-green-600">✅ Aadhar number format is valid. Click Next to verify.</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          ) : hasAadhar === "no" ? (
-            <motion.div
-              key="passport"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
+            {/* Aadhar Front Upload - OPTIONAL */}
+            <DocumentUpload
+              label="Aadhar Front"
+              name="aadharFront"
+              required={false}
+            />
+
+            {/* Aadhar Back Upload - OPTIONAL */}
+            <DocumentUpload
+              label="Aadhar Back"
+              name="aadharBack"
+              required={false}
+            />
+
+            {/* Optional note */}
+            <p className="text-xs text-[#6B5E5A]/60 italic">
+              📎 Uploading Aadhar documents is optional but helps with faster verification.
+            </p>
+          </motion.div>
+        ) : hasAadhar === "no" ? (
+          <motion.div
+            key="passport"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-4"
+          >
+            {/* Passport Number - MANDATORY */}
+            <div>
               <label className="block text-sm font-medium text-[#2A1636] mb-2">
                 Passport Number <span className="text-red-400">*</span>
               </label>
@@ -473,7 +454,7 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
                 <input
                   type="text"
                   value={passportNumber}
-                  placeholder="Enter passport number"
+                  placeholder="Enter passport number (6-9 characters)"
                   className={`w-full px-4 py-3 pl-12 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 uppercase ${
                     shouldShowError("passportNumber")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
@@ -489,77 +470,35 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
                     }
                   }}
                 />
-                <AnimatePresence>
-                  {passportNumber.length >= 6 && !shouldShowError("passportNumber") && (
-                    <motion.span
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 text-sm font-bold"
-                    >
-                      ✅
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                {passportNumber.length >= 6 && !shouldShowError("passportNumber") && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 text-sm font-bold">✅</span>
+                )}
               </div>
+              {shouldShowError("passportNumber") && (
+                <p className="text-red-400 text-sm mt-1">{errors.passportNumber?.message as string}</p>
+              )}
+              {!shouldShowError("passportNumber") && passportNumber.length > 0 && passportNumber.length < 6 && (
+                <p className="text-xs text-amber-600 mt-1">Minimum 6 characters required</p>
+              )}
+              {hasAttemptedSubmit && !passportNumber && (
+                <p className="text-red-400 text-sm mt-1">Passport number is required</p>
+              )}
+            </div>
 
-              <div className="h-12 mt-2">
-                <AnimatePresence mode="wait">
-                  {shouldShowError("passportNumber") ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="flex items-start gap-1.5 text-red-400 text-sm"
-                    >
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span>{errors.passportNumber?.message as string}</span>
-                    </motion.div>
-                  ) : (
-                    <>
-                      {/* ✅ Fixed: Show error when Passport is required but empty */}
-                      {hasAttemptedSubmit && hasAadhar === "no" && !passportNumber && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          className="flex items-start gap-1.5 text-red-400 text-sm"
-                        >
-                          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                          <span>Passport number is required</span>
-                        </motion.div>
-                      )}
-                      {!shouldShowError("passportNumber") && passportNumber.length > 0 && passportNumber.length < 6 && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex items-start gap-1.5"
-                        >
-                          <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-amber-600">
-                            <span className="font-semibold">Note:</span> Passport number should be 6-9 characters.
-                          </p>
-                        </motion.div>
-                      )}
-                      {!shouldShowError("passportNumber") && passportNumber.length >= 6 && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex items-start gap-1.5"
-                        >
-                          <p className="text-xs text-green-600">✅ Passport number format is valid.</p>
-                        </motion.div>
-                      )}
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      </div>
+            {/* Passport Page Upload - OPTIONAL */}
+            <DocumentUpload
+              label="Passport Document (First Page)"
+              name="passportFile"
+              required={false}
+            />
+
+            {/* Optional note */}
+            <p className="text-xs text-[#6B5E5A]/60 italic">
+              📎 Uploading passport document is optional but helps with faster verification.
+            </p>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {/* Navigation Buttons */}
       <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6">
@@ -570,18 +509,10 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
           ← Back
         </button>
         <button 
-          onClick={handleNext} 
-          disabled={isVerifying || isCheckingDuplicate}
-          className="px-6 py-2.5 rounded-xl font-medium transition-all duration-300 cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+          onClick={handleNext}
+          className="px-6 py-2.5 rounded-xl font-medium transition-all duration-300 cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 hover:scale-[1.02] flex items-center gap-2"
         >
-          {isVerifying || isCheckingDuplicate ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              {isCheckingDuplicate ? "Checking..." : "Verifying..."}
-            </>
-          ) : (
-            'Next →'
-          )}
+          Next →
         </button>
       </div>
     </motion.div>

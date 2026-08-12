@@ -1,3 +1,4 @@
+// lib/services/userService.ts
 import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
@@ -36,16 +37,19 @@ export interface UserProfileData {
   occupation?: string;
   organization?: string;
   interests: string[];
+  idType?: 'aadhar' | 'passport';
+  aadharNumber?: string | null;
+  passportNumber?: string | null;
+  documents?: {
+    aadharFront?: string;
+    aadharBack?: string;
+    passportFile?: string;
+    profilePhoto?: string;
+  };
   familyMembers: FamilyMember[];
   hasJoinedCommunity: boolean;
   isVerified: boolean;
   memberId?: string;
-  documents?: {
-    aadharFront?: string;
-    aadharBack?: string;
-    voterId?: string;
-    profilePhoto?: string;
-  };
   createdAt?: string;
   updatedAt?: string;
 }
@@ -82,7 +86,7 @@ export const userService = {
     return { success: false, data: null };
   },
 
-  async uploadDocument(uid: string, file: File, type: 'aadharFront' | 'aadharBack' | 'voterId' | 'profilePhoto') {
+  async uploadDocument(uid: string, file: File, type: 'aadharFront' | 'aadharBack' | 'passportFile' | 'profilePhoto') {
     const path = `users/${uid}/documents/${type}`;
     const storageRef = ref(storage, path);
     await uploadBytes(storageRef, file);

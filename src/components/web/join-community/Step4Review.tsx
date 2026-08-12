@@ -1,10 +1,8 @@
-// components/web/join-community/Step4Review.tsx
-
 "use client";
 
 import { motion } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { CheckCircle, User, MapPin, Heart, Edit2, FileCheck, Loader2, Shield, AlertCircle } from "lucide-react";
+import { CheckCircle, User, MapPin, Heart, Edit2, FileCheck, Loader2, Shield, AlertCircle, FileText, Image } from "lucide-react";
 
 interface Step4ReviewProps {
   onSubmit: () => void;
@@ -46,6 +44,19 @@ function ReviewItem({ label, value }: { label: string; value: string | React.Rea
       <span className="text-[10px] md:text-sm text-[#6B5E5A]">{label}</span>
       <span className="font-medium text-[10px] md:text-sm text-[#2A1636] text-right">{value}</span>
     </div>
+  );
+}
+
+function DocumentStatus({ label, uploaded }: { label: string; uploaded: boolean }) {
+  return (
+    <ReviewItem 
+      label={label} 
+      value={
+        uploaded 
+          ? <span className="text-green-600 flex items-center gap-1">✅ Uploaded</span>
+          : <span className="text-[#6B5E5A]/60 flex items-center gap-1">⏳ Not uploaded</span>
+      } 
+    />
   );
 }
 
@@ -96,7 +107,14 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
   const isCurrentPinValid = formData.currentPinCode && formData.currentPinCode.length === 6;
   const isAadharValid = formData.aadharNumber && formData.aadharNumber.length === 12;
   const isPassportValid = formData.passportNumber && formData.passportNumber.length >= 6;
-  const idType = formData.idType || "aadhar";
+  
+  // ✅ Determine ID Type from form data
+  const idType = formData.idType || (formData.aadharNumber ? "aadhar" : formData.passportNumber ? "passport" : null);
+
+  // ✅ Check document uploads
+  const hasAadharFront = !!(formData.aadharFront instanceof File || formData.aadharFront);
+  const hasAadharBack = !!(formData.aadharBack instanceof File || formData.aadharBack);
+  const hasPassportFile = !!(formData.passportFile instanceof File || formData.passportFile);
 
   const sections = [
     {
@@ -158,15 +176,44 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
       content: (
         <>
           <ReviewItem label="Interests" value={interestsDisplay} />
-          <ReviewItem label="ID Type" value={idType === "aadhar" ? "Aadhar" : "Passport"} />
+          
+          {/* ✅ ID Type */}
           <ReviewItem 
-            label={idType === "aadhar" ? "Aadhar Number" : "Passport Number"} 
-            value={
-              idType === "aadhar"
-                ? (isAadharValid ? `✅ ${formData.aadharNumber}` : <span className="text-red-500 font-medium">⚠️ Invalid</span>)
-                : (isPassportValid ? `✅ ${formData.passportNumber}` : <span className="text-red-500 font-medium">⚠️ Invalid</span>)
-            } 
+            label="ID Type" 
+            value={idType === "aadhar" ? "Aadhar" : idType === "passport" ? "Passport" : "Not selected"} 
           />
+          
+          {/* ✅ ID Number */}
+          {idType === "aadhar" ? (
+            <ReviewItem 
+              label="Aadhar Number" 
+              value={
+                isAadharValid 
+                  ? `✅ ${formData.aadharNumber}` 
+                  : <span className="text-red-500 font-medium">⚠️ Invalid</span>
+              } 
+            />
+          ) : idType === "passport" ? (
+            <ReviewItem 
+              label="Passport Number" 
+              value={
+                isPassportValid 
+                  ? `✅ ${formData.passportNumber}` 
+                  : <span className="text-red-500 font-medium">⚠️ Invalid</span>
+              } 
+            />
+          ) : null}
+
+          {/* ✅ Document Upload Status */}
+          {idType === "aadhar" ? (
+            <>
+              <DocumentStatus label="Aadhar Front" uploaded={hasAadharFront} />
+              <DocumentStatus label="Aadhar Back" uploaded={hasAadharBack} />
+            </>
+          ) : idType === "passport" ? (
+            <DocumentStatus label="Passport Document" uploaded={hasPassportFile} />
+          ) : null}
+
           {(isAadharValid || isPassportValid) && (
             <div className="flex items-center gap-1.5 mt-1 text-[10px] text-amber-600">
               <Shield className="w-3 h-3" /> Will be verified by admin
@@ -177,6 +224,7 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
     }
   ];
 
+  // ✅ Updated validation with document uploads (optional)
   const isValid = formData.photo instanceof File && 
     formData.fullName && 
     formData.dob && 
@@ -197,8 +245,8 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
     formData.nearbyCommunityId &&
     (formData.nearbyCommunityId !== "__cant_find__" || (formData.requestedCommunityName || "").trim().length >= 2) &&
     (formData.interests || []).length >= 2 &&
-    formData.idType &&
-    (formData.idType === "aadhar" ? isAadharValid : isPassportValid);
+    (formData.aadharNumber || formData.passportNumber) &&
+    (formData.aadharNumber ? isAadharValid : isPassportValid);
 
   return (
     <motion.div

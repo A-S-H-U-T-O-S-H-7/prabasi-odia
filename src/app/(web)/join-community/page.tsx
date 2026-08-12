@@ -1,5 +1,3 @@
-// app/(web)/join-community/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -98,6 +96,11 @@ const schema = z.object({
     .optional()
     .refine((val) => !val || (val.length >= 6 && val.length <= 9 && /^[A-Z0-9]+$/.test(val)), 
       "Passport number must be 6-9 characters"),
+  
+  // ✅ Document uploads - optional
+  aadharFront: z.any().optional(),
+  aadharBack: z.any().optional(),
+  passportFile: z.any().optional(),
 
   familyMembers: z.array(z.any()).optional(),
 }).superRefine((data, ctx) => {
@@ -148,7 +151,6 @@ export default function JoinCommunityPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // FIX: Cast the resolver to any to bypass the type issue
   const methods = useForm<FormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
@@ -177,6 +179,9 @@ export default function JoinCommunityPage() {
       idType: "aadhar" as "aadhar" | "passport",
       aadharNumber: "",
       passportNumber: "",
+      aadharFront: undefined,
+      aadharBack: undefined,
+      passportFile: undefined,
       familyMembers: [{ name: "", dob: "", relation: "" }],
     },
     mode: "onChange",
@@ -277,8 +282,23 @@ export default function JoinCommunityPage() {
 
       await userService.createUserProfile(user.uid, profileData);
 
+      // ✅ Upload profile photo
       if (data.photo instanceof File) {
         await userService.uploadDocument(user.uid, data.photo, 'profilePhoto');
+      }
+
+      // ✅ Upload Aadhar documents (if provided)
+      if (data.idType === "aadhar") {
+        if (data.aadharFront instanceof File) {
+          await userService.uploadDocument(user.uid, data.aadharFront, 'aadharFront');
+        }
+        if (data.aadharBack instanceof File) {
+          await userService.uploadDocument(user.uid, data.aadharBack, 'aadharBack');
+        }
+      } else if (data.idType === "passport") {
+        if (data.passportFile instanceof File) {
+          await userService.uploadDocument(user.uid, data.passportFile, 'passportFile');
+        }
       }
 
       if (selectedCommunityId) {

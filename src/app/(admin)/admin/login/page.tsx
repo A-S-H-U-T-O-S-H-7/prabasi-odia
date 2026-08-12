@@ -18,9 +18,7 @@ export default function AdminLoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    console.log("🔍 isAuthenticated:", isAuthenticated);
     if (isAuthenticated) {
-      console.log("✅ Already authenticated, redirecting to dashboard...");
       router.push("/admin/dashboard");
     }
   }, [isAuthenticated, router]);
@@ -34,7 +32,6 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("🔐 Submitting login...");
     
     if (!email || !password) {
       toast.error("Please enter email and password");
@@ -45,11 +42,9 @@ export default function AdminLoginPage() {
     const result = await adminLogin(email, password);
     setIsSubmitting(false);
 
-    console.log("📊 Login result:", result);
 
     if (result.success) {
       toast.success("Welcome back, Admin!");
-      console.log("✅ Login successful, redirecting...");
       router.push("/admin/dashboard");
     } else {
       toast.error(result.error || "Login failed. Please try again.");

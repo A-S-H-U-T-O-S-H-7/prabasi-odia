@@ -28,14 +28,14 @@ export interface UserData {
   photoURL?: string;
   mobileNumber?: string;
   phoneNumber?: string;
-  mobileCountryCode?: string; // ✅ Added
+  mobileCountryCode?: string; 
   age?: number;
   gender?: string;
   bloodGroup?: string;
   dob?: string;
   aadharNumber?: string;
-  passportNumber?: string; // ✅ Added
-  idType?: string; // ✅ Added - 'aadhar' or 'passport'
+  passportNumber?: string; 
+  idType?: string;
   odishaHomeAddress?: string;
   odishaDistrict?: string;
   odishaCity?: string;
@@ -58,7 +58,7 @@ export interface UserData {
   documents?: {
     aadharFront?: string;
     aadharBack?: string;
-    voterId?: string;
+    passportFile?: string;
     profilePhoto?: string;
   };
   hasJoinedCommunity: boolean;
