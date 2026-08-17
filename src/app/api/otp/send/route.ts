@@ -32,7 +32,7 @@ async function sendSms(phone: string, otp: string) {
     message: messageTemplate.replaceAll('{otp}', otp),
     response: 'Y',
     msgtype: 'TXT',
-    dlttempid: process.env.SMSJUST_DLT_TEMPLATE_ID ?? '1007587981248910203',
+    dlttempid: process.env.SMSJUST_DLT_TEMPLATE_ID ?? '1501726520000010953',
   });
 
   const response = await fetch(
