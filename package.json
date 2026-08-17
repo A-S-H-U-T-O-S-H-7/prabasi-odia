@@ -19,6 +19,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "firebase": "^12.16.0",
+    "firebase-admin": "^14.2.0",
     "formik": "^2.4.9",
     "framer-motion": "^12.42.2",
     "html2canvas": "^1.4.1",
