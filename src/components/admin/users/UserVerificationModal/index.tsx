@@ -223,16 +223,15 @@ export default function UserVerificationModal({
 
     try {
       await emailService.sendVerificationEmail({
+        uid: user!.uid,
         name: user!.displayName || "Member",
         email: user!.email || "",
         memberId: finalMemberId,
-        memberSince: new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
+        memberSince: user!.createdAt || new Date().toISOString(),
         communityName: emailCommunityName,
-        memberCardPath: `${process.env.NEXT_PUBLIC_BASE_URL}/profile`,
+        bloodGroup: user!.bloodGroup || "",
+        location: [user!.currentCity, user!.currentState].filter(Boolean).join(", "),
+        photoURL: user!.photoURL || user!.documents?.profilePhoto || "",
       });
       console.log("✅ Verification email sent successfully");
     } catch (emailError) {

@@ -7,12 +7,15 @@ interface WelcomeEmailData {
 }
 
 interface VerificationEmailData {
+  uid: string;
   name: string;
   email: string;
   memberId: string;
   memberSince: string;
   communityName: string;
-  memberCardPath: string;
+  bloodGroup?: string;
+  location?: string;
+  photoURL?: string;
 }
 
 export const emailService = {
@@ -63,13 +66,19 @@ export const emailService = {
           "Content-Type": "application/json",
         },
         data: {
+          uid: data.uid,
           name: data.name,
           email: data.email,
           memberId: data.memberId,
           memberSince: data.memberSince,
           communityName: data.communityName,
-          memberCardPath: data.memberCardPath,
+          bloodGroup: data.bloodGroup,
+          location: data.location,
+          photoURL: data.photoURL,
         },
+        timeout: 90_000,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
       });
 
       if (response.data?.status === true) {

@@ -53,6 +53,8 @@ const schema = z.object({
       return cleanNumber.length >= 4 && cleanNumber.length <= 15;
     }, "Mobile number must be 4-15 digits"),
   occupation: z.string().min(2, "Occupation is required"),
+  mobileVerified: z.boolean().optional(),
+  verifiedMobileNumber: z.string().optional(),
 
   // Address Info
   odishaHomeAddress: z.string().min(5, "Odisha home address is required"),
@@ -158,9 +160,11 @@ export default function JoinCommunityPage() {
       dob: "",
       gender: "",
       bloodGroup: "",
-      mobileCountryCode: "",
+      mobileCountryCode: "+91",
       mobileNumber: "",
       occupation: "",
+      mobileVerified: false,
+      verifiedMobileNumber: "",
       odishaHomeAddress: "",
       odishaDistrict: "",
       odishaCity: "",

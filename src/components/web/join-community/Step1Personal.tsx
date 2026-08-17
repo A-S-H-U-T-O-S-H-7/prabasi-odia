@@ -4,10 +4,11 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { Upload, User, Users, Plus, X, Phone, Calendar, Briefcase, AlertCircle, Check, Globe } from "lucide-react";
+import { Upload, User, Users, Plus, X, Phone, Calendar, Briefcase, AlertCircle, Check, Globe, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-hot-toast";
+import { OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/mobileVerification";
 
 interface FamilyMember {
   id: string;
@@ -110,12 +111,21 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
     return [{ id: `family-0-${Date.now()}`, name: "", dob: "", relation: "" }];
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const isVerifyingRef = useRef(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
   const [ageError, setAgeError] = useState<string | null>(null);
   const [familyAgeErrors, setFamilyAgeErrors] = useState<Record<string, boolean>>({});
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isMobileVerified, setIsMobileVerified] = useState(() => Boolean(getValues("mobileVerified")));
 
   const watchDob = watch("dob");
   const watchMobileNumber = watch("mobileNumber");
@@ -142,6 +152,152 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   useEffect(() => {
     setValue("familyMembers", familyMembers, { shouldDirty: true });
   }, [familyMembers, setValue]);
+
+  const getPhonePayload = () => {
+    const countryCode = String(getValues("mobileCountryCode") || "+91").trim();
+    const mobileNumber = String(getValues("mobileNumber") || "").trim();
+    return `${countryCode}${mobileNumber}`;
+  };
+
+  const resetMobileVerification = () => {
+    setOtpSent(false);
+    setOtpDigits(["", "", "", "", "", ""]);
+    setOtpError(null);
+    setIsMobileVerified(false);
+    setValue("mobileVerified", false, { shouldDirty: true });
+    setValue("verifiedMobileNumber", "", { shouldDirty: true });
+  };
+
+  useEffect(() => {
+    const currentPhone = `${watchMobileCountryCode || ""}${watchMobileNumber || ""}`;
+    const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
+    if (isMobileVerified && verifiedPhone && currentPhone === verifiedPhone) return;
+    if (otpSent || isMobileVerified) {
+      resetMobileVerification();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchMobileNumber, watchMobileCountryCode]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendCooldown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleSendOtp = async () => {
+    const isPhoneValid = await trigger(["mobileNumber", "mobileCountryCode"]);
+    if (!isPhoneValid) {
+      toast.error("Enter a valid mobile number before requesting OTP");
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpError(null);
+
+    try {
+      const response = await fetch("/api/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: getPhonePayload() }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to send OTP");
+      }
+
+      setOtpSent(true);
+      setOtpDigits(["", "", "", "", "", ""]);
+      setResendCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+      toast.success(data.message || "OTP sent successfully");
+      window.setTimeout(() => otpInputRefs.current[0]?.focus(), 50);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to send OTP";
+      setOtpError(message);
+      toast.error(message);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (otpValue?: string) => {
+    const otp = (otpValue ?? otpDigits.join("")).trim();
+    if (!/^\d{6}$/.test(otp) || isVerifyingRef.current) {
+      if (!/^\d{6}$/.test(otp)) setOtpError("Enter the 6-digit OTP");
+      return;
+    }
+
+    isVerifyingRef.current = true;
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+
+    try {
+      const response = await fetch("/api/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: getPhonePayload(), otp }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Invalid OTP");
+      }
+
+      setIsMobileVerified(true);
+      setOtpError(null);
+      setValue("mobileVerified", true, { shouldDirty: true });
+      setValue("verifiedMobileNumber", getPhonePayload(), { shouldDirty: true });
+      toast.success(data.message || "Mobile number verified successfully");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to verify OTP";
+      setIsMobileVerified(false);
+      setOtpError(message);
+      toast.error(message);
+    } finally {
+      isVerifyingRef.current = false;
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleOtpDigitChange = (index: number, value: string) => {
+    if (isMobileVerified) return;
+
+    const digit = value.replace(/\D/g, "").slice(-1);
+    const nextDigits = [...otpDigits];
+    nextDigits[index] = digit;
+    setOtpDigits(nextDigits);
+    setOtpError(null);
+
+    if (digit && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+
+    if (nextDigits.every((item) => item.length === 1)) {
+      void handleVerifyOtp(nextDigits.join(""));
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+
+    event.preventDefault();
+    const nextDigits = ["", "", "", "", "", ""].map((fallback, index) => pasted[index] || fallback);
+    setOtpDigits(nextDigits);
+    otpInputRefs.current[Math.min(pasted.length, 5)]?.focus();
+
+    if (pasted.length === 6) {
+      void handleVerifyOtp(pasted);
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -219,11 +375,19 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
     const fieldsToValidate = ["fullName", "dob", "gender", "bloodGroup", "mobileNumber", "mobileCountryCode", "photo", "occupation"];
     const isValid = await trigger(fieldsToValidate);
 
-    if (isValid) {
-      onNext();
-    } else {
+    if (!isValid) {
       toast.error("Please fill all required fields correctly");
+      return;
     }
+
+    if (!isMobileVerified) {
+      const message = "Please verify your mobile number first";
+      setOtpError(message);
+      toast.error(message);
+      return;
+    }
+
+    onNext();
   };
 
   const shouldShowError = (fieldName: string) => {
@@ -372,8 +536,8 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
       </div>
 
-      {/* Row 2: Gender, Mobile Number with Country Code */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Row 2: Gender, Country Code, Mobile Number + Send OTP */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1.6fr] gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Gender <span className="text-red-400">*</span>
@@ -423,36 +587,136 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Mobile Number <span className="text-red-400">*</span>
           </label>
-          <div className="relative">
-            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-            <input
-              type="tel"
-              value={watchMobileNumber || ""}
-              className={`${inputClass("mobileNumber")} pl-12`}
-              placeholder="Enter mobile number"
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9+\-\s()]/g, '');
-                setValue("mobileNumber", value);
-                if (hasAttemptedSubmit || touchedFields.mobileNumber) {
-                  trigger("mobileNumber");
-                }
-              }}
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+              <input
+                type="tel"
+                value={watchMobileNumber || ""}
+                className={`${inputClass("mobileNumber")} pl-12 ${isMobileVerified ? "border-green-500" : ""}`}
+                placeholder="Enter mobile number"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9+\-\s()]/g, '');
+                  setValue("mobileNumber", value);
+                  if (hasAttemptedSubmit || touchedFields.mobileNumber) {
+                    trigger("mobileNumber");
+                  }
+                }}
+              />
+            </div>
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSendOtp}
+              disabled={isSendingOtp || isMobileVerified || resendCooldown > 0}
+              className={`px-4 py-3 rounded-2xl text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
+                isMobileVerified
+                  ? "bg-green-600 text-white"
+                  : "bg-gradient-to-r from-[#6B1E5B] to-[#8A2E72] text-white shadow-md shadow-[#6B1E5B]/20"
+              }`}
+            >
+              {isSendingOtp ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Sending
+                </span>
+              ) : isMobileVerified ? (
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4" /> Verified
+                </span>
+              ) : otpSent && resendCooldown > 0 ? (
+                `Resend in ${resendCooldown}s`
+              ) : otpSent ? (
+                "Resend OTP"
+              ) : (
+                "Send OTP"
+              )}
+            </motion.button>
           </div>
           <FieldHint>
             {shouldShowError("mobileNumber") ? (
               <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
                 {errors.mobileNumber?.message as string}
               </motion.p>
+            ) : isMobileVerified ? (
+              <motion.div key="verified" className="flex items-center gap-1.5 text-green-600 text-sm">
+                <Check className="w-3.5 h-3.5" /> Mobile number verified
+              </motion.div>
             ) : (
               <motion.div key="hint" className="flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                <p className="text-[10px] text-amber-600">Include country code if outside India</p>
+                <p className="text-[10px] text-amber-600">Use an Indian mobile number to receive OTP</p>
               </motion.div>
             )}
           </FieldHint>
         </div>
       </div>
+
+      <AnimatePresence>
+        {otpSent && !isMobileVerified && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="p-4 rounded-2xl border border-[#D4C8C0]/40 bg-white/60 space-y-3"
+          >
+            <div>
+              <label className="block text-sm font-medium text-[#2A1636] mb-1">
+                Enter 6-digit OTP <span className="text-red-400">*</span>
+              </label>
+              <p className="text-xs text-[#6B5E5A]">OTP has been sent to your mobile number</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {otpDigits.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(element) => {
+                    otpInputRefs.current[index] = element;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete={index === 0 ? "one-time-code" : "off"}
+                  maxLength={1}
+                  value={digit}
+                  onChange={(event) => handleOtpDigitChange(index, event.target.value)}
+                  onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                  onPaste={handleOtpPaste}
+                  className="w-11 h-12 sm:w-12 sm:h-12 text-center text-lg font-semibold rounded-xl border border-[#D4C8C0]/50 bg-white/80 text-[#2A1636] outline-none focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20"
+                />
+              ))}
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleVerifyOtp()}
+                disabled={isVerifyingOtp || otpDigits.join("").length !== 6}
+                className="px-4 py-3 rounded-xl bg-[#6B1E5B] text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isVerifyingOtp ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Verifying
+                  </span>
+                ) : (
+                  "Verify OTP"
+                )}
+              </motion.button>
+            </div>
+            {otpError && (
+              <p className="text-red-400 text-sm flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {otpError}
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {hasAttemptedSubmit && !isMobileVerified && !otpSent && (
+        <p className="text-red-400 text-sm flex items-center gap-1.5">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          Please verify your mobile number first
+        </p>
+      )}
 
       {/* Row 3: Blood Group, Occupation */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
