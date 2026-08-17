@@ -16,6 +16,7 @@ import SuccessPage from "@/components/web/join-community/SuccessPage";
 import { userService, type UserProfileData } from "@/lib/services/userService";
 import { publicCommunityService } from "@/lib/services/publicCommunityService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
+import { isIndianCountryCode } from "@/lib/mobileVerification";
 
 // Calculate age from DOB
 const calculateAge = (dob: string): number => {
@@ -53,8 +54,11 @@ const schema = z.object({
       return cleanNumber.length >= 4 && cleanNumber.length <= 15;
     }, "Mobile number must be 4-15 digits"),
   occupation: z.string().min(2, "Occupation is required"),
+  email: z.string().optional(),
   mobileVerified: z.boolean().optional(),
   verifiedMobileNumber: z.string().optional(),
+  emailVerified: z.boolean().optional(),
+  verifiedEmail: z.string().optional(),
 
   // Address Info
   odishaHomeAddress: z.string().min(5, "Odisha home address is required"),
@@ -163,8 +167,11 @@ export default function JoinCommunityPage() {
       mobileCountryCode: "+91",
       mobileNumber: "",
       occupation: "",
+      email: "",
       mobileVerified: false,
       verifiedMobileNumber: "",
+      emailVerified: false,
+      verifiedEmail: "",
       odishaHomeAddress: "",
       odishaDistrict: "",
       odishaCity: "",
@@ -197,6 +204,12 @@ export default function JoinCommunityPage() {
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    if (user?.email) {
+      methods.setValue("email", user.email);
+    }
+  }, [user, methods]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -220,9 +233,20 @@ export default function JoinCommunityPage() {
       return;
     }
 
+    const data = methods.getValues();
+    if (isIndianCountryCode(data.mobileCountryCode) && !data.mobileVerified) {
+      toast.error("Please verify your mobile number first");
+      setCurrentStep(1);
+      return;
+    }
+    if (!isIndianCountryCode(data.mobileCountryCode) && !data.emailVerified) {
+      toast.error("Please verify the OTP sent to your email first");
+      setCurrentStep(1);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const data = methods.getValues();
 
       const age = calculateAge(data.dob);
       const isCommunityRequest = (data.nearbyCommunityId || "") === CANT_FIND_COMMUNITY;

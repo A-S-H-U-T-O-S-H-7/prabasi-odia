@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useFormContext } from "react-hook-form";
 import { CheckCircle, User, MapPin, Heart, Edit2, FileCheck, Loader2, Shield, AlertCircle, FileText, Image } from "lucide-react";
+import { isIndianCountryCode } from "@/lib/mobileVerification";
 
 interface Step4ReviewProps {
   onSubmit: () => void;
@@ -128,7 +129,16 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
           <ReviewItem label="Age" value={userAge !== null ? `${userAge} years` : "—"} />
           <ReviewItem label="Gender" value={formData.gender || "—"} />
           <ReviewItem label="Blood Group" value={formData.bloodGroup || "—"} />
+          <ReviewItem label="Email" value={formData.email || "—"} />
           <ReviewItem label="Mobile" value={formData.mobileCountryCode && formData.mobileNumber ? `${formData.mobileCountryCode} ${formData.mobileNumber}` : "—"} />
+          <ReviewItem
+            label="Contact verification"
+            value={
+              isIndianCountryCode(formData.mobileCountryCode)
+                ? formData.mobileVerified ? "Mobile OTP verified" : "Pending"
+                : formData.emailVerified ? "Email OTP verified" : "Pending"
+            }
+          />
           <ReviewItem label="Occupation" value={formData.occupation || "—"} />
           {formData.photo && <ReviewItem label="Photo" value="✅ Uploaded" />}
           <ReviewItem label="Family Members" value={familyDisplay} />

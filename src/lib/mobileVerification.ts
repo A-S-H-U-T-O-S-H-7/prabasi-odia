@@ -2,9 +2,24 @@ export const OTP_EXPIRY_MINUTES = 5;
 export const OTP_RESEND_COOLDOWN_SECONDS = 60;
 export const MAX_OTP_RESENDS = 3;
 export const MAX_OTP_ATTEMPTS = 5;
+export const INDIAN_COUNTRY_CODE = '+91';
+
+export type OtpChannel = 'sms' | 'email';
 
 export function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+export function isIndianCountryCode(input: unknown): boolean {
+  if (typeof input !== 'string') return false;
+  return input.trim() === INDIAN_COUNTRY_CODE;
+}
+
+export function normalizeEmail(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const email = input.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return email;
 }
 
 export function normalizeIndianPhone(input: unknown): string | null {

@@ -4,11 +4,13 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { Upload, User, Users, Plus, X, Phone, Calendar, Briefcase, AlertCircle, Check, Globe, Loader2 } from "lucide-react";
+import { Upload, User, Users, Plus, X, Phone, Calendar, Briefcase, AlertCircle, Check, Globe, Loader2, Mail } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import { OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/mobileVerification";
+import { auth } from "@/lib/firebase/config";
+import { isIndianCountryCode, OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/mobileVerification";
+import { useAuthStore } from "@/lib/store";
 
 interface FamilyMember {
   id: string;
@@ -88,6 +90,8 @@ const calculateAge = (dob: string): number => {
 
 export default function Step1Personal({ onNext, onBack, isFirstStep = true }: Step1PersonalProps) {
   const { register, watch, getValues, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
+  const { user } = useAuthStore();
+  const loginEmail = String(user?.email || getValues("email") || "").trim();
 
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => {
     const savedMembers = getValues("familyMembers") as FamilyMember[] | undefined;
@@ -126,11 +130,14 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   const [otpError, setOtpError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isMobileVerified, setIsMobileVerified] = useState(() => Boolean(getValues("mobileVerified")));
+  const [isEmailVerified, setIsEmailVerified] = useState(() => Boolean(getValues("emailVerified")));
 
   const watchDob = watch("dob");
   const watchMobileNumber = watch("mobileNumber");
   const watchMobileCountryCode = watch("mobileCountryCode");
   const watchPhoto = watch("photo");
+  const isIndianNumber = isIndianCountryCode(watchMobileCountryCode);
+  const isContactVerified = isIndianNumber ? isMobileVerified : isEmailVerified;
 
   // Calculate age and validate 18+ when DOB changes
   useEffect(() => {
@@ -159,24 +166,56 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
     return `${countryCode}${mobileNumber}`;
   };
 
-  const resetMobileVerification = () => {
+  const getAuthHeaders = async () => {
+    const token = await auth.currentUser?.getIdToken();
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
+
+  const resetVerification = () => {
     setOtpSent(false);
     setOtpDigits(["", "", "", "", "", ""]);
     setOtpError(null);
     setIsMobileVerified(false);
+    setIsEmailVerified(false);
     setValue("mobileVerified", false, { shouldDirty: true });
     setValue("verifiedMobileNumber", "", { shouldDirty: true });
+    setValue("emailVerified", false, { shouldDirty: true });
+    setValue("verifiedEmail", "", { shouldDirty: true });
   };
+
+  useEffect(() => {
+    if (loginEmail) {
+      setValue("email", loginEmail, { shouldDirty: false });
+    }
+  }, [loginEmail, setValue]);
 
   useEffect(() => {
     const currentPhone = `${watchMobileCountryCode || ""}${watchMobileNumber || ""}`;
     const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
-    if (isMobileVerified && verifiedPhone && currentPhone === verifiedPhone) return;
-    if (otpSent || isMobileVerified) {
-      resetMobileVerification();
+    const verifiedEmail = String(getValues("verifiedEmail") || "");
+
+    if (isIndianNumber) {
+      if (isMobileVerified && verifiedPhone && currentPhone === verifiedPhone) return;
+      if (otpSent || isMobileVerified || isEmailVerified) resetVerification();
+      return;
     }
+
+    if (isEmailVerified && verifiedEmail && verifiedEmail === loginEmail.toLowerCase()) return;
+    if (otpSent || isEmailVerified || isMobileVerified) resetVerification();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchMobileNumber, watchMobileCountryCode]);
+  }, [watchMobileCountryCode, loginEmail]);
+
+  useEffect(() => {
+    if (!isIndianNumber) return;
+    const currentPhone = `${watchMobileCountryCode || ""}${watchMobileNumber || ""}`;
+    const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
+    if (isMobileVerified && verifiedPhone && currentPhone === verifiedPhone) return;
+    if (otpSent || isMobileVerified) resetVerification();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchMobileNumber]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -187,9 +226,14 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   }, [resendCooldown]);
 
   const handleSendOtp = async () => {
-    const isPhoneValid = await trigger(["mobileNumber", "mobileCountryCode"]);
-    if (!isPhoneValid) {
-      toast.error("Enter a valid mobile number before requesting OTP");
+    if (isIndianNumber) {
+      const isPhoneValid = await trigger(["mobileNumber", "mobileCountryCode"]);
+      if (!isPhoneValid) {
+        toast.error("Enter a valid mobile number before requesting OTP");
+        return;
+      }
+    } else if (!loginEmail) {
+      toast.error("No email is linked to your account. Please login with email or Google.");
       return;
     }
 
@@ -197,10 +241,19 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
     setOtpError(null);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/otp/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: getPhonePayload() }),
+        headers,
+        body: JSON.stringify(
+          isIndianNumber
+            ? { channel: "sms", phone: getPhonePayload() }
+            : {
+                channel: "email",
+                email: loginEmail,
+                name: String(getValues("fullName") || user?.displayName || "").trim(),
+              }
+        ),
       });
       const data = await response.json();
 
@@ -211,7 +264,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       setOtpSent(true);
       setOtpDigits(["", "", "", "", "", ""]);
       setResendCooldown(OTP_RESEND_COOLDOWN_SECONDS);
-      toast.success(data.message || "OTP sent successfully");
+      toast.success(data.message || (isIndianNumber ? "OTP sent successfully" : "OTP sent to your email"));
       window.setTimeout(() => otpInputRefs.current[0]?.focus(), 50);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to send OTP";
@@ -234,10 +287,15 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
     setOtpError(null);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/otp/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: getPhonePayload(), otp }),
+        headers,
+        body: JSON.stringify(
+          isIndianNumber
+            ? { channel: "sms", phone: getPhonePayload(), otp }
+            : { channel: "email", email: loginEmail, otp }
+        ),
       });
       const data = await response.json();
 
@@ -245,14 +303,22 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         throw new Error(data.message || "Invalid OTP");
       }
 
-      setIsMobileVerified(true);
+      if (isIndianNumber) {
+        setIsMobileVerified(true);
+        setValue("mobileVerified", true, { shouldDirty: true });
+        setValue("verifiedMobileNumber", getPhonePayload(), { shouldDirty: true });
+        toast.success(data.message || "Mobile number verified successfully");
+      } else {
+        setIsEmailVerified(true);
+        setValue("emailVerified", true, { shouldDirty: true });
+        setValue("verifiedEmail", loginEmail.toLowerCase(), { shouldDirty: true });
+        toast.success(data.message || "Email verified successfully");
+      }
       setOtpError(null);
-      setValue("mobileVerified", true, { shouldDirty: true });
-      setValue("verifiedMobileNumber", getPhonePayload(), { shouldDirty: true });
-      toast.success(data.message || "Mobile number verified successfully");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to verify OTP";
-      setIsMobileVerified(false);
+      if (isIndianNumber) setIsMobileVerified(false);
+      else setIsEmailVerified(false);
       setOtpError(message);
       toast.error(message);
     } finally {
@@ -262,7 +328,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   };
 
   const handleOtpDigitChange = (index: number, value: string) => {
-    if (isMobileVerified) return;
+    if (isContactVerified) return;
 
     const digit = value.replace(/\D/g, "").slice(-1);
     const nextDigits = [...otpDigits];
@@ -380,8 +446,12 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       return;
     }
 
-    if (!isMobileVerified) {
-      const message = "Please verify your mobile number first";
+    if (!isContactVerified) {
+      const message = !isIndianNumber && !loginEmail
+        ? "No email is linked to your account. Please login with email or Google."
+        : isIndianNumber
+          ? "Please verify your mobile number first"
+          : "Please verify the OTP sent to your email first";
       setOtpError(message);
       toast.error(message);
       return;
@@ -536,6 +606,72 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         </div>
       </div>
 
+      {/* Login Email */}
+      <div>
+        <label className="block text-sm font-medium text-[#2A1636] mb-2">
+          Email ID <span className="text-red-400">*</span>
+        </label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+            <input
+              type="email"
+              value={loginEmail}
+              readOnly
+              className={`${inputClass("email")} pl-12 bg-[#F7F3F1]/80 cursor-not-allowed ${isEmailVerified ? "border-green-500" : ""}`}
+              placeholder="Login email"
+            />
+          </div>
+          {!isIndianNumber && (
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSendOtp}
+              disabled={isSendingOtp || isEmailVerified || resendCooldown > 0 || !loginEmail}
+              className={`px-4 py-3 rounded-2xl text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
+                isEmailVerified
+                  ? "bg-green-600 text-white"
+                  : "bg-gradient-to-r from-[#6B1E5B] to-[#8A2E72] text-white shadow-md shadow-[#6B1E5B]/20"
+              }`}
+            >
+              {isSendingOtp ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Sending
+                </span>
+              ) : isEmailVerified ? (
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4" /> Verified
+                </span>
+              ) : otpSent && resendCooldown > 0 ? (
+                `Resend in ${resendCooldown}s`
+              ) : otpSent ? (
+                "Resend OTP"
+              ) : (
+                "Send OTP"
+              )}
+            </motion.button>
+          )}
+        </div>
+        <FieldHint>
+          {!loginEmail ? (
+            <motion.p key="email-missing" className="text-red-400 text-sm">
+              No email is linked to your account. Please login with email or Google.
+            </motion.p>
+          ) : isEmailVerified ? (
+            <motion.div key="email-verified" className="flex items-center gap-1.5 text-green-600 text-sm">
+              <Check className="w-3.5 h-3.5" /> Email verified
+            </motion.div>
+          ) : (
+            <motion.p key="email-hint" className="text-xs text-[#6B5E5A]/70">
+              {isIndianNumber
+                ? "This is the email you logged in with"
+                : "OTP will be sent to this email because your number is outside India"}
+            </motion.p>
+          )}
+        </FieldHint>
+      </div>
+
       {/* Row 2: Gender, Country Code, Mobile Number + Send OTP */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1.6fr] gap-4">
         <div>
@@ -604,34 +740,36 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
                 }}
               />
             </div>
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleSendOtp}
-              disabled={isSendingOtp || isMobileVerified || resendCooldown > 0}
-              className={`px-4 py-3 rounded-2xl text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
-                isMobileVerified
-                  ? "bg-green-600 text-white"
-                  : "bg-gradient-to-r from-[#6B1E5B] to-[#8A2E72] text-white shadow-md shadow-[#6B1E5B]/20"
-              }`}
-            >
-              {isSendingOtp ? (
-                <span className="flex items-center gap-1.5">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Sending
-                </span>
-              ) : isMobileVerified ? (
-                <span className="flex items-center gap-1.5">
-                  <Check className="w-4 h-4" /> Verified
-                </span>
-              ) : otpSent && resendCooldown > 0 ? (
-                `Resend in ${resendCooldown}s`
-              ) : otpSent ? (
-                "Resend OTP"
-              ) : (
-                "Send OTP"
-              )}
-            </motion.button>
+            {isIndianNumber && (
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSendOtp}
+                disabled={isSendingOtp || isMobileVerified || resendCooldown > 0}
+                className={`px-4 py-3 rounded-2xl text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
+                  isMobileVerified
+                    ? "bg-green-600 text-white"
+                    : "bg-gradient-to-r from-[#6B1E5B] to-[#8A2E72] text-white shadow-md shadow-[#6B1E5B]/20"
+                }`}
+              >
+                {isSendingOtp ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Sending
+                  </span>
+                ) : isMobileVerified ? (
+                  <span className="flex items-center gap-1.5">
+                    <Check className="w-4 h-4" /> Verified
+                  </span>
+                ) : otpSent && resendCooldown > 0 ? (
+                  `Resend in ${resendCooldown}s`
+                ) : otpSent ? (
+                  "Resend OTP"
+                ) : (
+                  "Send OTP"
+                )}
+              </motion.button>
+            )}
           </div>
           <FieldHint>
             {shouldShowError("mobileNumber") ? (
@@ -645,7 +783,11 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
             ) : (
               <motion.div key="hint" className="flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                <p className="text-[10px] text-amber-600">Use an Indian mobile number to receive OTP</p>
+                <p className="text-[10px] text-amber-600">
+                  {isIndianNumber
+                    ? "OTP will be sent to this Indian mobile number"
+                    : "Outside India numbers are verified by email OTP"}
+                </p>
               </motion.div>
             )}
           </FieldHint>
@@ -653,7 +795,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       </div>
 
       <AnimatePresence>
-        {otpSent && !isMobileVerified && (
+        {otpSent && !isContactVerified && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -664,7 +806,11 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
               <label className="block text-sm font-medium text-[#2A1636] mb-1">
                 Enter 6-digit OTP <span className="text-red-400">*</span>
               </label>
-              <p className="text-xs text-[#6B5E5A]">OTP has been sent to your mobile number</p>
+              <p className="text-xs text-[#6B5E5A]">
+                {isIndianNumber
+                  ? "OTP has been sent to your mobile number"
+                  : `OTP has been sent to ${loginEmail}`}
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {otpDigits.map((digit, index) => (
@@ -711,10 +857,12 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         )}
       </AnimatePresence>
 
-      {hasAttemptedSubmit && !isMobileVerified && !otpSent && (
+      {hasAttemptedSubmit && !isContactVerified && !otpSent && (
         <p className="text-red-400 text-sm flex items-center gap-1.5">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          Please verify your mobile number first
+          {isIndianNumber
+            ? "Please verify your mobile number first"
+            : "Please verify the OTP sent to your email first"}
         </p>
       )}
 
