@@ -1,19 +1,18 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  User,
   sendPasswordResetEmail,
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase/config';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, authReady, db } from '@/lib/firebase/config';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { emailService } from '@/lib/services/emailService';
+import { useUserStore } from './userStore';
 
 interface AuthState {
   user: any | null;
@@ -67,65 +66,74 @@ const useAuthStore = create<AuthState>()(
     // Initialize auth listener
     initialize: () => {
       set({ loading: true });
-      
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-          // Get user data from Firestore
-          try {
-            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-            const userData = userDoc.exists() ? userDoc.data() : {};
-            
-            const user = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || userData.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              photoURL: firebaseUser.photoURL || userData.photoURL || null,
-              role: userData.role || 'user',
-              hasJoinedCommunity: userData.hasJoinedCommunity || false,
-              memberId: userData.memberId || '',
-              isVerified: userData.isVerified || false,
-              ...userData,
-            };
-            
-            set({
-              user,
-              isAuthenticated: true,
-              isAdmin: user.role === 'admin' || userData.role === 'admin',
-              loading: false,
-              error: null,
-            });
-          } catch (error) {
-            console.error('Error fetching user data:', error);
-            // Still set the user even if Firestore fails
-            set({
-              user: {
+      let cancelled = false;
+      let unsubscribe = () => {};
+
+      void authReady.then(() => {
+        if (cancelled) {
+          return;
+        }
+
+        unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (firebaseUser) {
+            try {
+              const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+              const userData = userDoc.exists() ? userDoc.data() : {};
+
+              const user = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
-                displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-                photoURL: firebaseUser.photoURL,
-                role: 'user',
-                hasJoinedCommunity: false,
-                memberId: '',
-                isVerified: false,
-              },
-              isAuthenticated: true,
+                displayName: firebaseUser.displayName || userData.displayName || firebaseUser.email?.split('@')[0] || 'User',
+                photoURL: firebaseUser.photoURL || userData.photoURL || null,
+                role: userData.role || 'user',
+                hasJoinedCommunity: userData.hasJoinedCommunity || false,
+                memberId: userData.memberId || '',
+                isVerified: userData.isVerified || false,
+                ...userData,
+              };
+
+              set({
+                user,
+                isAuthenticated: true,
+                isAdmin: user.role === 'admin' || userData.role === 'admin',
+                loading: false,
+                error: null,
+              });
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+              set({
+                user: {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+                  photoURL: firebaseUser.photoURL,
+                  role: 'user',
+                  hasJoinedCommunity: false,
+                  memberId: '',
+                  isVerified: false,
+                },
+                isAuthenticated: true,
+                isAdmin: false,
+                loading: false,
+                error: null,
+              });
+            }
+          } else {
+            set({
+              user: null,
+              isAuthenticated: false,
               isAdmin: false,
               loading: false,
               error: null,
             });
           }
-        } else {
-          set({
-            user: null,
-            isAuthenticated: false,
-            isAdmin: false,
-            loading: false,
-            error: null,
-          });
-        }
+        });
       });
 
-      return unsubscribe;
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
     },
 
     // Sign Up
@@ -133,6 +141,7 @@ const useAuthStore = create<AuthState>()(
       set({ loading: true, error: null });
       
       try {
+        await authReady;
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
@@ -197,6 +206,7 @@ const useAuthStore = create<AuthState>()(
       set({ loading: true, error: null });
       
       try {
+        await authReady;
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
@@ -255,7 +265,9 @@ const useAuthStore = create<AuthState>()(
       set({ loading: true, error: null });
       
       try {
+        await authReady;
         const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
         const userCredential = await signInWithPopup(auth, provider);
         const firebaseUser = userCredential.user;
         
@@ -328,6 +340,7 @@ const useAuthStore = create<AuthState>()(
       } catch (error) {
         console.error('Logout error:', error);
       } finally {
+        useUserStore.getState().clearProfile();
         set({
           user: null,
           isAuthenticated: false,

@@ -3,6 +3,7 @@ import 'server-only';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 function getServiceAccount() {
@@ -36,3 +37,4 @@ const adminApp =
   });
 
 export const adminDb = getFirestore(adminApp);
+export const adminAuth = getAuth(adminApp);
