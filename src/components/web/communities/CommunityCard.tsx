@@ -12,6 +12,7 @@ interface CommunityCardProps {
   isMember?: boolean;
   isAuthenticated?: boolean;
   isVerified?: boolean;
+  accessRoute?: string | null;
 }
 
 export default function CommunityCard({
@@ -21,6 +22,7 @@ export default function CommunityCard({
   isMember = false,
   isAuthenticated = false,
   isVerified = false,
+  accessRoute = null,
 }: CommunityCardProps) {
   // Elegant gradient backgrounds
   const gradients = [
@@ -68,7 +70,10 @@ export default function CommunityCard({
         </svg>
       </div>
 
-      <Link href={`/communities/${community.slug}`} className="block relative z-10">
+      <Link
+        href={accessRoute || `/communities/${community.slug}`}
+        className="block relative z-10"
+      >
         {/* Cover Image */}
         <div className="relative w-full h-28 md:h-38 rounded-t-[15px] overflow-hidden">
           {community.coverImage ? (
@@ -125,10 +130,10 @@ export default function CommunityCard({
           )
         ) : (
           <Link
-            href={isAuthenticated ? `/communities/${community.slug}` : "/login"}
+            href={accessRoute || "/signup"}
             className="w-full cursor-pointer px-4 py-2 md:py-2.5 rounded-xl bg-[#D4C8C0] text-white text-xs md:text-sm font-medium text-center block hover:bg-[#C4B8B0] transition-colors"
           >
-            {isAuthenticated ? "Verify to Join" : "Login to Join"}
+            {isAuthenticated ? "Complete profile to join" : "Sign up to Join"}
           </Link>
         )}
       </div>

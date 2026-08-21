@@ -1,4 +1,5 @@
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { adminAuth, adminDb } from '@/lib/firebase/server';
@@ -74,19 +75,21 @@ async function sendEmailOtp(email: string, otp: string, name: string) {
   }
 }
 
-async function resolveEmail(request: NextRequest, fallbackEmail: unknown) {
+async function resolveAuthenticatedUser(request: NextRequest) {
   const authorization = request.headers.get('authorization');
-  if (authorization?.startsWith('Bearer ')) {
-    try {
-      const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
-      const tokenEmail = normalizeEmail(decoded.email);
-      if (tokenEmail) return tokenEmail;
-    } catch (error) {
-      console.error('OTP email auth token error:', error);
-    }
-  }
+  if (!authorization?.startsWith('Bearer ')) return null;
 
-  return normalizeEmail(fallbackEmail);
+  try {
+    const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
+    return { uid: decoded.uid, email: normalizeEmail(decoded.email) };
+  } catch (error) {
+    console.error('OTP authentication error:', error);
+    return null;
+  }
+}
+
+function hashOtp(docId: string, otp: string) {
+  return createHash('sha256').update(`${docId}:${otp}`).digest('hex');
 }
 
 async function persistOtp(collection: string, docId: string, payload: Record<string, unknown>) {
@@ -111,7 +114,7 @@ async function persistOtp(collection: string, docId: string, payload: Record<str
 
     transaction.set(document, {
       ...payload,
-      otp,
+      otpHash: hashOtp(docId, otp),
       status: 'pending',
       attempts: 0,
       resendCount,
@@ -129,9 +132,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const channel: OtpChannel = body.channel === 'email' ? 'email' : 'sms';
+    const authenticatedUser = await resolveAuthenticatedUser(request);
+
+    if (!authenticatedUser) {
+      return NextResponse.json(
+        { success: false, message: 'Please sign in again before requesting an OTP' },
+        { status: 401 }
+      );
+    }
 
     if (channel === 'email') {
-      const email = await resolveEmail(request, body.email);
+      const email = authenticatedUser.email;
       if (!email) {
         return NextResponse.json(
           { success: false, message: 'A valid login email is required to send OTP' },
@@ -144,7 +155,11 @@ export async function POST(request: NextRequest) {
           ? body.name.trim()
           : email.split('@')[0];
 
-      const { document, otp } = await persistOtp('email_verifications', email, { email, channel });
+      const { document, otp } = await persistOtp('email_verifications', email, {
+        email,
+        channel,
+        uid: authenticatedUser.uid,
+      });
 
       try {
         await sendEmailOtp(email, otp, name);
@@ -174,7 +189,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { document, otp } = await persistOtp('mobile_verifications', phone, { phone, channel: 'sms' });
+    const { document, otp } = await persistOtp('mobile_verifications', phone, {
+      phone,
+      channel: 'sms',
+      uid: authenticatedUser.uid,
+    });
 
     try {
       await sendSms(phone, otp);

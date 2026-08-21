@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { MapPin, Users, Loader2, Navigation, ChevronRight } from "lucide-react";
+import { MapPin, Loader2, Navigation, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { mapService, MapMember } from "@/lib/services/mapService";
 import { loadGoogleMapsScript } from "@/lib/utils/googleMapsLoader";
@@ -21,6 +21,7 @@ export default function ProfilePeopleNearby({ profile }: ProfilePeopleNearbyProp
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoWindowsRef = useRef<google.maps.InfoWindow[]>([]);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
   const isInitializedRef = useRef(false);
 
   // Get current user location from the profile prop
@@ -84,9 +85,14 @@ export default function ProfilePeopleNearby({ profile }: ProfilePeopleNearbyProp
     };
   }, []);
 
-  // Initialize map - only once
+  // Initialize map as soon as the script and container are ready.
+  // Do not wait for member fetch — swapping the container later leaves Google Maps blank.
   const initializeMap = useCallback(() => {
-    if (!mapRef.current || isInitializedRef.current || !window.google?.maps) {
+    if (!mapRef.current || isInitializedRef.current || !window.google?.maps?.Map) {
+      return;
+    }
+
+    if (mapRef.current.offsetWidth === 0 || mapRef.current.offsetHeight === 0) {
       return;
     }
 
@@ -107,7 +113,6 @@ export default function ProfilePeopleNearby({ profile }: ProfilePeopleNearbyProp
         zoomControl: true,
       };
 
-      // Safely add zoom control position if available
       if (window.google.maps.ControlPosition) {
         mapOptions.zoomControlOptions = {
           position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
@@ -118,30 +123,40 @@ export default function ProfilePeopleNearby({ profile }: ProfilePeopleNearbyProp
 
       mapInstanceRef.current = map;
       isInitializedRef.current = true;
-      window.google.maps.event.trigger(map, "resize");
+      setIsMapReady(true);
+
+      window.setTimeout(() => {
+        window.google?.maps?.event.trigger(map, "resize");
+        if (currentUserLocation) {
+          map.setCenter(currentUserLocation);
+        }
+      }, 150);
     } catch (error) {
       console.error("Error initializing map:", error);
       setError("Failed to initialize map");
     }
   }, [currentUserLocation]);
 
-  // Initialize map when loaded
   useEffect(() => {
-    if (!isMapLoaded || isLoading) return;
+    if (!isMapLoaded) return;
 
     const frameId = window.requestAnimationFrame(() => {
       initializeMap();
     });
+    const retryId = window.setTimeout(() => {
+      initializeMap();
+    }, 250);
 
     return () => {
       window.cancelAnimationFrame(frameId);
+      window.clearTimeout(retryId);
     };
-  }, [isMapLoaded, isLoading, initializeMap]);
+  }, [isMapLoaded, initializeMap]);
 
   // Add markers
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !isMapLoaded || !window.google?.maps) return;
+    if (!map || !isMapReady || !isMapLoaded || !window.google?.maps) return;
 
     // Clear existing markers
     markersRef.current.forEach((marker) => marker.setMap(null));
@@ -268,7 +283,7 @@ export default function ProfilePeopleNearby({ profile }: ProfilePeopleNearbyProp
       newMarkers.forEach((marker) => marker.setMap(null));
       newInfoWindows.forEach((infoWindow) => infoWindow.close());
     };
-  }, [members, currentUserLocation, isMapLoaded, currentUserName]);
+  }, [members, currentUserLocation, isMapLoaded, isMapReady, currentUserName]);
 
   const handleViewAll = () => {
     router.push("/map");
@@ -319,27 +334,25 @@ export default function ProfilePeopleNearby({ profile }: ProfilePeopleNearbyProp
       </div>
 
       {/* Map Container - Reduced height */}
-      <div 
+      <div
         className="relative overflow-hidden rounded-xl border border-[#D4C8C0]/30 cursor-pointer"
         onClick={handleViewAll}
       >
-        {isLoading || !isMapLoaded ? (
-          <div className="flex items-center justify-center h-[140px] sm:h-[160px] bg-[#F7F1E3]/30">
+        <div ref={mapRef} className="w-full h-[140px] sm:h-[160px]" />
+
+        {(isLoading || !isMapLoaded || !isMapReady) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#F7F1E3]/80">
             <Loader2 className="w-5 h-5 text-[#6B1E5B] animate-spin" />
           </div>
-        ) : (
-          <div ref={mapRef} className="w-full h-[140px] sm:h-[160px]" />
         )}
-        
-        {/* Location badge */}
-        {currentUserLocation && !isLoading && isMapLoaded && (
+
+        {currentUserLocation && isMapReady && (
           <div className="absolute bottom-1.5 left-1.5 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-0.5 text-[9px] text-[#6B5E5A] border border-white/50 shadow-sm flex items-center gap-1">
             <Navigation className="w-2.5 h-2.5 text-green-500" />
             <span>You</span>
           </div>
         )}
 
-        {/* Click overlay hint */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black/5 rounded-xl">
           <span className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs text-[#6B1E5B] font-medium shadow-lg">
             Click to view full map
@@ -348,13 +361,13 @@ export default function ProfilePeopleNearby({ profile }: ProfilePeopleNearbyProp
       </div>
 
       {/* Member count */}
-      {members.length > 0 && !isLoading && isMapLoaded && (
+      {members.length > 0 && isMapReady && (
         <div className="mt-1.5 text-[10px] text-[#6B5E5A]/70 text-center">
           <span className="font-semibold text-[#6B1E5B]">{members.length}</span> verified members nearby
         </div>
       )}
 
-      {members.length === 0 && !isLoading && isMapLoaded && (
+      {members.length === 0 && !isLoading && isMapReady && (
         <div className="mt-1.5 text-[10px] text-[#6B5E5A]/70 text-center">
           No nearby members found
         </div>

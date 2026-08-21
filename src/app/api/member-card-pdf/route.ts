@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
 import { generateMemberCardPDF } from "@/lib/services/memberCardPDF";
+import {
+  formatMemberSince,
+  resolveBloodGroup,
+  resolveLocation,
+  resolveMemberName,
+  resolvePhotoURL,
+} from "@/lib/services/memberCardData";
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,25 +53,21 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://prabasiodia.svsamiti.com";
-
-    const memberSince = data.createdAt
-      ? new Date(data.createdAt).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })
-      : "N/A";
-
-    const location = [data.currentCity, data.currentState].filter(Boolean).join(", ");
+    const memberSince = formatMemberSince(data.createdAt);
+    const location = resolveLocation(data);
+    const name = resolveMemberName(data);
+    const bloodGroup = resolveBloodGroup(data);
+    const photoURL = resolvePhotoURL(data);
 
     const pdfBuffer = await generateMemberCardPDF({
-      name: data.displayName || "Member",
+      name,
       memberId: data.memberId,
       memberSince,
-      bloodGroup: data.bloodGroup || "",
+      bloodGroup,
       location,
+      communityName: data.nearbyCommunityName || data.requestedCommunityName || "",
       isVerified: true,
-      photoURL: data.photoURL || "",
+      photoURL,
       baseUrl,
     });
 
@@ -74,9 +77,9 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         member_id: data.memberId,
-        name: data.displayName || "Member",
+        name,
         email: data.email || "",
-        blood_group: data.bloodGroup || "",
+        blood_group: bloodGroup,
         location,
         member_since: memberSince,
         verification_status: true,

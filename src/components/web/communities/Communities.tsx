@@ -9,6 +9,7 @@ import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCo
 import CommunityHero from "@/components/web/communities/CommunityHero";
 import CommunityFilters from "@/components/web/communities/CommunityFilters";
 import CommunityGrid from "@/components/web/communities/CommunityGrid";
+import { getCommunityAccessRoute } from "@/lib/utils/communityAccess";
 
 export default function CommunitiesPage() {
   const router = useRouter();
@@ -22,7 +23,13 @@ export default function CommunitiesPage() {
   const [cities, setCities] = useState<string[]>([]);
   const [totalMembers, setTotalMembers] = useState(0);
 
-  const isVerified = profile?.isVerified || false;
+  const hasCompletedJoiningForm = user?.hasJoinedCommunity ?? hasJoinedCommunity;
+  const isVerified = user?.isVerified ?? profile?.isVerified ?? false;
+  const accessRoute = getCommunityAccessRoute({
+    isAuthenticated,
+    hasJoinedCommunity: hasCompletedJoiningForm,
+    isVerified,
+  });
 
   useEffect(() => {
     fetchCommunities();
@@ -53,13 +60,8 @@ export default function CommunitiesPage() {
   };
 
   const handleJoin = async (communityId: string) => {
-    if (!isAuthenticated) {
-      toast.error("Please login to join a community");
-      return;
-    }
-    
-    if (!hasJoinedCommunity || !isVerified) {
-      toast.error("Please complete your profile and get verified to join communities");
+    if (accessRoute) {
+      router.push(accessRoute);
       return;
     }
 
@@ -154,7 +156,8 @@ export default function CommunitiesPage() {
             onJoin={handleJoin}
             isMember={isUserMember}
             isAuthenticated={isAuthenticated}
-            isVerified={isVerified && hasJoinedCommunity}
+            isVerified={isVerified && hasCompletedJoiningForm}
+            accessRoute={accessRoute}
           />
         </div>
       </div>

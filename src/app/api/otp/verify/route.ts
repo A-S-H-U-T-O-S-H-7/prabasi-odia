@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase-admin/firestore';
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { adminAuth, adminDb } from '@/lib/firebase/server';
@@ -8,24 +9,27 @@ export const runtime = 'nodejs';
 
 type VerificationResult = 'verified' | 'invalid' | 'expired' | 'not_found' | 'attempt_limit' | 'already_verified';
 
-async function resolveEmail(request: NextRequest, fallbackEmail: unknown) {
+async function resolveAuthenticatedUser(request: NextRequest) {
   const authorization = request.headers.get('authorization');
-  if (authorization?.startsWith('Bearer ')) {
-    try {
-      const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
-      const tokenEmail = normalizeEmail(decoded.email);
-      if (tokenEmail) return tokenEmail;
-    } catch (error) {
-      console.error('OTP email auth token error:', error);
-    }
-  }
+  if (!authorization?.startsWith('Bearer ')) return null;
 
-  return normalizeEmail(fallbackEmail);
+  try {
+    const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
+    return { uid: decoded.uid, email: normalizeEmail(decoded.email) };
+  } catch (error) {
+    console.error('OTP authentication error:', error);
+    return null;
+  }
+}
+
+function hashOtp(docId: string, otp: string) {
+  return createHash('sha256').update(`${docId}:${otp}`).digest('hex');
 }
 
 async function verifyOtpDocument(
   collection: string,
   docId: string,
+  uid: string,
   otp: string
 ): Promise<VerificationResult> {
   const document = adminDb.collection(collection).doc(docId);
@@ -35,6 +39,7 @@ async function verifyOtpDocument(
     if (!snapshot.exists) return 'not_found';
 
     const data = snapshot.data()!;
+    if (data.uid && data.uid !== uid) return 'not_found';
     if (data.status === 'verified') return 'already_verified';
     if (Number(data.attempts ?? 0) >= MAX_OTP_ATTEMPTS) return 'attempt_limit';
 
@@ -44,7 +49,8 @@ async function verifyOtpDocument(
       return 'expired';
     }
 
-    if (data.otp !== otp) {
+    const expectedOtpHash = typeof data.otpHash === 'string' ? data.otpHash : hashOtp(docId, String(data.otp ?? ''));
+    if (expectedOtpHash !== hashOtp(docId, otp)) {
       const attempts = Number(data.attempts ?? 0) + 1;
       transaction.update(document, {
         attempts,
@@ -68,6 +74,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const otp = typeof body.otp === 'string' ? body.otp.trim() : '';
     const channel = body.channel === 'email' || body.email ? 'email' : 'sms';
+    const authenticatedUser = await resolveAuthenticatedUser(request);
+
+    if (!authenticatedUser) {
+      return NextResponse.json(
+        { success: false, message: 'Please sign in again before verifying an OTP' },
+        { status: 401 }
+      );
+    }
 
     if (!/^\d{6}$/.test(otp)) {
       return NextResponse.json(
@@ -77,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (channel === 'email') {
-      const email = await resolveEmail(request, body.email);
+      const email = authenticatedUser.email;
       if (!email) {
         return NextResponse.json(
           { success: false, message: 'A valid login email and 6-digit OTP are required' },
@@ -85,7 +99,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const result = await verifyOtpDocument('email_verifications', email, otp);
+      const result = await verifyOtpDocument('email_verifications', email, authenticatedUser.uid, otp);
 
       if (result === 'verified' || result === 'already_verified') {
         return NextResponse.json({ success: true, channel, message: 'Email verified successfully' });
@@ -113,7 +127,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await verifyOtpDocument('mobile_verifications', phone, otp);
+    const result = await verifyOtpDocument('mobile_verifications', phone, authenticatedUser.uid, otp);
 
     if (result === 'verified' || result === 'already_verified') {
       return NextResponse.json({ success: true, channel: 'sms', message: 'Mobile number verified successfully' });

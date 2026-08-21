@@ -1,4 +1,4 @@
-import { auth } from '@/lib/firebase/config';
+import { auth, authReady } from '@/lib/firebase/config';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { Admin, AdminLoginResponse, AdminVerifyResponse } from '@/types/admin';
 
@@ -13,6 +13,7 @@ function clearStaleAdminStorage() {
 export const adminAuthService = {
   login: async (email: string, password: string): Promise<AdminLoginResponse> => {
     try {
+      await authReady;
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const idToken = await userCredential.user.getIdToken(true);
 
@@ -80,6 +81,7 @@ export const adminAuthService = {
         method: 'DELETE',
         credentials: 'same-origin',
       });
+      await authReady;
       await signOut(auth);
       clearStaleAdminStorage();
       return { success: true };

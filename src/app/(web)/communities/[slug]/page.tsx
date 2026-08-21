@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useUserStore } from "@/lib/store";
+import { getCommunityAccessRoute } from "@/lib/utils/communityAccess";
 import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCommunityService";
 import { publicEventService, PublicEvent } from "@/lib/services/publicEventService";
 import CommunityCover from "@/components/web/community/CommunityCover";
@@ -15,7 +16,8 @@ import { Calendar, Users } from "lucide-react";
 export default function CommunityDetailsPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, loading: authLoading } = useAuthStore();
+  const { profile, hasJoinedCommunity } = useUserStore();
   
   const [community, setCommunity] = useState<PublicCommunity | null>(null);
   const [events, setEvents] = useState<PublicEvent[]>([]);
@@ -25,6 +27,17 @@ export default function CommunityDetailsPage() {
   const [eventsLoading, setEventsLoading] = useState(true);
 
   const communitySlug = params?.slug;
+  const accessRoute = getCommunityAccessRoute({
+    isAuthenticated,
+    hasJoinedCommunity: user?.hasJoinedCommunity ?? hasJoinedCommunity,
+    isVerified: user?.isVerified ?? profile?.isVerified ?? false,
+  });
+
+  useEffect(() => {
+    if (!authLoading && accessRoute) {
+      router.replace(accessRoute);
+    }
+  }, [accessRoute, authLoading, router]);
 
   // Load community and check membership
   const loadCommunity = useCallback(async () => {
@@ -76,8 +89,8 @@ export default function CommunityDetailsPage() {
 
   // Handle Join Community
   const handleJoin = async () => {
-    if (!isAuthenticated) {
-      router.push("/login?redirect=/join-community");
+    if (accessRoute) {
+      router.push(accessRoute);
       return;
     }
 
@@ -126,7 +139,7 @@ export default function CommunityDetailsPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading || accessRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#FFF9F2] via-white to-[#F5EDE6]">
         <div className="text-center">

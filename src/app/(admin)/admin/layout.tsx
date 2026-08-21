@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
+import { buildAdminLoginUrl } from "@/lib/admin/redirect";
 import AdminSidebar from "@/components/admin/layout/AdminSidebar";
 import AdminHeader from "@/components/admin/layout/AdminHeader";
 import { Loader2 } from "lucide-react";
@@ -18,16 +19,21 @@ export default function AdminLayout({
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    if (pathname === '/admin/login') {
+      setIsInitialized(true);
+      return;
+    }
+
     const initAuth = async () => {
       await verifySession();
       setIsInitialized(true);
     };
     initAuth();
-  }, [verifySession]);
+  }, [pathname, verifySession]);
 
   useEffect(() => {
     if (isInitialized && !loading && !isAuthenticated && pathname !== '/admin/login') {
-      router.push('/admin/login');
+      router.push(buildAdminLoginUrl(pathname));
     }
   }, [isInitialized, loading, isAuthenticated, pathname, router]);
 

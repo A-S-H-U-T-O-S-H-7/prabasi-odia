@@ -96,6 +96,12 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     console.error('Admin session create error:', error);
+    if (error instanceof Error && error.message === 'ADMIN_SESSION_SECRET is not configured') {
+      return NextResponse.json(
+        { success: false, error: 'Admin login is not configured. Set ADMIN_SESSION_SECRET on the server.' },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({ success: false, error: 'Login failed' }, { status: 401 });
   }
 }

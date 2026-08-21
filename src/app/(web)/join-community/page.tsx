@@ -16,7 +16,7 @@ import SuccessPage from "@/components/web/join-community/SuccessPage";
 import { userService, type UserProfileData } from "@/lib/services/userService";
 import { publicCommunityService } from "@/lib/services/publicCommunityService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
-import { isIndianCountryCode } from "@/lib/mobileVerification";
+import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
 
 // Calculate age from DOB
 const calculateAge = (dob: string): number => {
@@ -110,7 +110,17 @@ const schema = z.object({
 
   familyMembers: z.array(z.any()).optional(),
 }).superRefine((data, ctx) => {
-  // Validate ID based on type
+  // Validate Indian mobile numbers more strictly for SMS OTP
+  if (isIndianCountryCode(data.mobileCountryCode)) {
+    const phone = `${data.mobileCountryCode || ""}${data.mobileNumber || ""}`;
+    if (!normalizeIndianPhone(phone)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter a valid 10-digit Indian mobile number",
+        path: ["mobileNumber"],
+      });
+    }
+  }
   if (data.idType === "aadhar") {
     if (!data.aadharNumber || data.aadharNumber.length !== 12) {
       ctx.addIssue({

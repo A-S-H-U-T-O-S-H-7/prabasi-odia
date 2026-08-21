@@ -36,7 +36,10 @@ export interface UserProfile {
   currentCity?: string;
   currentAddress?: string;
   currentState?: string;
+  currentCountry?: string;
   currentPinCode?: string;
+  currentLatitude?: number | null;
+  currentLongitude?: number | null;
   latitude?: number;
   longitude?: number;
   
@@ -107,9 +110,12 @@ export const useUserStore = create<UserState>()(
               currentCity: data.currentCity || '',
               currentAddress: data.currentAddress || '',
               currentState: data.currentState || '',
+              currentCountry: data.currentCountry || '',
               currentPinCode: data.currentPinCode || '',
-              latitude: data.latitude || undefined,
-              longitude: data.longitude || undefined,
+              currentLatitude: data.currentLatitude ?? data.latitude ?? null,
+              currentLongitude: data.currentLongitude ?? data.longitude ?? null,
+              latitude: data.currentLatitude ?? data.latitude ?? undefined,
+              longitude: data.currentLongitude ?? data.longitude ?? undefined,
               occupation: data.occupation || '',
               organization: data.organization || '',
               interests: data.interests || [],

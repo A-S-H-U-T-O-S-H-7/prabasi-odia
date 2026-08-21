@@ -6,10 +6,19 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Users, ArrowRight } from "lucide-react";
 import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCommunityService";
+import { useAuthStore, useUserStore } from "@/lib/store";
+import { getCommunityAccessRoute } from "@/lib/utils/communityAccess";
 
 export default function CommunitiesPreview() {
+  const { user, isAuthenticated } = useAuthStore();
+  const { profile, hasJoinedCommunity } = useUserStore();
   const [communities, setCommunities] = useState<PublicCommunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const accessRoute = getCommunityAccessRoute({
+    isAuthenticated,
+    hasJoinedCommunity: user?.hasJoinedCommunity ?? hasJoinedCommunity,
+    isVerified: user?.isVerified ?? profile?.isVerified ?? false,
+  });
 
   useEffect(() => {
     fetchCommunities();
@@ -87,7 +96,7 @@ export default function CommunitiesPreview() {
               viewport={{ once: true }}
               className="group"
             >
-              <Link href={`/communities/${community.slug}`} className="block">
+              <Link href={accessRoute || `/communities/${community.slug}`} className="block">
                 {/* Image */}
                 <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-[#F0EAE6] shadow-sm group-hover:shadow-md transition-shadow duration-300">
                   {community.coverImage ? (

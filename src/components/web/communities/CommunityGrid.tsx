@@ -12,6 +12,7 @@ interface CommunityGridProps {
   isMember?: (id: string) => boolean;
   isAuthenticated?: boolean;
   isVerified?: boolean;
+  accessRoute?: string | null;
 }
 
 export default function CommunityGrid({
@@ -21,6 +22,7 @@ export default function CommunityGrid({
   isMember,
   isAuthenticated = false,
   isVerified = false,
+  accessRoute = null,
 }: CommunityGridProps) {
   if (loading) {
     return (
@@ -67,6 +69,7 @@ export default function CommunityGrid({
           isMember={isMember?.(community.id)}
           isAuthenticated={isAuthenticated}
           isVerified={isVerified}
+          accessRoute={accessRoute}
         />
       ))}
     </div>

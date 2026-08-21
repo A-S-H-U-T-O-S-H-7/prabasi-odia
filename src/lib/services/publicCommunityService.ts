@@ -135,6 +135,19 @@ export const publicCommunityService = {
 
   async joinCommunity(communityId: string, userId: string) {
     try {
+      if (!userId) {
+        return { success: false, error: 'Please sign up to join a community' };
+      }
+
+      const userSnap = await getDoc(doc(db, 'users', userId));
+      const userData = userSnap.exists() ? userSnap.data() : null;
+      if (!userData?.hasJoinedCommunity) {
+        return { success: false, error: 'Please complete the community joining form first' };
+      }
+      if (!userData.isVerified) {
+        return { success: false, error: 'Your profile must be verified before joining a community' };
+      }
+
       const docRef = doc(db, 'communities', communityId);
       const docSnap = await getDoc(docRef);
       

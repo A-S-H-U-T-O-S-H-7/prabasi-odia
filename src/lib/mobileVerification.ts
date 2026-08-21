@@ -7,7 +7,8 @@ export const INDIAN_COUNTRY_CODE = '+91';
 export type OtpChannel = 'sms' | 'email';
 
 export function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  const randomValue = crypto.getRandomValues(new Uint32Array(1))[0];
+  return String(100000 + (randomValue % 900000));
 }
 
 export function isIndianCountryCode(input: unknown): boolean {
