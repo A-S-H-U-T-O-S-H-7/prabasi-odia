@@ -1,3 +1,4 @@
+// app/api/otp/send/route.ts
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
@@ -6,17 +7,12 @@ import { adminAuth, adminDb } from '@/lib/firebase/server';
 import {
   generateOtp,
   MAX_OTP_RESENDS,
-  normalizeEmail,
   normalizeIndianPhone,
   OTP_EXPIRY_MINUTES,
   OTP_RESEND_COOLDOWN_SECONDS,
-  type OtpChannel,
 } from '@/lib/mobileVerification';
 
 export const runtime = 'nodejs';
-
-const OTP_EMAIL_ENDPOINT =
-  process.env.OTP_EMAIL_ENDPOINT || 'https://svsamiti.com/prabasiodia/otp.php';
 
 async function sendSms(phone: string, otp: string) {
   const username = process.env.SMSJUST_USERNAME;
@@ -52,38 +48,19 @@ async function sendSms(phone: string, otp: string) {
   }
 }
 
-async function sendEmailOtp(email: string, otp: string, name: string) {
-  const formData = new FormData();
-  formData.append('name', name);
-  formData.append('email', email);
-  formData.append('otp', otp);
-
-  const response = await fetch(OTP_EMAIL_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      Accept: '*/*',
-      'User-Agent': 'Prabasi-Odia/1.0',
-    },
-    body: formData,
-    cache: 'no-store',
-    signal: AbortSignal.timeout(15_000),
-  });
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok || data?.status !== true) {
-    throw new Error(data?.message || `OTP email endpoint rejected the request (${response.status})`);
-  }
-}
-
 async function resolveAuthenticatedUser(request: NextRequest) {
   const authorization = request.headers.get('authorization');
-  if (!authorization?.startsWith('Bearer ')) return null;
+  
+  if (!authorization?.startsWith('Bearer ')) {
+    return null;
+  }
 
   try {
-    const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
-    return { uid: decoded.uid, email: normalizeEmail(decoded.email) };
+    const token = authorization.slice(7);
+    const decoded = await adminAuth.verifyIdToken(token);
+    return { uid: decoded.uid };
   } catch (error) {
-    console.error('OTP authentication error:', error);
+    console.error('❌ OTP authentication error:', error);
     return null;
   }
 }
@@ -130,8 +107,9 @@ async function persistOtp(collection: string, docId: string, payload: Record<str
 
 export async function POST(request: NextRequest) {
   try {
+    
     const body = await request.json();
-    const channel: OtpChannel = body.channel === 'email' ? 'email' : 'sms';
+    
     const authenticatedUser = await resolveAuthenticatedUser(request);
 
     if (!authenticatedUser) {
@@ -141,47 +119,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (channel === 'email') {
-      const email = authenticatedUser.email;
-      if (!email) {
-        return NextResponse.json(
-          { success: false, message: 'A valid login email is required to send OTP' },
-          { status: 400 }
-        );
-      }
-
-      const name =
-        typeof body.name === 'string' && body.name.trim()
-          ? body.name.trim()
-          : email.split('@')[0];
-
-      const { document, otp } = await persistOtp('email_verifications', email, {
-        email,
-        channel,
-        uid: authenticatedUser.uid,
-      });
-
-      try {
-        await sendEmailOtp(email, otp, name);
-      } catch (error) {
-        await document.update({ status: 'delivery_failed', updatedAt: FieldValue.serverTimestamp() });
-        console.error('OTP email delivery failed:', error instanceof Error ? error.message : error);
-        return NextResponse.json(
-          { success: false, message: 'Unable to send OTP to email. Please try again.' },
-          { status: 502 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        channel,
-        message: 'OTP sent to your email',
-        expiresIn: OTP_EXPIRY_MINUTES * 60,
-      });
-    }
-
+    // ✅ SMS only - validate phone number
     const phone = normalizeIndianPhone(body.phone);
-
+    
     if (!phone) {
       return NextResponse.json(
         { success: false, message: 'A valid Indian mobile number is required' },
@@ -195,11 +135,12 @@ export async function POST(request: NextRequest) {
       uid: authenticatedUser.uid,
     });
 
+
     try {
       await sendSms(phone, otp);
     } catch (error) {
       await document.update({ status: 'delivery_failed', updatedAt: FieldValue.serverTimestamp() });
-      console.error('OTP SMS delivery failed:', error instanceof Error ? error.message : error);
+      console.error('❌ OTP SMS delivery failed:', error instanceof Error ? error.message : error);
       return NextResponse.json(
         { success: false, message: 'Unable to send OTP. Please try again.' },
         { status: 502 }
@@ -213,6 +154,8 @@ export async function POST(request: NextRequest) {
       expiresIn: OTP_EXPIRY_MINUTES * 60,
     });
   } catch (error) {
+    console.error('❌ Create OTP error:', error);
+    
     if (error instanceof SyntaxError) {
       return NextResponse.json({ success: false, message: 'Invalid JSON body' }, { status: 400 });
     }
@@ -229,9 +172,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('Create OTP error:', error);
     return NextResponse.json(
-      { success: false, message: 'Unable to create OTP' },
+      { success: false, message: error instanceof Error ? error.message : 'Unable to create OTP' },
       { status: 500 }
     );
   }

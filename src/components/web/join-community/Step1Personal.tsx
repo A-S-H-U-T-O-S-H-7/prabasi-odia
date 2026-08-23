@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useAuthStore } from "@/lib/store";
-import { isIndianCountryCode } from "@/lib/mobileVerification";
+import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
 
 import ProfilePhotoUpload from "./step1/ProfilePhotoUpload";
 import PersonalDetails from "./step1/PersonalDetails";
@@ -107,12 +107,31 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
 
     const countryCode = String(getValues("mobileCountryCode") || "");
     const indianNumber = isIndianCountryCode(countryCode);
-    const contactVerified = indianNumber
-      ? Boolean(getValues("mobileVerified")) &&
-        String(getValues("verifiedMobileNumber") || "") ===
-          `${countryCode}${String(getValues("mobileNumber") || "").trim()}`
-      : Boolean(getValues("emailVerified")) &&
+    
+    let contactVerified = false;
+
+    if (indianNumber) {
+      // ✅ FIX: Normalize both numbers for comparison
+      const currentPhone = `${countryCode}${String(getValues("mobileNumber") || "").trim()}`;
+      const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
+      const normalizedCurrent = normalizeIndianPhone(currentPhone);
+      const normalizedVerified = normalizeIndianPhone(verifiedPhone);
+      
+      // Debug logs
+      console.log("🔍 Mobile Verification Check:");
+      console.log("  currentPhone:", currentPhone);
+      console.log("  verifiedPhone:", verifiedPhone);
+      console.log("  normalizedCurrent:", normalizedCurrent);
+      console.log("  normalizedVerified:", normalizedVerified);
+      console.log("  mobileVerified:", getValues("mobileVerified"));
+      
+      contactVerified = Boolean(getValues("mobileVerified")) && 
+                       normalizedCurrent === normalizedVerified &&
+                       normalizedCurrent !== null;
+    } else {
+      contactVerified = Boolean(getValues("emailVerified")) &&
         String(getValues("verifiedEmail") || "").toLowerCase() === loginEmail.toLowerCase();
+    }
 
     if (!contactVerified) {
       const message = !indianNumber && !loginEmail

@@ -55,111 +55,160 @@ export default function PrivacyPolicyPage() {
             Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
 
-          <div className="space-y-6 text-[#2A1636]">
+          <div className="space-y-8 text-[#2A1636]">
+            {/* Section 1: Introduction */}
             <section>
               <h2 className="text-xl font-bold text-[#2A1636] mb-3">1. Introduction</h2>
               <p className="text-[#6B5E5A] leading-relaxed">
-                At Prabasi Odia, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our platform. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the platform.
+                Prabasi Odia ("we," "us," "our," or the "Community") is committed to protecting the privacy of our members, event attendees, and website visitors. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website, register as a member, attend our events, or otherwise interact with us.
+              </p>
+              <p className="text-[#6B5E5A] leading-relaxed mt-3">
+                By using our website or participating in our community activities, you agree to the terms of this privacy policy.
               </p>
             </section>
 
+            {/* Section 2: Information We Collect */}
             <section>
               <h2 className="text-xl font-bold text-[#2A1636] mb-3">2. Information We Collect</h2>
               <p className="text-[#6B5E5A] leading-relaxed mb-3">
-                We collect information that you provide directly to us, including:
+                We may collect the following categories of personal information:
               </p>
               <ul className="list-disc list-inside text-[#6B5E5A] leading-relaxed space-y-2 ml-4">
-                <li>Name, email address, phone number, and profile information</li>
-                <li>Address details (Odisha home address and current address)</li>
-                <li>Government ID documents (Aadhar, Voter ID) for verification purposes</li>
-                <li>Family member information</li>
-                <li>Interests and preferences</li>
-                <li>Community and event participation data</li>
+                <li><strong>Contact Information:</strong> Name, email address, and phone number</li>
+                <li><strong>Address/Location Information:</strong> Home address, city, or location details (e.g., for member directories, event logistics, or regional chapter organization)</li>
+                <li><strong>Photos and Social Content:</strong> Photographs, videos, or other media submitted by members or captured during community events, gatherings, or celebrations, which may be shared on our website, social media pages, or newsletters</li>
+              </ul>
+              <p className="text-[#6B5E5A] leading-relaxed mt-3">
+                We may collect this information when you:
+              </p>
+              <ul className="list-disc list-inside text-[#6B5E5A] leading-relaxed space-y-2 ml-4 mt-2">
+                <li>Register as a member of Prabasi Odia</li>
+                <li>Sign up for or attend an event</li>
+                <li>Contact us via forms, email, or phone</li>
+                <li>Submit photos or content for community publications</li>
+                <li>Subscribe to updates or newsletters</li>
               </ul>
             </section>
 
+            {/* Section 3: How We Use Your Information */}
             <section>
               <h2 className="text-xl font-bold text-[#2A1636] mb-3">3. How We Use Your Information</h2>
               <p className="text-[#6B5E5A] leading-relaxed mb-3">We use the information we collect to:</p>
               <ul className="list-disc list-inside text-[#6B5E5A] leading-relaxed space-y-2 ml-4">
-                <li>Create and manage your account and profile</li>
-                <li>Verify your identity for community membership</li>
-                <li>Connect you with other Odias in your community</li>
-                <li>Organize and manage events and gatherings</li>
-                <li>Send you updates about community activities</li>
-                <li>Improve our platform and services</li>
+                <li>Maintain a member directory and facilitate communication within the community</li>
+                <li>Organize and coordinate events, gatherings, and cultural activities</li>
+                <li>Send updates, newsletters, and event invitations</li>
+                <li>Share event photos and highlights on our website or social media to celebrate community activities</li>
+                <li>Respond to inquiries and provide support</li>
+                <li>Improve our website and services</li>
               </ul>
             </section>
 
+            {/* Section 4: Sharing of Information */}
             <section>
-              <h2 className="text-xl font-bold text-[#2A1636] mb-3">4. Information Sharing</h2>
-              <p className="text-[#6B5E5A] leading-relaxed">
-                We do not sell, trade, or rent your personal information to third parties. We may share your information with:
+              <h2 className="text-xl font-bold text-[#2A1636] mb-3">4. Sharing of Information</h2>
+              <p className="text-[#6B5E5A] leading-relaxed mb-3">
+                We don't sell or rent your personal information to third parties. We may share your information in the following circumstances:
               </p>
-              <ul className="list-disc list-inside text-[#6B5E5A] leading-relaxed space-y-2 ml-4 mt-2">
-                <li>Other verified members of your community (with your consent)</li>
-                <li>Service providers who assist us in operating our platform</li>
-                <li>Law enforcement when required by law</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-bold text-[#2A1636] mb-3">5. Data Security</h2>
-              <p className="text-[#6B5E5A] leading-relaxed">
-                We implement appropriate technical and organizational measures to protect your personal information. Your documents are encrypted and stored securely, accessible only to authorized administrators for verification purposes.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-bold text-[#2A1636] mb-3">6. Your Rights</h2>
-              <p className="text-[#6B5E5A] leading-relaxed mb-3">You have the right to:</p>
               <ul className="list-disc list-inside text-[#6B5E5A] leading-relaxed space-y-2 ml-4">
-                <li>Access and update your personal information</li>
-                <li>Request deletion of your account and data</li>
-                <li>Withdraw consent for data processing</li>
-                <li>Opt-out of marketing communications</li>
+                <li><strong>Within the Community:</strong> Contact details may be shared with fellow members for directory purposes, unless you opt out</li>
+                <li><strong>Public Content:</strong> Photos and event content may be published on our public website, social media pages, or community newsletters</li>
+                <li><strong>Service Providers:</strong> With trusted third parties who help us operate the website or manage events (e.g., hosting providers), under confidentiality obligations</li>
+                <li><strong>Legal Requirements:</strong> If required by law or to protect the rights, safety, or property of Prabasi Odia or its members</li>
               </ul>
             </section>
 
+            {/* Section 5: Photos and Media */}
             <section>
-              <h2 className="text-xl font-bold text-[#2A1636] mb-3">7. Cookies</h2>
+              <h2 className="text-xl font-bold text-[#2A1636] mb-3">5. Photos and Media</h2>
               <p className="text-[#6B5E5A] leading-relaxed">
-                We use cookies to enhance your experience on our platform. You can control cookie preferences through your browser settings. For more details, please see our <a href="/cookies" className="text-[#6B1E5B] hover:underline">Cookie Policy</a>.
+                By attending Prabasi Odia events or submitting photos/videos, you consent to their potential use on our website, social media, and promotional materials. If you don't wish to have your image or your child's image published, please notify us in writing, and we'll make reasonable efforts to accommodate your request for future publications.
               </p>
             </section>
 
+            {/* Section 6: Your Choices and Rights */}
             <section>
-              <h2 className="text-xl font-bold text-[#2A1636] mb-3">8. Contact Us</h2>
-              <p className="text-[#6B5E5A] leading-relaxed">
-                If you have any questions about this Privacy Policy, please contact us:
+              <h2 className="text-xl font-bold text-[#2A1636] mb-3">6. Your Choices and Rights</h2>
+              <p className="text-[#6B5E5A] leading-relaxed mb-3">You may:</p>
+              <ul className="list-disc list-inside text-[#6B5E5A] leading-relaxed space-y-2 ml-4">
+                <li>Request access to the personal information we hold about you</li>
+                <li>Request correction or updating of your information</li>
+                <li>Request deletion of your information from our records (subject to legal or administrative retention needs)</li>
+                <li>Opt out of having your contact details listed in the member directory</li>
+                <li>Unsubscribe from newsletters or communications at any time</li>
+              </ul>
+              <p className="text-[#6B5E5A] leading-relaxed mt-3">
+                To exercise these rights, please contact us using the details in Section 9.
               </p>
-              <div className="mt-3 space-y-2 text-[#6B5E5A]">
+            </section>
+
+            {/* Section 7: Data Security */}
+            <section>
+              <h2 className="text-xl font-bold text-[#2A1636] mb-3">7. Data Security</h2>
+              <p className="text-[#6B5E5A] leading-relaxed">
+                We take reasonable technical and organizational measures to protect your personal information from unauthorized access, loss, misuse, or alteration. However, no method of transmission or storage is completely secure, and we can't guarantee absolute security.
+              </p>
+            </section>
+
+            {/* Section 8: Data Retention */}
+            <section>
+              <h2 className="text-xl font-bold text-[#2A1636] mb-3">8. Data Retention</h2>
+              <p className="text-[#6B5E5A] leading-relaxed">
+                We retain personal information for as long as necessary to fulfill the purposes outlined in this policy, such as maintaining membership records and community history, unless a longer retention period is required by law or you request earlier deletion.
+              </p>
+            </section>
+
+            {/* Section 9: Contact Us */}
+            <section>
+              <h2 className="text-xl font-bold text-[#2A1636] mb-3">9. Contact Us</h2>
+              <p className="text-[#6B5E5A] leading-relaxed">
+                If you have questions, concerns, or requests regarding this Privacy Policy or your personal information, please contact us at:
+              </p>
+              <div className="mt-4 space-y-3 text-[#6B5E5A]">
+                <p className="text-sm font-medium text-[#2A1636]">Prabasi Odia</p>
                 {contactInfo?.contact?.contactEmail && (
-                  <p className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-[#6B1E5B]" />
+                  <p className="flex items-center gap-3">
+                    <Mail className="w-4 h-4 text-[#6B1E5B] flex-shrink-0" />
                     <a href={`mailto:${contactInfo.contact.contactEmail}`} className="hover:text-[#6B1E5B] transition-colors">
                       {contactInfo.contact.contactEmail}
                     </a>
                   </p>
                 )}
                 {contactInfo?.contact?.phone1 && (
-                  <p className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-[#6B1E5B]" />
+                  <p className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-[#6B1E5B] flex-shrink-0" />
                     <a href={`tel:${contactInfo.contact.phone1.replace(/\s/g, '')}`} className="hover:text-[#6B1E5B] transition-colors">
                       {contactInfo.contact.phone1}
                     </a>
                   </p>
                 )}
                 {contactInfo?.contact?.address && (
-                  <p className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#6B1E5B]" />
+                  <p className="flex items-center gap-3">
+                    <MapPin className="w-4 h-4 text-[#6B1E5B] flex-shrink-0" />
                     <span>{contactInfo.contact.address}</span>
+                  </p>
+                )}
+                {contactInfo?.contact?.website && (
+                  <p className="flex items-center gap-3">
+                    <span className="w-4 h-4 flex-shrink-0" />
+                    <a href={contactInfo.contact.website} target="_blank" rel="noopener noreferrer" className="hover:text-[#6B1E5B] transition-colors">
+                      {contactInfo.contact.website}
+                    </a>
                   </p>
                 )}
               </div>
             </section>
 
-            <div className="pt-4 border-t border-[#E7D7E8] text-xs text-[#6B5E5A]/60">
+            {/* Section 10: Changes to This Policy */}
+            <section>
+              <h2 className="text-xl font-bold text-[#2A1636] mb-3">10. Changes to This Policy</h2>
+              <p className="text-[#6B5E5A] leading-relaxed">
+                We may update this Privacy Policy from time to time to reflect changes in our practices or for legal reasons. We'll post the revised policy on this page with an updated effective date. We encourage you to review this policy periodically.
+              </p>
+            </section>
+
+            {/* Footer */}
+            <div className="pt-6 border-t border-[#E7D7E8] text-xs text-[#6B5E5A]/60">
               <p>&copy; {currentYear} Prabasi Odia. All rights reserved.</p>
             </div>
           </div>

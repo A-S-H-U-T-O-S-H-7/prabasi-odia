@@ -76,8 +76,10 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isMobileVerified, setIsMobileVerified] = useState(() => Boolean(getValues("mobileVerified")));
   const [isEmailVerified, setIsEmailVerified] = useState(() => Boolean(getValues("emailVerified")));
+  const [showVerificationWarning, setShowVerificationWarning] = useState(false);
   const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const isVerifyingRef = useRef(false);
+  const isResettingRef = useRef(false);
 
   const watchMobileNumber = watch("mobileNumber");
   const watchMobileCountryCode = watch("mobileCountryCode");
@@ -86,24 +88,58 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 
   // Reset verification when mobile number changes
   useEffect(() => {
+    if (isResettingRef.current) return;
+    
     if (!isIndianNumber) return;
+    
     const currentPhone = `${watchMobileCountryCode || ""}${watchMobileNumber || ""}`;
     const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
-    if (isMobileVerified && verifiedPhone && currentPhone === verifiedPhone) return;
-    if (otpSent || isMobileVerified) resetVerification();
-  }, [watchMobileNumber]);
+    
+    if (isMobileVerified && verifiedPhone) {
+      const normalizedCurrent = normalizeIndianPhone(currentPhone);
+      const normalizedVerified = normalizeIndianPhone(verifiedPhone);
+      
+      if (normalizedCurrent !== normalizedVerified) {
+        isResettingRef.current = true;
+        resetVerification();
+        setTimeout(() => {
+          isResettingRef.current = false;
+        }, 100);
+      }
+    }
+  }, [watchMobileNumber, watchMobileCountryCode]);
 
   // Reset verification when country code changes
   useEffect(() => {
+    if (isResettingRef.current) return;
+    
     if (isIndianNumber) {
       const currentPhone = `${watchMobileCountryCode || ""}${watchMobileNumber || ""}`;
       const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
-      if (isMobileVerified && verifiedPhone && currentPhone === verifiedPhone) return;
-      if (otpSent || isMobileVerified || isEmailVerified) resetVerification();
+      
+      if (isMobileVerified && verifiedPhone) {
+        const normalizedCurrent = normalizeIndianPhone(currentPhone);
+        const normalizedVerified = normalizeIndianPhone(verifiedPhone);
+        
+        if (normalizedCurrent !== normalizedVerified) {
+          isResettingRef.current = true;
+          resetVerification();
+          setTimeout(() => {
+            isResettingRef.current = false;
+          }, 100);
+        }
+      }
       return;
     }
+    
     if (isEmailVerified && getValues("verifiedEmail") === loginEmail.toLowerCase()) return;
-    if (otpSent || isEmailVerified || isMobileVerified) resetVerification();
+    if (otpSent || isEmailVerified || isMobileVerified) {
+      isResettingRef.current = true;
+      resetVerification();
+      setTimeout(() => {
+        isResettingRef.current = false;
+      }, 100);
+    }
   }, [watchMobileCountryCode]);
 
   // Timer for resend cooldown
@@ -121,6 +157,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
     setOtpError(null);
     setIsMobileVerified(false);
     setIsEmailVerified(false);
+    setShowVerificationWarning(false);
     setValue("mobileVerified", false, { shouldDirty: true });
     setValue("verifiedMobileNumber", "", { shouldDirty: true });
     setValue("emailVerified", false, { shouldDirty: true });
@@ -130,52 +167,113 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
   const getPhonePayload = () => {
     const countryCode = String(getValues("mobileCountryCode") || "+91").trim();
     const mobileNumber = String(getValues("mobileNumber") || "").trim();
-    return `${countryCode}${mobileNumber}`;
+    // Remove any spaces, dashes, or parentheses from the mobile number
+    const cleanMobile = mobileNumber.replace(/[\s\-()]/g, '');
+    return `${countryCode}${cleanMobile}`;
   };
 
+  // ✅ UPDATED: Force refresh token and add better error handling
   const getAuthHeaders = async () => {
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("❌ No user is logged in");
+      throw new Error("Please login first before requesting an OTP");
+    }
+    
+    try {
+      // Force refresh the token to get a valid one
+      const token = await user.getIdToken(true);
+      
+      return {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+    } catch (error) {
+      console.error("❌ Failed to get token:", error);
       throw new Error("Please sign in again before requesting an OTP");
     }
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
   };
 
-  const requestOtp = async (channel: "sms" | "email") => {
+  // ✅ SMS OTP Request - uses /api/otp/send
+  const requestSmsOtp = async () => {
     const headers = await getAuthHeaders();
+    const phone = getPhonePayload();
+    const normalizedPhone = normalizeIndianPhone(phone);
+    
+    
+    if (!normalizedPhone) {
+      throw new Error("Invalid Indian mobile number");
+    }
+
     const response = await fetch("/api/otp/send", {
       method: "POST",
       headers,
-      body: JSON.stringify(
-        channel === "sms"
-          ? { channel: "sms", phone: getPhonePayload() }
-          : {
-              channel: "email",
-              name: String(getValues("fullName") || "").trim(),
-            }
-      ),
+      body: JSON.stringify({ channel: "sms", phone }),
     });
+
     const data = await response.json().catch(() => null);
+    
     if (!response.ok || !data?.success) {
-      throw new Error(data?.message || "Unable to send OTP");
+      const errorMsg = data?.message || "Unable to send SMS OTP";
+      throw new Error(errorMsg);
     }
     return data;
   };
 
-  const verifyOtp = async (channel: "sms" | "email", otp: string) => {
+  // ✅ Email OTP Request - uses /api/otp/email/send
+  const requestEmailOtp = async () => {
     const headers = await getAuthHeaders();
+    const fullName = String(getValues("fullName") || "").trim();
+
+    const response = await fetch("/api/otp/email/send", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ 
+        name: fullName || undefined 
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.message || "Unable to send email OTP");
+    }
+    return data;
+  };
+
+  // ✅ SMS OTP Verification - uses /api/otp/verify
+  const verifySmsOtp = async (otp: string) => {
+    const headers = await getAuthHeaders();
+    const phone = getPhonePayload();
+    const normalizedPhone = normalizeIndianPhone(phone);
+    
+    if (!normalizedPhone) {
+      throw new Error("Invalid Indian mobile number");
+    }
+
     const response = await fetch("/api/otp/verify", {
       method: "POST",
       headers,
-      body: JSON.stringify(
-        channel === "sms"
-          ? { channel: "sms", phone: getPhonePayload(), otp }
-          : { channel: "email", otp }
-      ),
+      body: JSON.stringify({ channel: "sms", phone, otp }),
     });
+
+    const data = await response.json().catch(() => null);
+    
+    return {
+      success: Boolean(response.ok && data?.success),
+      message: String(data?.message || ""),
+    };
+  };
+
+  // ✅ Email OTP Verification - uses /api/otp/email/verify
+  const verifyEmailOtp = async (otp: string) => {
+    const headers = await getAuthHeaders();
+
+    const response = await fetch("/api/otp/email/verify", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ otp }),
+    });
+
     const data = await response.json().catch(() => null);
     return {
       success: Boolean(response.ok && data?.success),
@@ -188,7 +286,10 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
     // Validate based on channel
     if (isIndianNumber) {
       const isPhoneValid = await trigger(["mobileNumber", "mobileCountryCode"]);
-      if (!isPhoneValid || !normalizeIndianPhone(getPhonePayload())) {
+      const phonePayload = getPhonePayload();
+      const normalizedPhone = normalizeIndianPhone(phonePayload);
+      
+      if (!isPhoneValid || !normalizedPhone) {
         toast.error("Enter a valid 10-digit Indian mobile number before requesting OTP");
         return;
       }
@@ -199,16 +300,18 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 
     setIsSendingOtp(true);
     setOtpError(null);
+    setShowVerificationWarning(false);
 
     try {
+      let data;
       if (isIndianNumber) {
-        const data = await requestOtp("sms");
+        data = await requestSmsOtp();
         toast.success(data.message || "OTP sent to your mobile number");
       } else {
-        const data = await requestOtp("email");
+        data = await requestEmailOtp();
         toast.success(data.message || "OTP sent to your email");
       }
-
+      
       setOtpSent(true);
       setOtpDigits(["", "", "", "", "", ""]);
       setResendCooldown(OTP_RESEND_COOLDOWN_SECONDS);
@@ -233,11 +336,15 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
     isVerifyingRef.current = true;
     setIsVerifyingOtp(true);
     setOtpError(null);
+    setShowVerificationWarning(false);
 
     try {
-      const result = isIndianNumber
-        ? await verifyOtp("sms", otp)
-        : await verifyOtp("email", otp);
+      let result;
+      if (isIndianNumber) {
+        result = await verifySmsOtp(otp);
+      } else {
+        result = await verifyEmailOtp(otp);
+      }
 
       if (!result.success) {
         throw new Error(result.message || "Invalid OTP");
@@ -246,7 +353,11 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
       if (isIndianNumber) {
         setIsMobileVerified(true);
         setValue("mobileVerified", true, { shouldDirty: true, shouldValidate: true });
-        setValue("verifiedMobileNumber", getPhonePayload(), { shouldDirty: true });
+        
+        const phonePayload = getPhonePayload();
+        const normalizedPhone = normalizeIndianPhone(phonePayload);
+        setValue("verifiedMobileNumber", normalizedPhone || phonePayload, { shouldDirty: true });
+        
         toast.success(result.message || "Mobile number verified successfully");
       } else {
         setIsEmailVerified(true);
@@ -482,6 +593,16 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
         </div>
       </div>
 
+      {/* ✅ Only show verification warning when user tries to proceed */}
+      {showVerificationWarning && !isContactVerified && (
+        <div className="text-red-400 text-sm flex items-center gap-1.5">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {isIndianNumber
+            ? "Please verify your mobile number first"
+            : "Please verify the OTP sent to your email first"}
+        </div>
+      )}
+
       {/* OTP Input Section */}
       <AnimatePresence>
         {otpSent && !isContactVerified && (
@@ -545,15 +666,6 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
           </motion.div>
         )}
       </AnimatePresence>
-
-      {touchedFields.mobileNumber && !isContactVerified && !otpSent && (
-        <p className="text-red-400 text-sm flex items-center gap-1.5">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {isIndianNumber
-            ? "Please verify your mobile number first"
-            : "Please verify the OTP sent to your email first"}
-        </p>
-      )}
     </div>
   );
 }
