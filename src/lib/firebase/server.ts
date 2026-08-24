@@ -6,20 +6,23 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 function getServiceAccount() {
-  const envKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.trim();
-  
-  if (!envKey) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set');
+  // ✅ Use the 3 individual environment variables
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.trim();
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
+  const projectId = process.env.FIREBASE_PROJECT_ID?.trim();
+
+  if (!privateKey || !clientEmail || !projectId) {
+    throw new Error(
+      'Missing Firebase service account credentials. ' +
+      'Please set FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, and FIREBASE_PROJECT_ID'
+    );
   }
 
-  const parsed = JSON.parse(envKey);
-  
-  // ✅ Fix: Convert \n to actual newlines for the private key
-  if (parsed.private_key) {
-    parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
-  }
-  
-  return parsed;
+  return {
+    projectId: projectId,
+    privateKey: privateKey,
+    clientEmail: clientEmail,
+  };
 }
 
 const adminApp =
