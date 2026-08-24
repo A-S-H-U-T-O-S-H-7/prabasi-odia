@@ -1,3 +1,4 @@
+// app/api/otp/email/send/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/server';
 import { normalizeEmail } from '@/lib/mobileVerification';
@@ -8,6 +9,9 @@ const EMAIL_OTP_SEND_URL = process.env.EMAIL_OTP_SEND_URL || 'https://svsamiti.c
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+    console.log("📧 Email OTP Request body:", body);
+    
     // Get authenticated user
     const authorization = request.headers.get('authorization');
     if (!authorization?.startsWith('Bearer ')) {
@@ -20,23 +24,32 @@ export async function POST(request: NextRequest) {
     let decoded;
     try {
       decoded = await adminAuth.verifyIdToken(authorization.slice(7));
+      console.log("✅ User verified:", decoded.uid);
     } catch (error) {
+      console.error("❌ Token verification failed:", error);
       return NextResponse.json(
-        { success: false, message: 'Invalid or expired token' },
+        { success: false, message: 'Invalid authentication' },
         { status: 401 }
       );
     }
 
-    const email = normalizeEmail(decoded.email);
+    // ✅ Get email from body first, fallback to token
+    let email = body.email?.trim();
     if (!email) {
+      email = normalizeEmail(decoded.email);
+    }
+    
+    if (!email) {
+      console.error("❌ No email found in request or token");
       return NextResponse.json(
-        { success: false, message: 'Valid email is required' },
+        { success: false, message: 'Email is required' },
         { status: 400 }
       );
     }
 
-    const body = await request.json();
-    const name = body.name || email.split('@')[0];
+    console.log("📧 Sending OTP to email:", email);
+    
+    const name = body.name?.trim() || email.split('@')[0];
 
     // Call your PHP endpoint
     const formData = new FormData();
@@ -47,7 +60,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       body: formData,
       cache: 'no-store',
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(15000),
     });
 
     let data;
@@ -66,7 +79,7 @@ export async function POST(request: NextRequest) {
       message: data.message || 'OTP sent to your email',
     });
   } catch (error) {
-    console.error('Email OTP send error:', error);
+    console.error('❌ Email OTP send error:', error);
     return NextResponse.json(
       { success: false, message: error instanceof Error ? error.message : 'Failed to send OTP' },
       { status: 500 }

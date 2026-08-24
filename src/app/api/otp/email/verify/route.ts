@@ -1,3 +1,4 @@
+// app/api/otp/email/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/server';
 import { normalizeEmail } from '@/lib/mobileVerification';
@@ -8,6 +9,9 @@ const EMAIL_OTP_VERIFY_URL = process.env.EMAIL_OTP_VERIFY_URL || 'https://svsami
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+    console.log("📧 Email OTP Verify Request body:", body);
+    
     // Get authenticated user
     const authorization = request.headers.get('authorization');
     if (!authorization?.startsWith('Bearer ')) {
@@ -20,30 +24,38 @@ export async function POST(request: NextRequest) {
     let decoded;
     try {
       decoded = await adminAuth.verifyIdToken(authorization.slice(7));
+      console.log("✅ User verified:", decoded.uid);
     } catch (error) {
+      console.error("❌ Token verification failed:", error);
       return NextResponse.json(
-        { success: false, message: 'Invalid or expired token' },
+        { success: false, message: 'Invalid authentication' },
         { status: 401 }
       );
     }
 
-    const email = normalizeEmail(decoded.email);
+    // ✅ Get email from body first, fallback to token
+    let email = body.email?.trim();
     if (!email) {
+      email = normalizeEmail(decoded.email);
+    }
+    
+    if (!email) {
+      console.error("❌ No email found");
       return NextResponse.json(
-        { success: false, message: 'Valid email is required' },
+        { success: false, message: 'Email is required' },
         { status: 400 }
       );
     }
 
-    const body = await request.json();
     const otp = body.otp?.trim();
-
     if (!otp || !/^\d{6}$/.test(otp)) {
       return NextResponse.json(
         { success: false, message: 'Valid 6-digit OTP is required' },
         { status: 400 }
       );
     }
+
+    console.log(`📧 Verifying OTP for ${email}: ${otp}`);
 
     // Call your PHP verification endpoint
     const formData = new FormData();
@@ -54,7 +66,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       body: formData,
       cache: 'no-store',
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(15000),
     });
 
     let data;
@@ -73,7 +85,7 @@ export async function POST(request: NextRequest) {
       message: data.message || 'Email verified successfully',
     });
   } catch (error) {
-    console.error('Email OTP verify error:', error);
+    console.error('❌ Email OTP verify error:', error);
     return NextResponse.json(
       { success: false, message: error instanceof Error ? error.message : 'Failed to verify OTP' },
       { status: 500 }

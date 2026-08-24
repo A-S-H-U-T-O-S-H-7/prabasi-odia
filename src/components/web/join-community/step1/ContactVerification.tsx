@@ -222,23 +222,32 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 
   // ✅ Email OTP Request - uses /api/otp/email/send
   const requestEmailOtp = async () => {
-    const headers = await getAuthHeaders();
-    const fullName = String(getValues("fullName") || "").trim();
+  const headers = await getAuthHeaders();
+  const fullName = String(getValues("fullName") || "").trim();
+  const email = loginEmail; // Get email from props
 
-    const response = await fetch("/api/otp/email/send", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ 
-        name: fullName || undefined 
-      }),
-    });
+  console.log("📧 Sending Email OTP:");
+  console.log("  email:", email);
+  console.log("  name:", fullName);
 
-    const data = await response.json().catch(() => null);
-    if (!response.ok || !data?.success) {
-      throw new Error(data?.message || "Unable to send email OTP");
-    }
-    return data;
-  };
+  const response = await fetch("/api/otp/email/send", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ 
+      name: fullName || undefined,
+      email: email // ✅ Add this line
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+  console.log("📧 Send Response:", data);
+  
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.message || "Unable to send email OTP");
+  }
+  return data;
+};
+
 
   // ✅ SMS OTP Verification - uses /api/otp/verify
   const verifySmsOtp = async (otp: string) => {
