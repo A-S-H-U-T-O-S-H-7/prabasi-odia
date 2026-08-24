@@ -117,13 +117,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       const normalizedCurrent = normalizeIndianPhone(currentPhone);
       const normalizedVerified = normalizeIndianPhone(verifiedPhone);
       
-      // Debug logs
-      console.log("🔍 Mobile Verification Check:");
-      console.log("  currentPhone:", currentPhone);
-      console.log("  verifiedPhone:", verifiedPhone);
-      console.log("  normalizedCurrent:", normalizedCurrent);
-      console.log("  normalizedVerified:", normalizedVerified);
-      console.log("  mobileVerified:", getValues("mobileVerified"));
       
       contactVerified = Boolean(getValues("mobileVerified")) && 
                        normalizedCurrent === normalizedVerified &&
