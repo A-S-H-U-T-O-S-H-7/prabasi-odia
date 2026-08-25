@@ -194,31 +194,39 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
     }
   };
 
-  // ✅ SMS OTP Request - uses /api/otp/send
-  const requestSmsOtp = async () => {
-    const headers = await getAuthHeaders();
-    const phone = getPhonePayload();
-    const normalizedPhone = normalizeIndianPhone(phone);
-    
-    
-    if (!normalizedPhone) {
-      throw new Error("Invalid Indian mobile number");
-    }
+//api for sms otp
+const requestSmsOtp = async () => {
+  const phone = getPhonePayload();
+  const normalizedPhone = normalizeIndianPhone(phone);
+  
+  console.log("📱 Sending SMS OTP:");
+  console.log("  phone:", phone);
+  console.log("  normalizedPhone:", normalizedPhone);
+  
+  if (!normalizedPhone) {
+    throw new Error("Invalid Indian mobile number");
+  }
 
-    const response = await fetch("/api/otp/send", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ channel: "sms", phone }),
-    });
+  // Extract just the mobile number (without +91)
+  const mobileNumber = normalizedPhone.replace('+91', '');
 
-    const data = await response.json().catch(() => null);
-    
-    if (!response.ok || !data?.success) {
-      const errorMsg = data?.message || "Unable to send SMS OTP";
-      throw new Error(errorMsg);
-    }
-    return data;
-  };
+  const response = await fetch("https://svsamiti.com/prabasiodia/mobile-otp.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ mobile: parseInt(mobileNumber) }), // Send as number
+  });
+
+  const data = await response.json().catch(() => null);
+  console.log("📱 Send Response:", data);
+  
+  if (!response.ok || !data?.success) {
+    const errorMsg = data?.message || "Unable to send SMS OTP";
+    throw new Error(errorMsg);
+  }
+  return data;
+};
 
   // ✅ Email OTP Request - uses /api/otp/email/send
   const requestEmailOtp = async () => {
@@ -249,29 +257,42 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 };
 
 
-  // ✅ SMS OTP Verification - uses /api/otp/verify
-  const verifySmsOtp = async (otp: string) => {
-    const headers = await getAuthHeaders();
-    const phone = getPhonePayload();
-    const normalizedPhone = normalizeIndianPhone(phone);
-    
-    if (!normalizedPhone) {
-      throw new Error("Invalid Indian mobile number");
-    }
+  // ✅ verify api  for sms otp
+const verifySmsOtp = async (otp: string) => {
+  const phone = getPhonePayload();
+  const normalizedPhone = normalizeIndianPhone(phone);
+  
+  console.log("🔐 Verifying SMS OTP:");
+  console.log("  phone:", phone);
+  console.log("  normalizedPhone:", normalizedPhone);
+  console.log("  otp:", otp);
+  
+  if (!normalizedPhone) {
+    throw new Error("Invalid Indian mobile number");
+  }
 
-    const response = await fetch("/api/otp/verify", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ channel: "sms", phone, otp }),
-    });
+  // Extract just the mobile number (without +91)
+  const mobileNumber = normalizedPhone.replace('+91', '');
 
-    const data = await response.json().catch(() => null);
-    
-    return {
-      success: Boolean(response.ok && data?.success),
-      message: String(data?.message || ""),
-    };
+  const response = await fetch("https://svsamiti.com/prabasiodia/mobile-otp-verify.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ 
+      mobile: parseInt(mobileNumber),
+      otp: parseInt(otp) 
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+  console.log("🔐 Verify Response:", data);
+  
+  return {
+    success: Boolean(response.ok && data?.success),
+    message: String(data?.message || ""),
   };
+};
 
   // ✅ Email OTP Verification - uses /api/otp/email/verify
   const verifyEmailOtp = async (otp: string) => {

@@ -21,11 +21,15 @@ const footerLinks = {
     { label: "Events", href: "/events" },
     { label: "Advisory Board", href: "/advisory-board" },
     { label: "About Us", href: "/about" },
+    { label: "Associates", href: "/associates" },
+    { label: "Partners", href: "/partners" },
   ],
   Support: [
     { label: "Help Center", href: "/help" },
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
+    { label: "Description", href: "/description" },
+
   ],
 };
 
