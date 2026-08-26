@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useFormContext } from "react-hook-form";
-import { auth } from "@/lib/firebase/config";
 import { 
   isIndianCountryCode,
   normalizeIndianPhone,
@@ -172,146 +171,117 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
     return `${countryCode}${cleanMobile}`;
   };
 
-  // ✅ UPDATED: Force refresh token and add better error handling
-  const getAuthHeaders = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      console.error("❌ No user is logged in");
-      throw new Error("Please login first before requesting an OTP");
-    }
+  // ============ SMS OTP API ============
+  const requestSmsOtp = async () => {
+    const phone = getPhonePayload();
+    const normalizedPhone = normalizeIndianPhone(phone);
     
-    try {
-      // Force refresh the token to get a valid one
-      const token = await user.getIdToken(true);
-      
-      return {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
-    } catch (error) {
-      console.error("❌ Failed to get token:", error);
-      throw new Error("Please sign in again before requesting an OTP");
+    if (!normalizedPhone) {
+      throw new Error("Invalid Indian mobile number");
     }
-  };
 
-//api for sms otp
-const requestSmsOtp = async () => {
-  const phone = getPhonePayload();
-  const normalizedPhone = normalizeIndianPhone(phone);
-  
-  console.log("📱 Sending SMS OTP:");
-  console.log("  phone:", phone);
-  console.log("  normalizedPhone:", normalizedPhone);
-  
-  if (!normalizedPhone) {
-    throw new Error("Invalid Indian mobile number");
-  }
+    // Extract just the mobile number (without +91)
+    const mobileNumber = normalizedPhone.replace('+91', '');
 
-  // Extract just the mobile number (without +91)
-  const mobileNumber = normalizedPhone.replace('+91', '');
-
-  const response = await fetch("https://svsamiti.com/prabasiodia/mobile-otp.php", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ mobile: parseInt(mobileNumber) }), // Send as number
-  });
-
-  const data = await response.json().catch(() => null);
-  console.log("📱 Send Response:", data);
-  
-  if (!response.ok || !data?.success) {
-    const errorMsg = data?.message || "Unable to send SMS OTP";
-    throw new Error(errorMsg);
-  }
-  return data;
-};
-
-  // ✅ Email OTP Request - uses /api/otp/email/send
-  const requestEmailOtp = async () => {
-  const headers = await getAuthHeaders();
-  const fullName = String(getValues("fullName") || "").trim();
-  const email = loginEmail; // Get email from props
-
-  console.log("📧 Sending Email OTP:");
-  console.log("  email:", email);
-  console.log("  name:", fullName);
-
-  const response = await fetch("/api/otp/email/send", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ 
-      name: fullName || undefined,
-      email: email // ✅ Add this line
-    }),
-  });
-
-  const data = await response.json().catch(() => null);
-  console.log("📧 Send Response:", data);
-  
-  if (!response.ok || !data?.success) {
-    throw new Error(data?.message || "Unable to send email OTP");
-  }
-  return data;
-};
-
-
-  // ✅ verify api  for sms otp
-const verifySmsOtp = async (otp: string) => {
-  const phone = getPhonePayload();
-  const normalizedPhone = normalizeIndianPhone(phone);
-  
-  console.log("🔐 Verifying SMS OTP:");
-  console.log("  phone:", phone);
-  console.log("  normalizedPhone:", normalizedPhone);
-  console.log("  otp:", otp);
-  
-  if (!normalizedPhone) {
-    throw new Error("Invalid Indian mobile number");
-  }
-
-  // Extract just the mobile number (without +91)
-  const mobileNumber = normalizedPhone.replace('+91', '');
-
-  const response = await fetch("https://svsamiti.com/prabasiodia/mobile-otp-verify.php", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ 
-      mobile: parseInt(mobileNumber),
-      otp: parseInt(otp) 
-    }),
-  });
-
-  const data = await response.json().catch(() => null);
-  console.log("🔐 Verify Response:", data);
-  
-  return {
-    success: Boolean(response.ok && data?.success),
-    message: String(data?.message || ""),
-  };
-};
-
-  // ✅ Email OTP Verification - uses /api/otp/email/verify
-  const verifyEmailOtp = async (otp: string) => {
-    const headers = await getAuthHeaders();
-
-    const response = await fetch("/api/otp/email/verify", {
+    const response = await fetch("https://svsamiti.com/prabasiodia/mobile-otp.php", {
       method: "POST",
-      headers,
-      body: JSON.stringify({ otp }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ mobile: parseInt(mobileNumber) }),
     });
 
     const data = await response.json().catch(() => null);
+    
+    if (!response.ok || !data?.success) {
+      const errorMsg = data?.message || "Unable to send SMS OTP";
+      throw new Error(errorMsg);
+    }
+    return data;
+  };
+
+  const verifySmsOtp = async (otp: string) => {
+    const phone = getPhonePayload();
+    const normalizedPhone = normalizeIndianPhone(phone);
+    
+    if (!normalizedPhone) {
+      throw new Error("Invalid Indian mobile number");
+    }
+
+    const mobileNumber = normalizedPhone.replace('+91', '');
+
+    const response = await fetch("https://svsamiti.com/prabasiodia/mobile-otp-verify.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        mobile: parseInt(mobileNumber),
+        otp: parseInt(otp) 
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+    
     return {
       success: Boolean(response.ok && data?.success),
       message: String(data?.message || ""),
     };
   };
 
-  // ✅ SEND OTP - Handles both SMS and Email
+  // ============ EMAIL OTP API ============
+  const requestEmailOtp = async () => {
+    const email = loginEmail;
+    const fullName = String(getValues("fullName") || "").trim();
+
+    if (!email) {
+      throw new Error("Email is required");
+    }
+
+    const formData = new FormData();
+    formData.append("email", email);
+    // Optionally send name if the API supports it (optional)
+    // formData.append("name", fullName);
+
+    const response = await fetch("https://svsamiti.com/prabasiodia/email-otp.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json().catch(() => null);
+    
+    if (!response.ok || data?.status !== true) {
+      const errorMsg = data?.message || data?.errors?.[0] || "Unable to send email OTP";
+      throw new Error(errorMsg);
+    }
+    return data;
+  };
+
+  const verifyEmailOtp = async (otp: string) => {
+    const email = loginEmail;
+
+    if (!email) {
+      throw new Error("Email is required");
+    }
+
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("otp", otp);
+
+    const response = await fetch("https://svsamiti.com/prabasiodia/verify-email-otp.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json().catch(() => null);
+    
+    return {
+      success: Boolean(response.ok && data?.status === true),
+      message: String(data?.message || ""),
+    };
+  };
+
+  // ============ SEND OTP Handler ============
   const handleSendOtp = async () => {
     // Validate based on channel
     if (isIndianNumber) {
@@ -355,7 +325,7 @@ const verifySmsOtp = async (otp: string) => {
     }
   };
 
-  // ✅ VERIFY OTP - Handles both SMS and Email
+  // ============ VERIFY OTP Handler ============
   const handleVerifyOtp = async (otpValue?: string) => {
     const otp = (otpValue ?? otpDigits.join("")).trim();
     if (!/^\d{6}$/.test(otp) || isVerifyingRef.current) {
@@ -474,7 +444,7 @@ const verifySmsOtp = async (otp: string) => {
               placeholder="Login email"
             />
           </div>
-          {/* ✅ Email OTP Send Button - Only for non-Indian numbers */}
+          {/* Email OTP Send Button - Only for non-Indian numbers */}
           {!isIndianNumber && (
             <motion.button
               type="button"
@@ -570,7 +540,7 @@ const verifySmsOtp = async (otp: string) => {
                 }}
               />
             </div>
-            {/* ✅ SMS OTP Send Button - Only for Indian numbers */}
+            {/* SMS OTP Send Button - Only for Indian numbers */}
             {isIndianNumber && (
               <motion.button
                 type="button"
@@ -623,7 +593,7 @@ const verifySmsOtp = async (otp: string) => {
         </div>
       </div>
 
-      {/* ✅ Only show verification warning when user tries to proceed */}
+      {/* Verification Warning */}
       {showVerificationWarning && !isContactVerified && (
         <div className="text-red-400 text-sm flex items-center gap-1.5">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
