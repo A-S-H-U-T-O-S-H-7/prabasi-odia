@@ -25,25 +25,25 @@ function toAdmin(uid: string, data: Record<string, any>): Admin {
 }
 
 async function findActiveAdmin(adminDb: Firestore, email: string, uid: string) {
+  // Current admin records use the Firebase Auth UID as their document ID.
+  // Prefer a direct lookup, which is faster and needs no Firestore index.
+  const byDocumentId = await adminDb.collection('admins').doc(uid).get();
+  if (byDocumentId.exists && byDocumentId.data()?.status === 'active') {
+    return byDocumentId;
+  }
+
+  // Retain email lookup for legacy admin records created with another doc ID.
   const byEmail = await adminDb
     .collection('admins')
     .where('email', '==', email.toLowerCase())
-    .where('status', '==', 'active')
     .limit(1)
     .get();
 
-  if (!byEmail.empty) {
+  if (!byEmail.empty && byEmail.docs[0].data().status === 'active') {
     return byEmail.docs[0];
   }
 
-  const byUid = await adminDb
-    .collection('admins')
-    .where('uid', '==', uid)
-    .where('status', '==', 'active')
-    .limit(1)
-    .get();
-
-  return byUid.empty ? null : byUid.docs[0];
+  return null;
 }
 
 function clearSessionCookie(response: NextResponse) {
@@ -99,6 +99,11 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     console.error('Admin session create error:', error);
+    const errorCode =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code || '')
+        : '';
+
     if (error instanceof Error && error.message === 'ADMIN_SESSION_SECRET is not configured') {
       return NextResponse.json(
         { success: false, error: 'Admin login is not configured. Set ADMIN_SESSION_SECRET on the server.' },
@@ -116,7 +121,21 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    return NextResponse.json({ success: false, error: 'Login failed' }, { status: 401 });
+    if (
+      errorCode === 'auth/argument-error' ||
+      errorCode === 'auth/id-token-expired' ||
+      errorCode === 'auth/id-token-revoked' ||
+      errorCode === 'auth/user-disabled'
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Your login token was rejected. Please sign in again.' },
+        { status: 401 }
+      );
+    }
+    return NextResponse.json(
+      { success: false, error: 'Admin login could not access the server database.' },
+      { status: 500 }
+    );
   }
 }
 
@@ -139,7 +158,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      admin: toAdmin(session.uid, adminDoc.data()),
+      admin: toAdmin(session.uid, adminDoc.data() || {}),
     });
   } catch (error) {
     console.error('Admin session verify error:', error);
