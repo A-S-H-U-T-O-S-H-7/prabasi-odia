@@ -85,7 +85,7 @@ const schema = z.object({
     .max(6, "Pin code must be 6 digits")
     .regex(/^[0-9]+$/, "Pin code must contain only numbers"),
 
-  nearbyCommunityId: z.string().optional(),
+  nearbyCommunityId: z.string().min(1, "Please select your nearby community"),
   nearbyCommunityName: z.string().optional(),
   requestedCommunityName: z.string().optional(),
 
