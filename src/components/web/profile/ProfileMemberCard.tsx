@@ -437,8 +437,9 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
               {/* Details */}
               <div className="flex-1 min-w-0 self-center">
                 <h2
-                  className="truncate font-serif text-sm sm:text-lg md:text-2xl font-bold leading-tight tracking-tight text-[#4A1942] mb-1 sm:mb-2"
+                  className="whitespace-nowrap font-serif text-[11px] sm:text-lg md:text-2xl font-bold leading-tight tracking-tight text-[#4A1942] mb-1 sm:mb-2"
                   style={boldTextHalo}
+                  title={profile?.displayName || "Member Name"}
                 >
                   {profile?.displayName || "Member Name"}
                 </h2>

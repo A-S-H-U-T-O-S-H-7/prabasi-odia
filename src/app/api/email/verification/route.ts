@@ -9,7 +9,7 @@ import {
   resolveMemberName,
   resolvePhotoURL,
 } from '@/lib/services/memberCardData';
-import { generateMemberCardPng } from '@/lib/services/memberCardPDF';
+import { generateMemberCardPDF } from '@/lib/services/memberCardPDF';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let memberCardPng: Buffer | null = null;
+    let memberCardPdf: Buffer | null = null;
 
     try {
-      memberCardPng = await generateMemberCardPng({
+      memberCardPdf = await generateMemberCardPDF({
         name,
         memberId,
         memberSince,
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       console.error('Member card generation failed for verification email:', cardError);
     }
 
-    if (!memberCardPng) {
+    if (!memberCardPdf) {
       return NextResponse.json(
         { success: false, message: 'Failed to generate member card for verification email' },
         { status: 500 }
@@ -81,12 +81,12 @@ export async function POST(request: NextRequest) {
     formData.append('city', String(userData.currentCity || ''));
     formData.append('state', String(userData.currentState || ''));
     formData.append('photo_url', photoURL);
-    formData.append('member_card_path', memberCardPng.toString('base64'));
-    formData.append(
-      'member_card',
-      new Blob([new Uint8Array(memberCardPng)], { type: 'image/png' }),
-      `${memberId}-member-card.png`
-    );
+    // The mail endpoint's legacy member_card_path field expects PDF bytes as
+    // base64. Do not also upload the same multi-megabyte document as a file:
+    // duplicating it can exceed PHP's request limit and truncate the download.
+    formData.append('member_card_path', memberCardPdf.toString('base64'));
+    formData.append('member_card_mime_type', 'application/pdf');
+    formData.append('member_card_file_name', `${memberId}-member-card.pdf`);
 
     const response = await fetch('https://svsamiti.com/prabasiodia/verification.php', {
       method: 'POST',
