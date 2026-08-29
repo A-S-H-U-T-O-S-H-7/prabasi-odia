@@ -303,7 +303,7 @@ export default function UserVerificationModal({
     await onVerify(user!.uid, finalMemberId, communityOptions);
 
     try {
-      await emailService.sendVerificationEmail({
+      const emailResult = await emailService.sendVerificationEmail({
         uid: user!.uid,
         name: user!.displayName || "Member",
         email: user!.email || "",
@@ -314,6 +314,10 @@ export default function UserVerificationModal({
         location: [user!.currentCity, user!.currentState].filter(Boolean).join(", "),
         photoURL: user!.photoURL || user!.documents?.profilePhoto || "",
       });
+      if (!emailResult.success) {
+        console.error("Verification email was not sent:", emailResult.message);
+        toast.error(emailResult.message || "Member verified, but the confirmation email could not be sent.");
+      }
       console.log("✅ Verification email sent successfully");
     } catch (emailError) {
       console.error("Verification email error:", emailError);

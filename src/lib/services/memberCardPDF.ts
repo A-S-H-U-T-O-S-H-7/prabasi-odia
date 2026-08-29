@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { extname, join } from "node:path";
+import { PDFDocument } from "pdf-lib";
 import QRCode from "qrcode";
 import puppeteer, { type Page } from "puppeteer-core";
 import { renderMemberCardHTML } from "./memberCardTemplate";
@@ -117,7 +118,7 @@ async function withCardPage<T>(
 
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: 900, height: 500, deviceScaleFactor: 2 });
+    await page.setViewport({ width: 900, height: 500, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: "load" });
     await waitForCardAssets(page);
     return await render(page);
@@ -128,14 +129,34 @@ async function withCardPage<T>(
 
 export async function generateMemberCardPDF(data: MemberCardInput): Promise<Buffer> {
   return withCardPage(data, async (page) => {
-    const pdfBuffer = await page.pdf({
-      width: "900px",
-      height: "500px",
-      printBackground: true,
-      pageRanges: "1-2",
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
-    });
-    return Buffer.from(pdfBuffer);
+    const [front, back] = await Promise.all([
+      page.$(".card.front"),
+      page.$(".card.back"),
+    ]);
+
+    if (!front || !back) {
+      throw new Error("Member card pages were not rendered");
+    }
+
+    // The email endpoint receives this document as base64. Rendering each card
+    // face to a compact JPEG before embedding it keeps the valid PDF well below
+    // common PHP POST limits while preserving the exact card design.
+    const [frontImage, backImage] = await Promise.all([
+      front.screenshot({ type: "jpeg", quality: 86 }),
+      back.screenshot({ type: "jpeg", quality: 86 }),
+    ]);
+
+    const document = await PDFDocument.create();
+    document.setTitle(`Prabasi Odia Member Card - ${data.memberId}`);
+    document.setSubject("Verified member card");
+
+    for (const imageBytes of [frontImage, backImage]) {
+      const image = await document.embedJpg(imageBytes);
+      const pdfPage = document.addPage([900, 500]);
+      pdfPage.drawImage(image, { x: 0, y: 0, width: 900, height: 500 });
+    }
+
+    return Buffer.from(await document.save());
   });
 }
 
