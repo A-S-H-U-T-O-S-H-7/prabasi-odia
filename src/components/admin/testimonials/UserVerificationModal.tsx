@@ -318,7 +318,9 @@ export default function UserVerificationModal({
         console.error("Verification email was not sent:", emailResult.message);
         toast.error(emailResult.message || "Member verified, but the confirmation email could not be sent.");
       }
-      console.log("✅ Verification email sent successfully");
+      if (emailResult.success) {
+        console.log("Verification email sent successfully");
+      }
     } catch (emailError) {
       console.error("Verification email error:", emailError);
     }

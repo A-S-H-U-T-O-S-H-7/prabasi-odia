@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { adminDb } from '@/lib/firebase/server';
 import {
   formatMemberSince,
   resolveBloodGroup,
@@ -14,16 +13,13 @@ import { generateMemberCardPDF } from '@/lib/services/memberCardPDF';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-async function loadUserData(uid?: string) {
-  if (!uid) return {};
-  const snapshot = await adminDb.collection('users').doc(uid).get();
-  return snapshot.exists ? snapshot.data() || {} : {};
-}
-
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
-    const userData = await loadUserData(payload.uid);
+    // This route receives the verified member details from the admin panel.
+    // Avoid Firebase Admin here: production email delivery must not depend on
+    // a second server credential initialization.
+    const userData = payload || {};
 
     const name = resolveMemberName(userData, payload.name);
     const email = String(payload.email || userData.email || '').trim();
@@ -97,8 +93,19 @@ export async function POST(request: NextRequest) {
       body: formData,
     });
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    const responseText = await response.text();
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(responseText) as Record<string, unknown>;
+    } catch {
+      console.error('Verification email provider returned a non-JSON response:', response.status);
+      return NextResponse.json(
+        { success: false, message: 'The email provider returned an invalid response.' },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json(data, { status: response.ok ? 200 : 502 });
   } catch (error) {
     console.error('Verification email error:', error);
     return NextResponse.json(
