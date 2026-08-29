@@ -10,6 +10,17 @@ function clearStaleAdminStorage() {
   localStorage.removeItem('admin-auth-storage');
 }
 
+async function readJsonResponse<T>(response: Response): Promise<T | null> {
+  const body = await response.text();
+  if (!body.trim()) return null;
+
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    return null;
+  }
+}
+
 export const adminAuthService = {
   login: async (email: string, password: string): Promise<AdminLoginResponse> => {
     try {
@@ -23,11 +34,18 @@ export const adminAuthService = {
         credentials: 'same-origin',
         body: JSON.stringify({ idToken }),
       });
-      const result = (await response.json()) as AdminLoginResponse;
+      const result = await readJsonResponse<AdminLoginResponse>(response);
 
-      if (!response.ok || !result.success) {
+      if (!response.ok || !result?.success) {
         await signOut(auth);
-        return { success: false, error: result.error || 'Access denied. You are not an admin.' };
+        return {
+          success: false,
+          error:
+            result?.error ||
+            (response.status >= 500
+              ? 'Admin login service is unavailable. Please check the server configuration.'
+              : 'Access denied. You are not an admin.'),
+        };
       }
 
       clearStaleAdminStorage();
@@ -62,9 +80,9 @@ export const adminAuthService = {
         credentials: 'same-origin',
         cache: 'no-store',
       });
-      const result = (await response.json()) as AdminVerifyResponse;
+      const result = await readJsonResponse<AdminVerifyResponse>(response);
 
-      if (!response.ok || !result.success || !result.admin) {
+      if (!response.ok || !result?.success || !result.admin) {
         return { success: false };
       }
 

@@ -7,7 +7,13 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 function getServiceAccount() {
   // ✅ Use the 3 individual environment variables
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.trim();
+  // Hosting dashboards commonly store multiline secrets with literal `\\n`
+  // sequences (and sometimes preserve wrapping quotes). Firebase Admin needs
+  // the original PEM newlines.
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY
+    ?.trim()
+    .replace(/^(["'])([\s\S]*)\1$/, '$2')
+    .replace(/\\n/g, '\n');
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
   const projectId = process.env.FIREBASE_PROJECT_ID?.trim();
 

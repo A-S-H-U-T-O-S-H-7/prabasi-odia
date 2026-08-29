@@ -6,8 +6,8 @@ import {
   signAdminSession,
   verifyAdminSession,
 } from '@/lib/admin/session';
-import { adminAuth, adminDb } from '@/lib/firebase/server';
 import { Admin } from '@/types/admin';
+import type { Firestore } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
 
@@ -24,7 +24,7 @@ function toAdmin(uid: string, data: Record<string, any>): Admin {
   };
 }
 
-async function findActiveAdmin(email: string, uid: string) {
+async function findActiveAdmin(adminDb: Firestore, email: string, uid: string) {
   const byEmail = await adminDb
     .collection('admins')
     .where('email', '==', email.toLowerCase())
@@ -53,6 +53,9 @@ function clearSessionCookie(response: NextResponse) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Load Firebase Admin inside the handler so configuration errors produce a
+    // JSON response instead of an empty platform-level 500 response.
+    const { adminAuth, adminDb } = await import('@/lib/firebase/server');
     const { idToken } = await request.json();
 
     if (!idToken || typeof idToken !== 'string') {
@@ -69,7 +72,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const adminDoc = await findActiveAdmin(email, decoded.uid);
+    const adminDoc = await findActiveAdmin(adminDb, email, decoded.uid);
 
     if (!adminDoc) {
       return NextResponse.json(
@@ -102,12 +105,24 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+    if (
+      error instanceof Error &&
+      (error.message.includes('Firebase') ||
+        error.message.includes('service account') ||
+        error.message.includes('PEM'))
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Admin login is not configured correctly on the server.' },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({ success: false, error: 'Login failed' }, { status: 401 });
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
+    const { adminDb } = await import('@/lib/firebase/server');
     const session = await verifyAdminSession(
       request.cookies.get(ADMIN_SESSION_COOKIE)?.value
     );
@@ -116,7 +131,7 @@ export async function GET(request: NextRequest) {
       return clearSessionCookie(NextResponse.json({ success: false }, { status: 401 }));
     }
 
-    const adminDoc = await findActiveAdmin(session.email, session.uid);
+    const adminDoc = await findActiveAdmin(adminDb, session.email, session.uid);
 
     if (!adminDoc) {
       return clearSessionCookie(NextResponse.json({ success: false }, { status: 401 }));
