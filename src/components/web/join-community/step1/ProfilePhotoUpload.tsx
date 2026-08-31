@@ -3,7 +3,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { Upload, AlertCircle, Check } from "lucide-react";
+import { Upload, AlertCircle, Check, Info } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 
@@ -57,6 +57,12 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
       <label className="block text-sm font-medium text-[#2A1636] mb-2">
         Profile Photo <span className="text-red-400">*</span>
       </label>
+      <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-[#D9772B]/20 bg-[#FFF7E8] px-3 py-2.5 text-xs leading-5 text-[#6B5E5A]">
+        <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#D9772B]" />
+        <p>
+          Please upload only a recent, clear <strong className="font-semibold text-[#2A1636]">passport-size photo</strong> with your face clearly visible. This photo will be printed on your Prabasi Odia member card, so please avoid selfies, group photos, filters.
+        </p>
+      </div>
       <div className="flex items-start gap-4">
         <motion.div
           whileHover={{ scale: 1.02 }}

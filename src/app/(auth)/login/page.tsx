@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 
 // Components
 import LoginForm from "@/components/web/auth/LoginForm";
+import CommunityRedirectLoader from "@/components/web/auth/CommunityRedirectLoader";
 
 // Store
 import { useAuthStore } from "@/lib/store";
@@ -27,6 +28,20 @@ export default function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isRedirectingToCommunity, setIsRedirectingToCommunity] = useState(false);
+
+  const redirectAfterAuthentication = async () => {
+    const hasJoinedCommunity = useAuthStore.getState().user?.hasJoinedCommunity === true;
+
+    if (!hasJoinedCommunity) {
+      setIsRedirectingToCommunity(true);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      router.replace("/join-community");
+      return;
+    }
+
+    router.replace("/");
+  };
 
   const {
     register,
@@ -46,7 +61,7 @@ export default function LoginPage() {
       const result = await signIn(data.email, data.password);
       if (result.success) {
         toast.success("Welcome back!");
-        router.push("/");
+        redirectAfterAuthentication();
       } else {
         if (result.error?.toLowerCase().includes("password")) {
           setError("password", { message: result.error });
@@ -69,7 +84,7 @@ export default function LoginPage() {
       const result = await googleLogin();
       if (result.success) {
         toast.success("Signed in with Google successfully!");
-        router.push("/");
+        redirectAfterAuthentication();
       } else {
         toast.error(result.error || "Google login failed. Please try again.");
       }
@@ -79,6 +94,10 @@ export default function LoginPage() {
       setIsGoogleLoading(false);
     }
   };
+
+  if (isRedirectingToCommunity) {
+    return <CommunityRedirectLoader />;
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#FFF9F2]">

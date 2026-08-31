@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 
 // Components
 import SignupForm from "@/components/web/auth/SignupForm";
+import CommunityRedirectLoader from "@/components/web/auth/CommunityRedirectLoader";
 
 // Store
 import { useAuthStore } from "@/lib/store";
@@ -22,6 +23,20 @@ export default function SignupPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isRedirectingToCommunity, setIsRedirectingToCommunity] = useState(false);
+
+  const redirectAfterAuthentication = async () => {
+    const hasJoinedCommunity = useAuthStore.getState().user?.hasJoinedCommunity === true;
+
+    if (!hasJoinedCommunity) {
+      setIsRedirectingToCommunity(true);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      router.replace("/join-community");
+      return;
+    }
+
+    router.replace("/");
+  };
 
   const {
     register,
@@ -48,7 +63,7 @@ export default function SignupPage() {
       const result = await signUp(data.name, data.email, data.password);
       if (result.success) {
         toast.success("Account created successfully! Welcome to Prabasi Odia.");
-        router.push("/");
+        redirectAfterAuthentication();
       } else {
         const errorMsg = result.error || "Signup failed. Please try again.";
         const isExistingAccount =
@@ -79,7 +94,7 @@ export default function SignupPage() {
       const result = await googleLogin();
       if (result.success) {
         toast.success("Signed up with Google successfully!");
-        router.push("/");
+        redirectAfterAuthentication();
       } else {
         toast.error(result.error || "Google signup failed. Please try again.");
       }
@@ -89,6 +104,10 @@ export default function SignupPage() {
       setIsGoogleLoading(false);
     }
   };
+
+  if (isRedirectingToCommunity) {
+    return <CommunityRedirectLoader />;
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#FFF9F2]">
