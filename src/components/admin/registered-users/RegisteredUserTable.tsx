@@ -1,16 +1,19 @@
 "use client";
 
 import { UserData } from "@/lib/services/adminUserService";
-import { CheckCircle, UserPlus, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle, User, UserPlus, ShieldCheck } from "lucide-react";
 
 interface RegisteredUserTableProps {
   users: UserData[];
   loading?: boolean;
+  startIndex?: number;
 }
 
 export default function RegisteredUserTable({
   users,
   loading = false,
+  startIndex = 0,
 }: RegisteredUserTableProps) {
   if (loading) {
     return (
@@ -36,6 +39,9 @@ export default function RegisteredUserTable({
           <thead>
             <tr className="border-b border-[#E7D7E8] bg-[#FFF9F2]">
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">
+                Sl. No.
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">
                 User
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider hidden md:table-cell">
@@ -50,21 +56,17 @@ export default function RegisteredUserTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E7D7E8]">
-            {users.map((user) => (
+            {users.map((user, index) => (
               <tr key={user.uid} className="hover:bg-[#6B1E5B]/5 transition-colors">
+                <td className="px-4 py-3 text-sm font-medium text-[#6B5E5A]">
+                  {startIndex + index + 1}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    {user.photoURL ? (
-                      <img
-                        src={user.photoURL}
-                        alt={user.displayName || "User"}
-                        className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6B1E5B] to-[#D9772B] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                        {user.displayName?.charAt(0) || "U"}
-                      </div>
-                    )}
+                    <RegisteredUserAvatar
+                      src={user.photoURL || user.documents?.profilePhoto}
+                      name={user.displayName || "User"}
+                    />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-[#2A1636] truncate">
                         {user.displayName || "Unknown"}
@@ -105,6 +107,27 @@ export default function RegisteredUserTable({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function RegisteredUserAvatar({ src, name }: { src?: string; name: string }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => setHasError(false), [src]);
+
+  return (
+    <div className="w-10 h-10 rounded-full bg-[#6B1E5B]/10 border border-[#E7D7E8] flex items-center justify-center text-[#6B1E5B] flex-shrink-0 overflow-hidden">
+      {src && !hasError ? (
+        <img
+          src={src}
+          alt={`${name} profile`}
+          className="h-full w-full object-cover"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <User className="h-5 w-5" aria-hidden="true" />
+      )}
     </div>
   );
 }

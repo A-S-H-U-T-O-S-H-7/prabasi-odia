@@ -9,6 +9,7 @@ interface CommunityTableProps {
   onViewMembers: (community: Community) => void;
   onEdit: (community: Community) => void;
   onDelete: (community: Community) => void;
+  startIndex?: number;
 }
 
 export default function CommunityTable({
@@ -17,6 +18,7 @@ export default function CommunityTable({
   onViewMembers,
   onEdit,
   onDelete,
+  startIndex = 0,
 }: CommunityTableProps) {
   if (loading) {
     return (
@@ -56,7 +58,7 @@ export default function CommunityTable({
               <CommunityTableRow
                 key={community.id}
                 community={community}
-                index={index}
+                index={startIndex + index}
                 onViewMembers={onViewMembers}
                 onEdit={onEdit}
                 onDelete={onDelete}

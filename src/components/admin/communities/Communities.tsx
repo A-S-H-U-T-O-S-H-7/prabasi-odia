@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, RefreshCw, ArrowLeft } from "lucide-react";
+import { Plus, RefreshCw, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Swal from "sweetalert2";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
@@ -19,6 +19,7 @@ import CreateCommunityModal from "@/components/admin/communities/CreateCommunity
 import CommunityMembersModal from "@/components/admin/communities/CommunityMembersModal";
 
 export default function AdminCommunitiesPage() {
+  const pageSize = 10;
   const router = useRouter();
   const { admin, isAuthenticated } = useAdminAuthStore();
   const { log } = useActivityLogger();
@@ -35,6 +36,7 @@ export default function AdminCommunitiesPage() {
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<Community[] | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const hasPermission = admin?.permissions?.includes('communities') || admin?.role === 'super_admin';
 
@@ -69,6 +71,7 @@ export default function AdminCommunitiesPage() {
           filtered = filtered.filter(c => c.status === statusFilter);
         }
         setCommunities(filtered);
+        setCurrentPage(1);
       } else {
         toast.error(result.error || "Failed to load communities");
       }
@@ -101,6 +104,7 @@ export default function AdminCommunitiesPage() {
       const result = await adminCommunityService.searchCommunities(searchTerm);
       if (result.success) {
         setSearchResults(result.communities);
+        setCurrentPage(1);
       }
     } catch (error) {
       toast.error("Search failed");
@@ -218,6 +222,10 @@ export default function AdminCommunitiesPage() {
   };
 
   const displayCommunities = searchResults || communities;
+  const totalPages = Math.max(1, Math.ceil(displayCommunities.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * pageSize;
+  const paginatedCommunities = displayCommunities.slice(pageStart, pageStart + pageSize);
 
   if (!hasPermission) {
     return (
@@ -289,12 +297,44 @@ export default function AdminCommunitiesPage() {
 
       {/* Table */}
       <CommunityTable
-        communities={displayCommunities}
+        communities={paginatedCommunities}
         loading={loading}
+        startIndex={pageStart}
         onViewMembers={handleViewMembers}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
+
+      {!loading && displayCommunities.length > 0 && (
+        <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 sm:flex-row">
+          <p className="text-sm text-[#6B5E5A]">
+            Showing {pageStart + 1}–{Math.min(pageStart + pageSize, displayCommunities.length)} of {displayCommunities.length} communities
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="rounded-lg border border-[#D4C8C0] p-2 text-[#6B1E5B] hover:bg-[#6B1E5B]/5 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-24 text-center text-sm font-medium text-[#2A1636]">
+              Page {safeCurrentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={safeCurrentPage === totalPages}
+              className="rounded-lg border border-[#D4C8C0] p-2 text-[#6B1E5B] hover:bg-[#6B1E5B]/5 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       <CreateCommunityModal

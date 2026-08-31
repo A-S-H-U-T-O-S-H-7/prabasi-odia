@@ -170,7 +170,7 @@ export default function WelcomePopup({ onClose }: WelcomePopupProps) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
-              className="pointer-events-auto w-full sm:max-w-[560px] md:max-w-[640px] lg:max-w-[680px] max-h-[92vh] sm:max-h-[85vh] flex flex-col overflow-hidden rounded-[28px] bg-white/97 backdrop-blur-xl shadow-2xl border border-white/60"
+              className="pointer-events-auto w-full sm:max-w-[560px] md:max-w-[640px] lg:max-w-[680px] max-h-[78dvh] sm:max-h-[85vh] flex flex-col overflow-hidden rounded-[28px] bg-white/97 backdrop-blur-xl shadow-2xl border border-white/60"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header bar — Left: SVS Logo + Text | Right: Language + Close */}
