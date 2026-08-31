@@ -346,9 +346,9 @@ export default function UserVerificationModal({
               <div className="flex items-center justify-between px-6 py-4 border-b border-[#E7D7E8] bg-white/50 flex-shrink-0">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#6B1E5B] to-[#D9772B] flex items-center justify-center text-white font-bold text-lg flex-shrink-0 overflow-hidden">
-                    {user.photoURL ? (
+                    {user.photoURL || user.documents?.profilePhoto ? (
                       <Image
-                        src={user.photoURL}
+                        src={user.photoURL || user.documents?.profilePhoto || ""}
                         alt={user.displayName || "User"}
                         width={48}
                         height={48}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, X } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { adminUserService, UserData, VerifyUserCommunityOptions } from "@/lib/services/adminUserService";
 import UserStats from "@/components/admin/users/UserStats";
@@ -12,6 +12,7 @@ import UserTable from "@/components/admin/users/UserTable";
 import UserVerificationModal from "./UserVerificationModal";
 
 export default function AdminUsersPage() {
+  const pageSize = 10;
   const router = useRouter();
   const { admin } = useAdminAuthStore();
   const [users, setUsers] = useState<UserData[]>([]);
@@ -24,6 +25,7 @@ export default function AdminUsersPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [stats, setStats] = useState({ total: 0, pending: 0, verified: 0 });
   const [searchResults, setSearchResults] = useState<UserData[] | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Check if admin has permission
   const hasPermission = admin?.permissions?.includes('users') || admin?.role === 'super_admin';
@@ -44,9 +46,10 @@ export default function AdminUsersPage() {
       setLoading(true);
     }
     try {
-      const result = await adminUserService.getUsers(20, undefined, { status: statusFilter });
+      const result = await adminUserService.getUsers(10000, undefined, { status: statusFilter });
       if (result.users) {
         setUsers(result.users);
+        setCurrentPage(1);
       }
     } catch (error) {
       toast.error("Failed to load users");
@@ -76,12 +79,20 @@ export default function AdminUsersPage() {
       const result = await adminUserService.searchUsers(searchTerm);
       if (result.success && result.users) {
         setSearchResults(result.users);
+        setCurrentPage(1);
       }
     } catch (error) {
       toast.error("Search failed");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setSearchResults(null);
+    setStatusFilter('all');
+    setCurrentPage(1);
   };
 
   const handleViewUser = (user: UserData) => {
@@ -147,7 +158,16 @@ export default function AdminUsersPage() {
     );
   }
 
-  const displayUsers = searchResults || users;
+  const displayUsers = searchResults
+    ? searchResults.filter((user) =>
+        statusFilter === 'all' ||
+        (statusFilter === 'verified' ? user.isVerified : !user.isVerified)
+      )
+    : users;
+  const totalPages = Math.max(1, Math.ceil(displayUsers.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * pageSize;
+  const paginatedUsers = displayUsers.slice(pageStart, pageStart + pageSize);
 
   return (
     <div className="space-y-6">
@@ -162,8 +182,8 @@ export default function AdminUsersPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-serif font-bold text-[#2A1636]">👥 User Management</h1>
-            <p className="text-sm text-[#6B5E5A]">Manage and verify joining form community members</p>
+            <h1 className="text-2xl font-serif font-bold text-[#2A1636]">Joined Members</h1>
+            <p className="text-sm text-[#6B5E5A]">Manage and verify members who submitted the community joining form</p>
           </div>
         </div>
         <button
@@ -188,7 +208,15 @@ export default function AdminUsersPage() {
       />
 
       {/* Search Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {(searchTerm || searchResults) && (
+          <button
+            onClick={handleClearSearch}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#D4C8C0] bg-white text-[#6B5E5A] font-medium hover:bg-[#FFF9F2] transition-colors cursor-pointer"
+          >
+            <X className="h-4 w-4" /> Clear
+          </button>
+        )}
         <button
           onClick={handleSearch}
           className="px-4 py-2 rounded-xl bg-[#6B1E5B] text-white font-medium hover:bg-[#531547] transition-colors cursor-pointer"
@@ -199,10 +227,42 @@ export default function AdminUsersPage() {
 
       {/* Table */}
       <UserTable
-        users={displayUsers}
+        users={paginatedUsers}
         onViewUser={handleViewUser}
         loading={loading}
+        startIndex={pageStart}
       />
+
+      {!loading && displayUsers.length > 0 && (
+        <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 sm:flex-row">
+          <p className="text-sm text-[#6B5E5A]">
+            Showing {pageStart + 1}–{Math.min(pageStart + pageSize, displayUsers.length)} of {displayUsers.length} members
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="rounded-lg border border-[#D4C8C0] p-2 text-[#6B1E5B] hover:bg-[#6B1E5B]/5 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-24 text-center text-sm font-medium text-[#2A1636]">
+              Page {safeCurrentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={safeCurrentPage === totalPages}
+              className="rounded-lg border border-[#D4C8C0] p-2 text-[#6B1E5B] hover:bg-[#6B1E5B]/5 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Verification Modal */}
       <UserVerificationModal

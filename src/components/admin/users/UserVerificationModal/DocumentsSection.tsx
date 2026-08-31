@@ -2,7 +2,6 @@
 
 import { FileText, User } from "lucide-react";
 import { FaPassport } from "react-icons/fa";
-import Image from "next/image";
 import { UserData } from "@/lib/services/adminUserService";
 import { DocumentViewer } from "./DocumentViewer";
 
@@ -14,6 +13,8 @@ interface DocumentsSectionProps {
 }
 
 export function DocumentsSection({ user, hasAadharFront, hasAadharBack, hasPassportFile }: DocumentsSectionProps) {
+  const profilePhoto = user.photoURL || user.documents?.profilePhoto;
+
   return (
     <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm">
       <h4 className="text-sm font-semibold text-[#2A1636] mb-4 flex items-center gap-2">
@@ -25,12 +26,10 @@ export function DocumentsSection({ user, hasAadharFront, hasAadharBack, hasPassp
         {/* Profile Photo */}
         <div className="flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-[#D4C8C0]/30">
           <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
-            {user.photoURL ? (
-              <Image
-                src={user.photoURL}
+            {profilePhoto ? (
+              <img
+                src={profilePhoto}
                 alt="Profile"
-                width={40}
-                height={40}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -41,10 +40,8 @@ export function DocumentsSection({ user, hasAadharFront, hasAadharBack, hasPassp
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-[#2A1636] truncate">Profile Photo</p>
-            {user.photoURL ? (
-              <button onClick={() => window.open(user.photoURL, '_blank')} className="text-xs text-[#6B1E5B] hover:underline">
-                View
-              </button>
+            {profilePhoto ? (
+              <DocumentViewer url={profilePhoto} label="Profile Photo" />
             ) : (
               <p className="text-xs text-[#6B5E5A]/50">Not uploaded</p>
             )}

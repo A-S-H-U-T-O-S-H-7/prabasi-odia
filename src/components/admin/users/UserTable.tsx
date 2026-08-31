@@ -1,15 +1,16 @@
 "use client";
 
 import { UserData } from "@/lib/services/adminUserService";
-import { CheckCircle, XCircle, Eye, MoreVertical } from "lucide-react";
+import { CheckCircle, XCircle, Eye, User } from "lucide-react";
 
 interface UserTableProps {
   users: UserData[];
   onViewUser: (user: UserData) => void;
   loading?: boolean;
+  startIndex?: number;
 }
 
-export default function UserTable({ users, onViewUser, loading = false }: UserTableProps) {
+export default function UserTable({ users, onViewUser, loading = false, startIndex = 0 }: UserTableProps) {
   if (loading) {
     return (
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/50 p-8 text-center">
@@ -33,6 +34,7 @@ export default function UserTable({ users, onViewUser, loading = false }: UserTa
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#E7D7E8] bg-[#FFF9F2]">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">Sl. No.</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider">User</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider hidden md:table-cell">Member ID</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#6B5E5A] uppercase tracking-wider hidden sm:table-cell">City</th>
@@ -42,12 +44,21 @@ export default function UserTable({ users, onViewUser, loading = false }: UserTa
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E7D7E8]">
-            {users.map((user) => (
+            {users.map((user, index) => {
+              const profilePhoto = user.photoURL || user.documents?.profilePhoto;
+              return (
               <tr key={user.uid} className="hover:bg-[#6B1E5B]/5 transition-colors">
+                <td className="px-4 py-3 text-sm font-medium text-[#6B5E5A]">
+                  {startIndex + index + 1}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6B1E5B] to-[#D9772B] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                      {user.displayName?.charAt(0) || "U"}
+                    <div className="w-10 h-10 rounded-full bg-[#6B1E5B]/10 flex items-center justify-center text-[#6B1E5B] flex-shrink-0 overflow-hidden border border-[#E7D7E8]">
+                      {profilePhoto ? (
+                        <img src={profilePhoto} alt={`${user.displayName || "Member"} profile`} className="h-full w-full object-cover" />
+                      ) : (
+                        <User className="h-5 w-5" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-[#2A1636] truncate">{user.displayName || "Unknown"}</p>
@@ -93,7 +104,8 @@ export default function UserTable({ users, onViewUser, loading = false }: UserTa
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -28,7 +28,7 @@ import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 
 const navigationItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Joined Members", href: "/admin/users", icon: Users },
   { name: "Registered Users", href: "/admin/registered-users", icon: UserPlus },
   { name: "Communities", href: "/admin/communities", icon: Building2 },
   { name: "Events", href: "/admin/events", icon: CalendarDays },
@@ -64,7 +64,7 @@ export default function AdminSidebar() {
     if (isSuperAdmin) return true;
     const permissions = admin?.permissions || [];
     if (item.name === "Dashboard") return true;
-    if (item.name === "Users" && permissions.includes("users")) return true;
+    if (item.name === "Joined Members" && permissions.includes("users")) return true;
     if (item.name === "Registered Users" && permissions.includes("users")) return true;
     if (item.name === "Communities" && permissions.includes("communities")) return true;
     if (item.name === "Events" && permissions.includes("events")) return true;
