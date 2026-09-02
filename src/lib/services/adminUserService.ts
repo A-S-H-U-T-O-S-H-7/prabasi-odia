@@ -71,6 +71,15 @@ export interface UserData {
   rejectedAt?: string;
 }
 
+export type MemberUpdateData = Partial<Pick<UserData,
+  | 'displayName' | 'mobileNumber' | 'phoneNumber' | 'mobileCountryCode'
+  | 'age' | 'gender' | 'bloodGroup' | 'dob'
+  | 'odishaHomeAddress' | 'odishaDistrict' | 'odishaCity' | 'odishaPinCode'
+  | 'currentAddress' | 'currentCity' | 'currentState' | 'currentCountry'
+  | 'currentPinCode' | 'occupation' | 'organization' | 'interests'
+  | 'familyMembers' | 'idType' | 'aadharNumber' | 'passportNumber'
+>>;
+
 export const adminUserService = {
   // Map Firestore docs → UserData (avoids composite index issues via client filter)
   _mapUserDoc(docSnap: { id: string; data: () => Record<string, any> }): UserData {
@@ -231,6 +240,24 @@ export const adminUserService = {
       return { success: false, error: 'User not found' };
     } catch (error) {
       return { success: false, error: 'Error fetching user' };
+    }
+  },
+
+  // Admin corrections for data submitted through the join form. Membership and
+  // verification fields are intentionally not changed from this editor.
+  async updateMember(uid: string, data: MemberUpdateData) {
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating member:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unable to update member',
+      };
     }
   },
 

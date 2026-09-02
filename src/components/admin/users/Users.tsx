@@ -10,6 +10,7 @@ import UserStats from "@/components/admin/users/UserStats";
 import UserFilters from "@/components/admin/users/UserFilters";
 import UserTable from "@/components/admin/users/UserTable";
 import UserVerificationModal from "./UserVerificationModal";
+import EditMemberModal from "./EditMemberModal";
 
 export default function AdminUsersPage() {
   const pageSize = 10;
@@ -22,6 +23,7 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified'>('all');
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [stats, setStats] = useState({ total: 0, pending: 0, verified: 0 });
   const [searchResults, setSearchResults] = useState<UserData[] | null>(null);
@@ -99,6 +101,7 @@ export default function AdminUsersPage() {
     setSelectedUser(user);
     setIsModalOpen(true);
   };
+  const handleEditUser = (user: UserData) => { setSelectedUser(user); setIsEditModalOpen(true); };
 
   const handleVerify = async (
     uid: string,
@@ -229,6 +232,7 @@ export default function AdminUsersPage() {
       <UserTable
         users={paginatedUsers}
         onViewUser={handleViewUser}
+        onEditUser={handleEditUser}
         loading={loading}
         startIndex={pageStart}
       />
@@ -273,6 +277,7 @@ export default function AdminUsersPage() {
         onReject={handleReject}
         isVerifying={isVerifying}
       />
+      <EditMemberModal user={selectedUser} isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSaved={() => { fetchUsers(true); fetchStats(); }} />
     </div>
   );
 }
