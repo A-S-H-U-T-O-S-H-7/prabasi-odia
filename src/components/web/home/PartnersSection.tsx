@@ -179,7 +179,7 @@ export default function PartnersMarquee() {
                         alt={partner.name}
                         width={80}
                         height={80}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-2xl md:text-3xl bg-gradient-to-br from-[#6B1E5B]/5 to-[#D9772B]/5">
@@ -189,7 +189,7 @@ export default function PartnersMarquee() {
                   </div>
 
                   {/* Name - Below the logo */}
-                  <span className="text-xs md:text-sm font-serif font-medium text-[#2A1636] group-hover:text-[#6B1E5B] transition-colors text-center leading-tight line-clamp-2 max-w-[80px] md:max-w-[100px]">
+                  <span className="text-xs md:text-sm font-serif font-medium text-[#2A1636] group-hover:text-[#6B1E5B] transition-colors text-center leading-tight line-clamp-2 max-w-[80px] md:max-w-[160px]">
                     {partner.name}
                   </span>
                 </Link>

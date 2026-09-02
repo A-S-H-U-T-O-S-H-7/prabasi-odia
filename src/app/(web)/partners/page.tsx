@@ -162,7 +162,7 @@ export default function PartnersPage() {
                           src={partner.logo}
                           alt={partner.name}
                           fill
-                          className="object-cover"
+                          className="object-contain"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#6B1E5B] to-[#D9772B]">
