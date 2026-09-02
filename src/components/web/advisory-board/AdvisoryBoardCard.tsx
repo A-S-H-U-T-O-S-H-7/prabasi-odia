@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { Star, ExternalLink, Calendar, Briefcase, Award, X, Mail, Phone, MapPin, ChevronRight, ChevronDown } from 'lucide-react';
+import { Star, ExternalLink, Calendar, X, Mail, Phone, MapPin, ChevronRight, ChevronDown } from 'lucide-react';
 import { FaLinkedinIn, FaTwitter } from "react-icons/fa";
 import { useState, useEffect } from 'react';
 
@@ -19,11 +19,9 @@ interface Member {
   website?: string;
   featured?: boolean;
   joinedDate?: string;
-  experience?: string;
   email?: string;
   phone?: string;
   location?: string;
-  achievements?: string[];
   expertise?: string[];
 }
 
@@ -317,17 +315,6 @@ function PopoverContent({ member }: { member: Member }) {
           </div>
         )}
 
-        {/* Experience */}
-        {member.experience && (
-          <div className="flex items-start gap-2 bg-[#FDF5F8] p-2 rounded-lg">
-            <Briefcase className="w-4 h-4 text-[#6B1E5B] mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-medium text-[#2A1636]">Experience</p>
-              <p className="text-sm text-[#5A4A4A]">{member.experience}</p>
-            </div>
-          </div>
-        )}
-
         {/* Joined Date & Location */}
         <div className="grid grid-cols-2 gap-2">
           {member.joinedDate && (
@@ -363,26 +350,6 @@ function PopoverContent({ member }: { member: Member }) {
                   {skill}
                 </span>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Achievements */}
-        {member.achievements && member.achievements.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-[#2A1636] mb-1.5">Achievements</p>
-            <div className="space-y-1">
-              {member.achievements.slice(0, 3).map((achievement, idx) => (
-                <div key={idx} className="flex items-start gap-2 bg-[#FDF5F8] p-1.5 rounded-lg">
-                  <Award className="w-3 h-3 text-[#6B1E5B] mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-[#5A4A4A]">{achievement}</p>
-                </div>
-              ))}
-              {member.achievements.length > 3 && (
-                <p className="text-xs text-[#D9772B] text-center">
-                  +{member.achievements.length - 3} more
-                </p>
-              )}
             </div>
           </div>
         )}
@@ -464,17 +431,6 @@ function MobileModalContent({ member }: { member: Member }) {
           </div>
         )}
 
-        {/* Experience */}
-        {member.experience && (
-          <div className="flex items-start gap-3 bg-[#FDF5F8] p-3 rounded-xl">
-            <Briefcase className="w-5 h-5 text-[#6B1E5B] mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-medium text-[#2A1636] uppercase tracking-wide">Experience</p>
-              <p className="text-sm text-[#5A4A4A]">{member.experience}</p>
-            </div>
-          </div>
-        )}
-
         {/* Joined Date & Location */}
         <div className="grid grid-cols-2 gap-3">
           {member.joinedDate && (
@@ -509,21 +465,6 @@ function MobileModalContent({ member }: { member: Member }) {
                 >
                   {skill}
                 </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Achievements */}
-        {member.achievements && member.achievements.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-[#2A1636] uppercase tracking-wide mb-2">Achievements</p>
-            <div className="space-y-2">
-              {member.achievements.map((achievement, idx) => (
-                <div key={idx} className="flex items-start gap-3 bg-[#FDF5F8] p-3 rounded-xl">
-                  <Award className="w-5 h-5 text-[#6B1E5B] mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-[#5A4A4A]">{achievement}</p>
-                </div>
               ))}
             </div>
           </div>

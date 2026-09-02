@@ -32,8 +32,7 @@ const emptyForm = {
   organization: "",
   designation: "",
   bio: "",
-  achievementsText: "",
-  experience: "",
+  location: "",
   order: 0,
   isActive: true,
   featured: false,
@@ -66,8 +65,7 @@ export default function CreateAdvisoryBoardModal({
         organization: editingMember.organization || "",
         designation: editingMember.designation || "",
         bio: editingMember.bio || "",
-        achievementsText: (editingMember.achievements || []).join("\n"),
-        experience: editingMember.experience || "",
+        location: editingMember.location || "",
         order: editingMember.order || 0,
         isActive: editingMember.isActive !== undefined ? editingMember.isActive : true,
         featured: editingMember.featured || false,
@@ -151,7 +149,6 @@ export default function CreateAdvisoryBoardModal({
       ...formData,
       photoFile: formData.photoFile,
       photoURL: formData.photoPreview || formData.photoURL || "",
-      achievementsText: formData.achievementsText,
     });
   };
 
@@ -325,20 +322,20 @@ export default function CreateAdvisoryBoardModal({
               />
             </div>
 
-            {/* Experience + Achievements */}
+            {/* Location + Joined Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
-                  Experience
+                  Location
                 </label>
                 <input
                   type="text"
-                  value={formData.experience}
+                  value={formData.location}
                   onChange={(e) =>
-                    setFormData({ ...formData, experience: e.target.value })
+                    setFormData({ ...formData, location: e.target.value })
                   }
                   className="w-full px-4 py-2.5 rounded-xl text-sm border-2 border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B] focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20"
-                  placeholder="e.g. 20+ years in education"
+                  placeholder="e.g. Bhubaneswar, Odisha"
                 />
               </div>
               <div>
@@ -354,21 +351,6 @@ export default function CreateAdvisoryBoardModal({
                   className="w-full px-4 py-2.5 rounded-xl text-sm border-2 border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B] focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
-                Achievements
-              </label>
-              <textarea
-                value={formData.achievementsText}
-                onChange={(e) =>
-                  setFormData({ ...formData, achievementsText: e.target.value })
-                }
-                rows={3}
-                className="w-full px-4 py-2.5 rounded-xl text-sm border-2 border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B] focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20 resize-none"
-                placeholder="One achievement per line"
-              />
             </div>
 
             {/* Social links */}

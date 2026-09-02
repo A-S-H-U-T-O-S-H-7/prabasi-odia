@@ -23,8 +23,7 @@ export interface AdvisoryBoardMember {
   organization?: string;
   designation?: string;
   bio?: string;
-  achievements?: string[];
-  experience?: string;
+  location?: string;
   order: number;
   isActive: boolean;
   featured?: boolean;
@@ -45,8 +44,7 @@ function mapMember(id: string, data: Record<string, any>): AdvisoryBoardMember {
     organization: data.organization || '',
     designation: data.designation || '',
     bio: data.bio || '',
-    achievements: Array.isArray(data.achievements) ? data.achievements : [],
-    experience: data.experience || '',
+    location: data.location || '',
     order: typeof data.order === 'number' ? data.order : 0,
     isActive: data.isActive !== undefined ? data.isActive : true,
     featured: data.featured || false,
@@ -136,12 +134,6 @@ export const adminAdvisoryBoardService = {
         photoURL = data.photoURL;
       }
 
-      const achievements = Array.isArray(data.achievements)
-        ? data.achievements.filter((a: string) => a?.trim())
-        : typeof data.achievementsText === 'string'
-          ? data.achievementsText.split('\n').map((a: string) => a.trim()).filter(Boolean)
-          : [];
-
       const memberData = {
         name: data.name,
         position: data.position,
@@ -149,8 +141,7 @@ export const adminAdvisoryBoardService = {
         organization: data.organization || '',
         designation: data.designation || '',
         bio: data.bio || '',
-        achievements,
-        experience: data.experience || '',
+        location: data.location || '',
         order: typeof data.order === 'number' ? data.order : parseInt(data.order) || 0,
         isActive: data.isActive !== undefined ? data.isActive : true,
         featured: data.featured || false,
@@ -182,12 +173,6 @@ export const adminAdvisoryBoardService = {
         photoURL = data.photoURL;
       }
 
-      const achievements = Array.isArray(data.achievements)
-        ? data.achievements.filter((a: string) => a?.trim())
-        : typeof data.achievementsText === 'string'
-          ? data.achievementsText.split('\n').map((a: string) => a.trim()).filter(Boolean)
-          : [];
-
       const updateData = {
         name: data.name,
         position: data.position,
@@ -195,8 +180,7 @@ export const adminAdvisoryBoardService = {
         organization: data.organization || '',
         designation: data.designation || '',
         bio: data.bio || '',
-        achievements,
-        experience: data.experience || '',
+        location: data.location || '',
         order: typeof data.order === 'number' ? data.order : parseInt(data.order) || 0,
         isActive: data.isActive !== undefined ? data.isActive : true,
         featured: data.featured || false,
