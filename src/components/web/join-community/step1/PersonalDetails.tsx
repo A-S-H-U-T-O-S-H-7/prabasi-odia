@@ -64,7 +64,8 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
 
   return (
     <div className="space-y-4">
-      {/* Full Name */}
+      {/* Full Name and Date of Birth */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <div>
         <label className="block text-sm font-medium text-[#2A1636] mb-2">
           Full Name <span className="text-red-400">*</span>
@@ -79,7 +80,6 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
         </FieldHint>
       </div>
 
-      {/* Date of Birth */}
       <div>
         <label className="block text-sm font-medium text-[#2A1636] mb-2">
           Date of Birth <span className="text-red-400">*</span>
@@ -110,6 +110,8 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
             </motion.p>
           )}
         </FieldHint>
+      </div>
+
       </div>
 
       {/* Gender + Blood Group + Occupation */}

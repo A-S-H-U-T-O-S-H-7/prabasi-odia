@@ -14,10 +14,10 @@ export default function StepIndicator({ currentStep, totalSteps }: StepIndicator
 
   // Step labels for better UX
   const stepLabels = [
+    "Account",
     "Personal",
     "Address", 
-    "Passions",
-    "Review"
+    "Passions"
   ];
 
   return (

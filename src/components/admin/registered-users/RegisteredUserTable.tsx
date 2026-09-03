@@ -94,11 +94,11 @@ export default function RegisteredUserTable({
                     </span>
                   ) : user.hasJoinedCommunity ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#6B1E5B]/10 text-[#6B1E5B] text-xs font-medium rounded-full border border-[#6B1E5B]/20">
-                      <CheckCircle className="w-3 h-3" /> Joined
+                      <CheckCircle className="w-3 h-3" /> Application submitted
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#D9772B]/10 text-[#D9772B] text-xs font-medium rounded-full border border-[#D9772B]/20">
-                      <UserPlus className="w-3 h-3" /> Signup Only
+                      <UserPlus className="w-3 h-3" /> Account only
                     </span>
                   )}
                 </td>
@@ -122,7 +122,7 @@ function RegisteredUserAvatar({ src, name }: { src?: string; name: string }) {
         <img
           src={src}
           alt={`${name} profile`}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
           onError={() => setHasError(true)}
         />
       ) : (

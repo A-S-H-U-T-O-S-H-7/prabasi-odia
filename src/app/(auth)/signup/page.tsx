@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,6 +56,13 @@ export default function SignupPage() {
 
   const password = watch("password");
   const agreeTerms = watch("agreeTerms");
+
+  // Preserve old links while directing everyone through the single application flow.
+  useEffect(() => {
+    router.replace("/join-community");
+  }, [router]);
+
+  return <CommunityRedirectLoader />;
 
   const onSubmit = async (data: any) => {
     setIsLoading(true);

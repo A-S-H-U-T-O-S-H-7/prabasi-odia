@@ -106,7 +106,14 @@ export default function ProfilePage() {
               <ProfileAbout profile={profile} />
               <ProfileInterests interests={profile.interests || []} />
               <ProfileFamily familyMembers={profile.familyMembers || []} />
-              <ProfileMemberCard profile={profile} />
+              {profile.isVerified && profile.memberId ? (
+                <ProfileMemberCard profile={profile} />
+              ) : (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
+                  <p className="font-semibold">Membership application under review</p>
+                  <p className="mt-1 text-sm">Your account is active, but you are not a member until an administrator approves your application.</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">

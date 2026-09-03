@@ -11,10 +11,10 @@ import JoinCommunityLayout from "@/components/web/join-community/JoinCommunityLa
 import Step1Personal from "@/components/web/join-community/Step1Personal";
 import Step2Address,{ CANT_FIND_COMMUNITY} from "@/components/web/join-community/Step2Address";
 import Step3Interests from "@/components/web/join-community/Step3Interests";
-import Step4Review from "@/components/web/join-community/Step4Review";
+import Step0Account from "@/components/web/join-community/Step0Account";
 import SuccessPage from "@/components/web/join-community/SuccessPage";
 import { userService, type UserProfileData } from "@/lib/services/userService";
-import { publicCommunityService } from "@/lib/services/publicCommunityService";
+import { emailService } from "@/lib/services/emailService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
 import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
 
@@ -154,10 +154,10 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const STEPS = [
+  { title: "Membership Application", subtitle: "Create an account to begin your application" },
   { title: "Personal & Family", subtitle: "Tell us about yourself and your family" },
   { title: "Your Roots", subtitle: "Where do you call home?" },
-  { title: "Interests & Identity", subtitle: "What drives you? Share your ID" },
-  { title: "Review & Submit", subtitle: "Almost there!" },
+  { title: "Passions & Identity", subtitle: "Share your interests and identity details, then submit" },
 ];
 
 export default function JoinCommunityPage() {
@@ -209,18 +209,16 @@ export default function JoinCommunityPage() {
   });
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login?redirect=/join-community');
-    }
-  }, [user, loading, router]);
-
-  useEffect(() => {
     if (user?.email) {
       methods.setValue("email", user.email);
     }
   }, [user, methods]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && user && currentStep === 1) setCurrentStep(2);
+  }, [user, loading, currentStep]);
+
+  if (loading && currentStep > 1) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#6B1E5B] border-t-transparent"></div>
@@ -228,15 +226,14 @@ export default function JoinCommunityPage() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
-  const handleGoToStep = (step: number) => setCurrentStep(step);
-
   const handleSubmit = async () => {
+    if (!user) {
+      toast.error("Please create your account before submitting an application");
+      setCurrentStep(1);
+      return;
+    }
     const isValid = await methods.trigger();
     if (!isValid) {
       toast.error("Please correct the highlighted required fields");
@@ -263,7 +260,7 @@ export default function JoinCommunityPage() {
       const selectedCommunityId = isCommunityRequest ? null : (data.nearbyCommunityId || null);
       const selectedCommunityName = isCommunityRequest ? null : (data.nearbyCommunityName || null);
       const requestedCommunityName = isCommunityRequest ? (data.requestedCommunityName || "").trim() : null;
-      const communityRequestStatus: UserProfileData["communityRequestStatus"] = isCommunityRequest ? "pending" : "joined";
+      const communityRequestStatus: UserProfileData["communityRequestStatus"] = "pending";
 
       let currentLatitude = data.currentLatitude ?? null;
       let currentLongitude = data.currentLongitude ?? null;
@@ -316,6 +313,7 @@ export default function JoinCommunityPage() {
         familyMembers: data.familyMembers || [],
         hasJoinedCommunity: true,
         isVerified: false,
+        applicationStatus: 'pending_review' as const,
       };
 
       await userService.createUserProfile(user.uid, profileData);
@@ -339,19 +337,25 @@ export default function JoinCommunityPage() {
         }
       }
 
-      if (selectedCommunityId) {
-        const joinResult = await publicCommunityService.joinCommunity(selectedCommunityId, user.uid);
-        if (!joinResult.success && joinResult.error !== 'Already a member') {
-          console.error('Failed to join community:', joinResult.error);
-          toast.error(joinResult.error || 'Community join failed. Admin can add you later.');
-        }
+      // The welcome/application email is sent only once the complete form has
+      // been submitted, never merely when an account is created.
+      try {
+        await emailService.sendWelcomeEmail({
+          name: data.fullName,
+          email: user.email || data.email || "",
+        });
+      } catch (emailError) {
+        console.error("Application email error:", emailError);
       }
+
+      // A pending application is never added to a community. Admin approval
+      // performs that assignment and keeps member counts accurate.
 
       setIsSuccess(true);
       toast.success(
         isCommunityRequest
           ? 'Profile submitted! Your community request will be reviewed by admin.'
-          : 'Profile submitted successfully! Our team will verify your details.'
+          : 'Application submitted! Our team will verify your details.'
       );
     } catch (error: any) {
       toast.error(error?.message || 'Something went wrong. Please try again.');
@@ -376,20 +380,17 @@ export default function JoinCommunityPage() {
 
     switch (currentStep) {
       case 1:
-        return <Step1Personal onNext={handleNext} isFirstStep />;
+        return <Step0Account onComplete={({ name, email }) => {
+          methods.setValue("fullName", name);
+          methods.setValue("email", email);
+          setCurrentStep(2);
+        }} />;
       case 2:
-        return <Step2Address onNext={handleNext} onBack={handleBack} />;
+        return <Step1Personal onNext={handleNext} onBack={() => setCurrentStep(1)} isFirstStep={false} />;
       case 3:
-        return <Step3Interests onNext={handleNext} onBack={handleBack} />;
+        return <Step2Address onNext={handleNext} onBack={handleBack} />;
       case 4:
-        return (
-          <Step4Review
-            onSubmit={handleSubmit}
-            onBack={handleBack}
-            onGoToStep={handleGoToStep}
-            isSubmitting={isSubmitting}
-          />
-        );
+        return <Step3Interests onNext={handleSubmit} onBack={handleBack} />;
       default:
         return null;
     }

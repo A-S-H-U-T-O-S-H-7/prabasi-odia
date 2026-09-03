@@ -47,7 +47,7 @@ export default function RegisteredUserFilters({
               : "bg-white/50 text-[#6B5E5A] border border-[#D4C8C0]/30 hover:bg-white/80"
           }`}
         >
-          Joined
+          Application submitted
         </button>
         <button
           onClick={() => setStatusFilter("signup_only")}
@@ -57,7 +57,7 @@ export default function RegisteredUserFilters({
               : "bg-white/50 text-[#6B5E5A] border border-[#D4C8C0]/30 hover:bg-white/80"
           }`}
         >
-          Signup Only
+          Account only
         </button>
       </div>
     </div>

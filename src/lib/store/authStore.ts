@@ -11,7 +11,6 @@ import {
 } from 'firebase/auth';
 import { auth, authReady, db } from '@/lib/firebase/config';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { emailService } from '@/lib/services/emailService';
 import { useUserStore } from './userStore';
 
 interface AuthState {
@@ -158,23 +157,12 @@ const useAuthStore = create<AuthState>()(
           hasJoinedCommunity: false,
           memberId: '',
           isVerified: false,
+          applicationStatus: 'draft',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
         
         await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-        
-        // ✅ SEND WELCOME EMAIL (after successful signup)
-        try {
-          await emailService.sendWelcomeEmail({
-            name: name,
-            email: email,
-          });
-          console.log("✅ Welcome email sent successfully");
-        } catch (emailError) {
-          console.error("Welcome email error:", emailError);
-          // Don't block the flow if email fails
-        }
         
         set({
           user: {
@@ -186,6 +174,7 @@ const useAuthStore = create<AuthState>()(
             hasJoinedCommunity: false,
             memberId: '',
             isVerified: false,
+            applicationStatus: 'draft',
           },
           isAuthenticated: true,
           isAdmin: false,
@@ -286,22 +275,12 @@ const useAuthStore = create<AuthState>()(
             hasJoinedCommunity: false,
             memberId: '',
             isVerified: false,
+            applicationStatus: 'draft',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
           await setDoc(doc(db, 'users', firebaseUser.uid), userData);
           
-          // ✅ SEND WELCOME EMAIL (only for new Google signups)
-          try {
-            await emailService.sendWelcomeEmail({
-              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-              email: firebaseUser.email || '',
-            });
-            console.log("✅ Welcome email sent for Google signup");
-          } catch (emailError) {
-            console.error("Welcome email error:", emailError);
-            // Don't block the flow if email fails
-          }
         }
         
         const userDocData = (await getDoc(doc(db, 'users', firebaseUser.uid))).data() || {};

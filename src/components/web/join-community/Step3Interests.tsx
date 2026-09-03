@@ -512,7 +512,7 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
           onClick={handleNext}
           className="px-6 py-2.5 rounded-xl font-medium transition-all duration-300 cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 hover:scale-[1.02] flex items-center gap-2"
         >
-          Next →
+          Submit application
         </button>
       </div>
     </motion.div>

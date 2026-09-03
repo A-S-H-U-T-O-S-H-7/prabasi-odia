@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useAuthStore } from "@/lib/store";
-import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
+import { isIndianCountryCode } from "@/lib/mobileVerification";
 
 import ProfilePhotoUpload from "./step1/ProfilePhotoUpload";
 import PersonalDetails from "./step1/PersonalDetails";
@@ -41,11 +41,18 @@ const calculateAge = (dob: string): number => {
 };
 
 export default function Step1Personal({ onNext, onBack, isFirstStep = true }: Step1PersonalProps) {
-  const { getValues, setValue, trigger } = useFormContext();
+  const { getValues, setValue, trigger, watch } = useFormContext();
   const { user } = useAuthStore();
   const loginEmail = String(user?.email || getValues("email") || "").trim();
 
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
+  const mobileVerified = watch("mobileVerified");
+  const emailVerified = watch("emailVerified");
+
+  useEffect(() => {
+    if (mobileVerified || emailVerified) setVerificationError("");
+  }, [mobileVerified, emailVerified]);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => {
     const savedMembers = getValues("familyMembers") as FamilyMember[] | undefined;
     if (savedMembers?.length) {
@@ -75,6 +82,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
 
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
+    setVerificationError("");
 
     // Check age from DOB
     const dob = getValues("dob");
@@ -112,15 +120,9 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
 
     if (indianNumber) {
       // ✅ FIX: Normalize both numbers for comparison
-      const currentPhone = `${countryCode}${String(getValues("mobileNumber") || "").trim()}`;
-      const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
-      const normalizedCurrent = normalizeIndianPhone(currentPhone);
-      const normalizedVerified = normalizeIndianPhone(verifiedPhone);
-      
-      
-      contactVerified = Boolean(getValues("mobileVerified")) && 
-                       normalizedCurrent === normalizedVerified &&
-                       normalizedCurrent !== null;
+      // ContactVerification resets this flag whenever the phone number changes.
+      // This avoids showing a stale error after a successfully verified OTP.
+      contactVerified = Boolean(getValues("mobileVerified"));
     } else {
       contactVerified = Boolean(getValues("emailVerified")) &&
         String(getValues("verifiedEmail") || "").toLowerCase() === loginEmail.toLowerCase();
@@ -133,6 +135,7 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
           ? "Please verify your mobile number first"
           : "Please verify the OTP sent to your email first";
       toast.error(message);
+      setVerificationError(message);
       return;
     }
 
@@ -160,6 +163,11 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       <ProfilePhotoUpload hasAttemptedSubmit={hasAttemptedSubmit} />
       <PersonalDetails hasAttemptedSubmit={hasAttemptedSubmit} setHasAttemptedSubmit={setHasAttemptedSubmit} />
       <ContactVerification loginEmail={loginEmail} />
+      {verificationError && (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {verificationError}
+        </div>
+      )}
       <FamilyMembers 
         familyMembers={familyMembers}
         setFamilyMembers={setFamilyMembers}

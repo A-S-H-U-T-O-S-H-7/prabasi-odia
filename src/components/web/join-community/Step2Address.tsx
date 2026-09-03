@@ -404,7 +404,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             )}
             <ErrorMessage name="nearbyCommunityId" />
             {!showRequestedCommunity && nearbyCommunityId && (
-              <p className="text-xs text-[#6B1E5B] mt-1">You will be added as a member of this community after submission.</p>
+              <p className="text-xs text-[#6B1E5B] mt-1">If approved, an administrator will add you to this community.</p>
             )}
           </div>
 

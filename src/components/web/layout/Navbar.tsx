@@ -71,7 +71,7 @@ export default function Navbar() {
     { href: '/partners', label: 'Partners' },
     { href: '/about', label: 'About' },
   ];
-  const donateHref = isAuthenticated ? '/donation' : '/signup';
+  const donateHref = isAuthenticated ? '/donation' : '/join-community';
 
   if (!mounted) {
     return (
@@ -178,7 +178,7 @@ export default function Navbar() {
 
             {!loading && (
               <Link href={donateHref}>
-                <button className="px-5 py-2 text-sm font-semibold text-white bg-[#D9772B] hover:bg-[#B8621E] rounded-lg transition-all shadow-lg shadow-[#D9772B]/25 hover:shadow-[#D9772B]/40">
+                <button className="px-5 py-2 text-sm font-semibold text-white bg-[#0F766E] hover:bg-[#0B5F59] rounded-lg transition-all shadow-lg shadow-[#0F766E]/25 hover:shadow-[#0F766E]/40 cursor-pointer">
                   Donate
                 </button>
               </Link>
@@ -191,9 +191,9 @@ export default function Navbar() {
                     Login
                   </button>
                 </Link>
-                <Link href="/signup">
-                  <button className="px-5 py-2 text-sm font-medium text-white bg-[#6B1E5B] hover:bg-[#531547] rounded-lg transition-all shadow-lg shadow-[#6B1E5B]/25 hover:shadow-[#6B1E5B]/40">
-                    Sign Up
+                <Link href="/join-community">
+                  <button className="px-5 py-2 text-sm font-medium text-white bg-[#6B1E5B] hover:bg-[#531547] rounded-lg transition-all shadow-lg shadow-[#6B1E5B]/25 hover:shadow-[#6B1E5B]/40 cursor-pointer">
+                    Register here
                   </button>
                 </Link>
               </div>
@@ -209,8 +209,8 @@ export default function Navbar() {
             {isAuthenticated && !hasJoinedCommunity && !loading && (
               <div className="flex items-center space-x-4">
                 <Link href="/join-community">
-                  <button className="px-5 py-2 text-sm font-medium text-white bg-[#D9772B] hover:bg-[#B8621E] rounded-lg transition-all shadow-lg shadow-[#D9772B]/25 hover:shadow-[#D9772B]/40 animate-pulse-slow">
-                    Join Free
+                  <button className="px-5 py-2 text-sm font-medium text-white bg-[#D9772B] hover:bg-[#B8621E] rounded-lg transition-all shadow-lg shadow-[#D9772B]/25 hover:shadow-[#D9772B]/40 animate-bounce cursor-pointer">
+                    Registration pending
                   </button>
                 </Link>
               </div>
@@ -345,7 +345,7 @@ export default function Navbar() {
               {!loading && (
                 <Link
                   href={donateHref}
-                  className="block text-center bg-[#D9772B] text-white hover:bg-[#B8621E] rounded-lg py-2 transition-colors"
+                  className="block text-center bg-[#0F766E] text-white hover:bg-[#0B5F59] rounded-lg py-2 transition-colors cursor-pointer"
                   onClick={() => setIsOpen(false)}
                 >
                   Donate
@@ -364,11 +364,11 @@ export default function Navbar() {
                     Login
                   </Link>
                   <Link
-                    href="/signup"
-                    className="block text-center bg-[#6B1E5B] text-white hover:bg-[#531547] rounded-lg py-2 transition-colors"
+                    href="/join-community"
+                    className="block text-center bg-[#6B1E5B] text-white hover:bg-[#531547] rounded-lg py-2 transition-colors cursor-pointer"
                     onClick={() => setIsOpen(false)}
                   >
-                    Sign Up
+                    Register here
                   </Link>
                 </>
               )}
@@ -382,10 +382,10 @@ export default function Navbar() {
               {isAuthenticated && !hasJoinedCommunity && !loading && (
                 <Link
                   href="/join-community"
-                  className="block text-center bg-[#D9772B] text-white hover:bg-[#B8621E] rounded-lg py-2 transition-colors"
+                  className="block text-center bg-[#D9772B] text-white hover:bg-[#B8621E] rounded-lg py-2 transition-colors animate-bounce cursor-pointer"
                   onClick={() => setIsOpen(false)}
                 >
-                  Join Free
+                  Registration pending
                 </Link>
               )}
 

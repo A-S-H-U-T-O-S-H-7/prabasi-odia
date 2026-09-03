@@ -76,7 +76,7 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
         transition={{ delay: 0.5 }}
         className="mt-4 md:mt-6 text-2xl md:text-3xl font-serif font-bold text-[#2A1636]"
       >
-        Welcome to Prabasi Odia! 🎉
+        Application received
       </motion.h1>
 
       {/* Subtitle */}
@@ -86,9 +86,24 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
         transition={{ delay: 0.6 }}
         className="mt-2 md:mt-3 text-xs md:text-sm text-[#6B5E5A] max-w-md mx-auto px-2"
       >
-        Your profile has been submitted for verification. 
-        You'll receive a notification once your identity is verified.
+        Your membership application is under review. You are not an active member yet;
+        we’ll notify you when it is approved.
       </motion.p>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.65 }}
+        className="mx-auto mt-4 flex max-w-md items-start gap-3 rounded-2xl border border-[#6B1E5B]/20 bg-[#6B1E5B]/5 p-4 text-left"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#6B1E5B] text-white">
+          <Mail className="h-4 w-4" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[#2A1636]">Check your email for confirmation</p>
+          <p className="mt-1 text-xs leading-5 text-[#6B5E5A]">We’ve sent a confirmation to your registered email address. If it is not in your inbox shortly, please check your Spam or Promotions folder.</p>
+        </div>
+      </motion.div>
 
       {/* Next Steps Card */}
       <motion.div
@@ -110,11 +125,11 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
               </div>
               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
                 <Shield className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
-                <span>You'll receive a verified badge on your profile</span>
+                <span>Once approved, your profile becomes an active membership</span>
               </div>
               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
                 <Award className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
-                <span>Get access to exclusive community features</span>
+                <span>Member features and card unlock after approval</span>
               </div>
             </div>
           </div>

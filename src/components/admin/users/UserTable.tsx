@@ -56,7 +56,7 @@ export default function UserTable({ users, onViewUser, onEditUser, loading = fal
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#6B1E5B]/10 flex items-center justify-center text-[#6B1E5B] flex-shrink-0 overflow-hidden border border-[#E7D7E8]">
                       {profilePhoto ? (
-                        <img src={profilePhoto} alt={`${user.displayName || "Member"} profile`} className="h-full w-full object-cover" />
+                        <img src={profilePhoto} alt={`${user.displayName || "Member"} profile`} className="h-full w-full object-contain" />
                       ) : (
                         <User className="h-5 w-5" />
                       )}

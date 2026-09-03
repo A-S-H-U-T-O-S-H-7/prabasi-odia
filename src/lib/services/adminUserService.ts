@@ -279,6 +279,7 @@ export const adminUserService = {
       const updates: Record<string, any> = {
         isVerified: true,
         hasJoinedCommunity: true,
+        applicationStatus: 'approved',
         memberId,
         verifiedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

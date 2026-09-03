@@ -49,6 +49,8 @@ export interface UserProfileData {
   familyMembers: FamilyMember[];
   hasJoinedCommunity: boolean;
   isVerified: boolean;
+  /** Lifecycle: draft account -> submitted application -> approved membership. */
+  applicationStatus?: 'draft' | 'pending_review' | 'approved';
   memberId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -58,12 +60,15 @@ export const userService = {
   async createUserProfile(uid: string, data: Partial<UserProfileData>) {
     const userRef = doc(db, 'users', uid);
     const now = new Date().toISOString();
+    const existing = await getDoc(userRef);
     
     await setDoc(userRef, {
       ...data,
-      createdAt: now,
+      // An account is created in step one; submitting the application must
+      // never overwrite its original audit timestamp.
+      createdAt: existing.exists() ? existing.data().createdAt || now : now,
       updatedAt: now,
-    });
+    }, { merge: true });
     
     return { success: true };
   },

@@ -20,14 +20,14 @@ export default function RegisteredUserStats({ stats }: RegisteredUserStatsProps)
       bg: "bg-[#6B1E5B]/5",
     },
     {
-      label: "Joined Community",
+      label: "Applications Submitted",
       value: stats.joined,
       icon: UserCheck,
       color: "text-green-600",
       bg: "bg-green-50",
     },
     {
-      label: "Signup Only",
+      label: "Account Only",
       value: stats.signupOnly,
       icon: Users,
       color: "text-[#D9772B]",
