@@ -162,6 +162,10 @@ export default function JoinCommunityPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentStep, isSuccess]);
+
   const methods = useForm<FormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
@@ -223,14 +227,19 @@ export default function JoinCommunityPage() {
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     if (!user) {
       toast.error("Please create your account before submitting an application");
       setCurrentStep(1);
+      setIsSubmitting(false);
       return;
     }
     const isValid = await methods.trigger();
     if (!isValid) {
       toast.error("Please correct the highlighted required fields");
+      setIsSubmitting(false);
       return;
     }
 
@@ -238,16 +247,34 @@ export default function JoinCommunityPage() {
     if (isIndianCountryCode(data.mobileCountryCode) && !data.mobileVerified) {
       toast.error("Please verify your mobile number first");
       setCurrentStep(1);
+      setIsSubmitting(false);
       return;
     }
     if (!isIndianCountryCode(data.mobileCountryCode) && !data.emailVerified) {
       toast.error("Please verify the OTP sent to your email first");
       setCurrentStep(1);
+      setIsSubmitting(false);
       return;
     }
 
-    setIsSubmitting(true);
     try {
+
+      const duplicate = await userService.findDuplicateIdentity({
+        uid: user.uid,
+        phoneNumber: data.mobileNumber,
+        mobileCountryCode: data.mobileCountryCode,
+        aadharNumber: data.idType === "aadhar" ? data.aadharNumber : null,
+        passportNumber: data.idType === "passport" ? data.passportNumber : null,
+      });
+      if (duplicate.field) {
+        const labels = {
+          phone: "phone number",
+          aadhar: "Aadhar number",
+          passport: "passport number",
+        };
+        toast.error(`This ${labels[duplicate.field]} is already linked to another account.`);
+        return;
+      }
 
       const age = calculateAge(data.dob);
       const isCommunityRequest = (data.nearbyCommunityId || "") === CANT_FIND_COMMUNITY;
@@ -280,6 +307,7 @@ export default function JoinCommunityPage() {
         email: user.email || '',
         phoneNumber: data.mobileNumber,
         mobileCountryCode: data.mobileCountryCode,
+        phoneKey: `${data.mobileCountryCode}${data.mobileNumber}`.replace(/[^0-9+]/g, ""),
         age,
         dob: data.dob,
         gender: data.gender,
@@ -383,7 +411,7 @@ export default function JoinCommunityPage() {
       case 2:
         return <Step1Personal onNext={handleNext} />;
       case 3:
-        return <Step2Address onNext={handleSubmit} onBack={handleBack} buttonLabel="Submit application" />;
+        return <Step2Address onNext={handleSubmit} onBack={handleBack} buttonLabel="Submit application" isSubmitting={isSubmitting} />;
       default:
         return null;
     }

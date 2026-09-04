@@ -85,12 +85,12 @@ export default function EmergencyContactWidget() {
     <div
       data-no-translate
       translate="no"
-      className="notranslate fixed bottom-5 right-4 sm:bottom-8 sm:right-6 z-[60] flex flex-col items-end gap-3"
+      className="notranslate fixed bottom-3 right-2 z-[60] flex max-w-[calc(100vw-1rem)] flex-col items-end gap-2 sm:bottom-8 sm:right-6 sm:max-w-none sm:gap-3"
     >
       {/* Panel */}
       {open && (
-        <div className="w-7xl max-h-[70vh] overflow-hidden rounded-2xl bg-white border border-[#E7D7E8] shadow-2xl shadow-[#2A1636]/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="bg-gradient-to-r from-[#B91C1C] via-[#DC2626] to-[#D9772B] px-4 py-3 flex items-center justify-between">
+        <div role="dialog" aria-modal="true" aria-label="Emergency contacts" className="w-[calc(100vw-1rem)] max-w-sm max-h-[78svh] overflow-hidden rounded-xl border border-[#E7D7E8] bg-white shadow-2xl shadow-[#2A1636]/20 animate-in fade-in slide-in-from-bottom-2 duration-200 sm:w-96 sm:max-h-[70vh] sm:rounded-2xl">
+          <div className="flex items-center justify-between bg-gradient-to-r from-[#B91C1C] via-[#DC2626] to-[#D9772B] px-3 py-2.5 sm:px-4 sm:py-3">
             <div>
               <p className="text-white font-serif font-bold text-base leading-tight">
                 Emergency Contact
@@ -109,7 +109,7 @@ export default function EmergencyContactWidget() {
             </button>
           </div>
 
-          <div className="overflow-y-auto max-h-[calc(70vh-64px)] p-2.5 space-y-1.5">
+          <div className="max-h-[calc(78svh-60px)] space-y-1 overflow-y-auto p-2 sm:max-h-[calc(70vh-64px)] sm:space-y-1.5 sm:p-2.5">
             {loading ? (
               <div className="py-8 flex justify-center">
                 <div className="w-6 h-6 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
@@ -128,10 +128,10 @@ export default function EmergencyContactWidget() {
                   <a
                     key={contact.id}
                     href={`tel:${contact.phone}`}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#FFF9F2] border border-transparent hover:border-[#E7D7E8] transition-all group"
+                    className="group flex items-center gap-2 rounded-lg border border-transparent p-2.5 transition-all hover:border-[#E7D7E8] hover:bg-[#FFF9F2] sm:gap-3 sm:rounded-xl sm:p-3"
                   >
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 sm:rounded-xl ${color}`}
                     >
                       <span className="text-lg leading-none">
                         {contact.category === "ambulance" && "🚑"}
@@ -182,7 +182,7 @@ export default function EmergencyContactWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? "Close emergency contacts" : "Open emergency contacts"}
-        className="flex items-center gap-2 rounded-full shadow-lg shadow-red-500/40 cursor-pointer transition-transform hover:scale-105 active:scale-95 bg-gradient-to-r from-[#B91C1C] to-[#DC2626] text-white pl-3.5 pr-4 md:pr-5 py-1 md:py-3"
+        className="flex cursor-pointer items-center gap-2 rounded-full bg-gradient-to-r from-[#B91C1C] to-[#DC2626] py-2 pl-3 pr-3.5 text-white shadow-lg shadow-red-500/40 transition-transform hover:scale-105 active:scale-95 sm:py-3 sm:pl-3.5 sm:pr-5"
       >
         <span className="flex items-center justify-center rounded-full bg-white/20 w-7 h-7 md:w-9 md:h-9">
           {open ? <X className="w-4 h-4 md:w-[18px] md:h-[18px]" /> : <Phone className="w-4 h-4 md:w-[18px] md:h-[18px]" />}

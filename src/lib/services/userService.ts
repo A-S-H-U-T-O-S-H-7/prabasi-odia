@@ -1,5 +1,5 @@
 // lib/services/userService.ts
-import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, getDoc, collection, limit, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
 
@@ -16,6 +16,9 @@ export interface UserProfileData {
   displayName: string;
   email: string;
   photoURL?: string;
+  phoneNumber?: string;
+  mobileCountryCode?: string;
+  phoneKey?: string;
   age: number;
   gender: string;
   bloodGroup: string;
@@ -58,6 +61,44 @@ export interface UserProfileData {
 }
 
 export const userService = {
+  async findDuplicateIdentity({
+    uid,
+    phoneNumber,
+    mobileCountryCode,
+    aadharNumber,
+    passportNumber,
+  }: {
+    uid: string;
+    phoneNumber: string;
+    mobileCountryCode: string;
+    aadharNumber?: string | null;
+    passportNumber?: string | null;
+  }): Promise<{ field?: 'phone' | 'aadhar' | 'passport' }> {
+    const users = collection(db, 'users');
+    const phoneKey = `${mobileCountryCode}${phoneNumber}`.replace(/[^0-9+]/g, '');
+
+    const phoneMatches = await getDocs(query(users, where('phoneKey', '==', phoneKey), limit(2)));
+    if (phoneMatches.docs.some((userDoc) => userDoc.id !== uid)) return { field: 'phone' };
+
+    // Covers profiles created before phoneKey was introduced.
+    const legacyPhoneMatches = await getDocs(query(users, where('phoneNumber', '==', phoneNumber), limit(10)));
+    if (legacyPhoneMatches.docs.some((userDoc) =>
+      userDoc.id !== uid && String(userDoc.data().mobileCountryCode || '') === mobileCountryCode
+    )) return { field: 'phone' };
+
+    if (aadharNumber) {
+      const aadharMatches = await getDocs(query(users, where('aadharNumber', '==', aadharNumber), limit(2)));
+      if (aadharMatches.docs.some((userDoc) => userDoc.id !== uid)) return { field: 'aadhar' };
+    }
+
+    if (passportNumber) {
+      const passportMatches = await getDocs(query(users, where('passportNumber', '==', passportNumber), limit(2)));
+      if (passportMatches.docs.some((userDoc) => userDoc.id !== uid)) return { field: 'passport' };
+    }
+
+    return {};
+  },
+
   async createUserProfile(uid: string, data: Partial<UserProfileData>) {
     const userRef = doc(db, 'users', uid);
     const now = new Date().toISOString();

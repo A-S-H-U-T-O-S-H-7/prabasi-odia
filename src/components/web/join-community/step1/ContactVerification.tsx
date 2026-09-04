@@ -622,8 +622,9 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
                   : `OTP has been sent to ${loginEmail}`}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {otpDigits.map((digit, index) => (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex w-full items-center justify-between gap-1 sm:w-auto sm:justify-start sm:gap-2">
+                {otpDigits.map((digit, index) => (
                 <input
                   key={index}
                   ref={(element) => {
@@ -637,16 +638,17 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
                   onChange={(event) => handleOtpDigitChange(index, event.target.value)}
                   onKeyDown={(event) => handleOtpKeyDown(index, event)}
                   onPaste={handleOtpPaste}
-                  className="w-11 h-12 sm:w-12 sm:h-12 text-center text-lg font-semibold rounded-xl border border-[#D4C8C0]/50 bg-white/80 text-[#2A1636] outline-none focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20"
+                  className="h-10 w-9 shrink-0 rounded-lg border border-[#D4C8C0]/50 bg-white/80 text-center text-base font-semibold text-[#2A1636] outline-none focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 sm:h-12 sm:w-12 sm:rounded-xl sm:text-lg"
                 />
-              ))}
+                ))}
+              </div>
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleVerifyOtp()}
                 disabled={isVerifyingOtp || otpDigits.join("").length !== 6}
-                className="px-4 py-3 rounded-xl bg-[#6B1E5B] text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full rounded-xl bg-[#6B1E5B] px-4 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-3 cursor-pointer"
               >
                 {isVerifyingOtp ? (
                   <span className="flex items-center gap-1.5">

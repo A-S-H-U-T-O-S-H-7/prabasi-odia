@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { ChevronDown, MapPin, Home, Building, Globe, Users } from "lucide-react";
+import { ChevronDown, Loader2, MapPin, Home, Building, Globe, Users } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useLocationData } from "@/hooks/useLocationData";
@@ -16,6 +16,7 @@ interface Step2AddressProps {
   onNext: () => void;
   onBack: () => void;
   buttonLabel?: string;
+  isSubmitting?: boolean;
 }
 
 const odishaDistricts = [
@@ -93,7 +94,7 @@ function SearchableSelect({ value, options, placeholder, disabled = false, class
   );
 }
 
-export default function Step2Address({ onNext, onBack, buttonLabel = "Next" }: Step2AddressProps) {
+export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isSubmitting = false }: Step2AddressProps) {
   const { register, watch, trigger, setValue, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [communities, setCommunities] = useState<PublicCommunity[]>([]);
@@ -483,11 +484,11 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next" }: S
       <input type="hidden" {...register("currentLongitude", { valueAsNumber: true })} />
 
       <div className="mt-4 flex justify-between border-t border-[#D4C8C0]/20 pt-4 sm:mt-6 sm:pt-6">
-        <button onClick={onBack} className="rounded-xl border border-[#D4C8C0]/30 px-4 py-2 text-sm font-medium text-[#6B5E5A] transition-all duration-300 hover:bg-white/50 sm:px-6 sm:py-2.5 sm:text-base cursor-pointer">
+        <button onClick={onBack} disabled={isSubmitting} className="rounded-xl border border-[#D4C8C0]/30 px-4 py-2 text-sm font-medium text-[#6B5E5A] transition-all duration-300 hover:bg-white/50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:py-2.5 sm:text-base cursor-pointer">
           ← Back
         </button>
-        <button onClick={handleNext} className="rounded-xl bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] px-4 py-2 text-sm font-medium text-white shadow-lg shadow-[#6B1E5B]/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-[#6B1E5B]/40 sm:px-6 sm:py-2.5 sm:text-base cursor-pointer">
-          {buttonLabel} →
+        <button onClick={handleNext} disabled={isSubmitting} className="flex min-w-36 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] px-4 py-2 text-sm font-medium text-white shadow-lg shadow-[#6B1E5B]/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-[#6B1E5B]/40 disabled:cursor-not-allowed disabled:opacity-70 sm:px-6 sm:py-2.5 sm:text-base cursor-pointer">
+          {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" />Submitting…</> : <>{buttonLabel} →</>}
         </button>
       </div>
     </motion.div>
