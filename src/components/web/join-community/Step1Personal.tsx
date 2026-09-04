@@ -33,7 +33,7 @@ const calculateAge = (dob: string): number => {
 export default function Step1Personal({ onNext }: Step1PersonalProps) {
   const { getValues, trigger, watch } = useFormContext();
   const { user } = useAuthStore();
-  const loginEmail = String(user?.email || getValues("email") || "").trim();
+  const loginEmail = String(watch("email") || user?.email || "").trim();
 
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [verificationError, setVerificationError] = useState("");
@@ -82,7 +82,7 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
 
     if (!contactVerified) {
       const message = !indianNumber && !loginEmail
-        ? "No email is linked to your account. Please login with email or Google."
+        ? "Enter your email address before requesting an email OTP"
         : indianNumber
           ? "Please verify your mobile number first"
           : "Please verify the OTP sent to your email first";

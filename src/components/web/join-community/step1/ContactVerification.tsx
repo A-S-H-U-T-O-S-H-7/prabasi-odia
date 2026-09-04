@@ -439,9 +439,12 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
             <input
               type="email"
               value={loginEmail}
-              readOnly
-              className={`${inputClass("email")} bg-[#F7F3F1]/80 sm:pl-12 cursor-not-allowed ${isEmailVerified ? "border-green-500" : ""}`}
-              placeholder="Login email"
+              onChange={(event) => {
+                setValue("email", event.target.value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                if (isEmailVerified) resetVerification();
+              }}
+              className={`${inputClass("email")} sm:pl-12 ${isEmailVerified ? "border-green-500" : ""}`}
+              placeholder="you@example.com"
             />
           </div>
           {/* Email OTP Send Button - Only for non-Indian numbers */}
@@ -478,7 +481,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
         </div>
         <div className="min-h-5 mt-1">
           {!loginEmail ? (
-            <p className="text-red-400 text-sm">No email is linked to your account. Please login with email or Google.</p>
+            <p className="text-red-400 text-sm">Enter the email address you will use to create your account.</p>
           ) : isEmailVerified ? (
             <div className="flex items-center gap-1.5 text-green-600 text-sm">
               <Check className="w-3.5 h-3.5" /> Email verified
@@ -486,7 +489,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
           ) : (
             <p className="text-xs text-[#6B5E5A]/70">
               {isIndianNumber
-                ? "This is the email you logged in with"
+                ? "This email will be used when you create your account"
                 : "OTP will be sent to this email because your number is outside India"}
             </p>
           )}

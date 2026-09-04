@@ -150,14 +150,14 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const STEPS = [
-  { title: "Membership Application", subtitle: "Create an account to begin your application" },
   { title: "Personal Details", subtitle: "Tell us about yourself" },
   { title: "Your Roots", subtitle: "Where do you call home?" },
+  { title: "Create Account", subtitle: "Create your account and submit your application" },
 ];
 
 export default function JoinCommunityPage() {
   const router = useRouter();
-  const { user, loading } = useAuthStore();
+  const { user } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -206,33 +206,15 @@ export default function JoinCommunityPage() {
     mode: "onChange",
   });
 
-  useEffect(() => {
-    if (user?.email) {
-      methods.setValue("email", user.email);
-    }
-  }, [user, methods]);
-
-  useEffect(() => {
-    if (!loading && user && currentStep === 1) setCurrentStep(2);
-  }, [user, loading, currentStep]);
-
-  if (loading && currentStep > 1) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#6B1E5B] border-t-transparent"></div>
-      </div>
-    );
-  }
-
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
-  const handleSubmit = async () => {
+  const handleSubmit = async (accountUser = user) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    if (!user) {
-      toast.error("Please create your account before submitting an application");
-      setCurrentStep(1);
+    if (!accountUser) {
+      toast.error("Please create your account to submit the application");
+      setCurrentStep(3);
       setIsSubmitting(false);
       return;
     }
@@ -260,7 +242,7 @@ export default function JoinCommunityPage() {
     try {
 
       const duplicate = await userService.findDuplicateIdentity({
-        uid: user.uid,
+        uid: accountUser.uid,
         phoneNumber: data.mobileNumber,
         mobileCountryCode: data.mobileCountryCode,
         aadharNumber: data.idType === "aadhar" ? data.aadharNumber : null,
@@ -302,9 +284,9 @@ export default function JoinCommunityPage() {
       }
 
       const profileData = {
-        uid: user.uid,
+        uid: accountUser.uid,
         displayName: data.fullName,
-        email: user.email || '',
+        email: accountUser.email || data.email || '',
         phoneNumber: data.mobileNumber,
         mobileCountryCode: data.mobileCountryCode,
         phoneKey: `${data.mobileCountryCode}${data.mobileNumber}`.replace(/[^0-9+]/g, ""),
@@ -339,24 +321,24 @@ export default function JoinCommunityPage() {
         applicationStatus: 'pending_review' as const,
       };
 
-      await userService.createUserProfile(user.uid, profileData);
+      await userService.createUserProfile(accountUser.uid, profileData);
 
       // ✅ Upload profile photo
       if (data.photo instanceof File) {
-        await userService.uploadDocument(user.uid, data.photo, 'profilePhoto');
+        await userService.uploadDocument(accountUser.uid, data.photo, 'profilePhoto');
       }
 
       // ✅ Upload Aadhar documents (if provided)
       if (data.idType === "aadhar") {
         if (data.aadharFront instanceof File) {
-          await userService.uploadDocument(user.uid, data.aadharFront, 'aadharFront');
+          await userService.uploadDocument(accountUser.uid, data.aadharFront, 'aadharFront');
         }
         if (data.aadharBack instanceof File) {
-          await userService.uploadDocument(user.uid, data.aadharBack, 'aadharBack');
+          await userService.uploadDocument(accountUser.uid, data.aadharBack, 'aadharBack');
         }
       } else if (data.idType === "passport") {
         if (data.passportFile instanceof File) {
-          await userService.uploadDocument(user.uid, data.passportFile, 'passportFile');
+          await userService.uploadDocument(accountUser.uid, data.passportFile, 'passportFile');
         }
       }
 
@@ -365,7 +347,7 @@ export default function JoinCommunityPage() {
       try {
         await emailService.sendWelcomeEmail({
           name: data.fullName,
-          email: user.email || data.email || "",
+          email: accountUser.email || data.email || "",
         });
       } catch (emailError) {
         console.error("Application email error:", emailError);
@@ -403,15 +385,15 @@ export default function JoinCommunityPage() {
 
     switch (currentStep) {
       case 1:
-        return <Step0Account onComplete={({ name, email }) => {
-          methods.setValue("fullName", name);
-          methods.setValue("email", email);
-          setCurrentStep(2);
-        }} />;
-      case 2:
         return <Step1Personal onNext={handleNext} />;
+      case 2:
+        return <Step2Address onNext={handleNext} onBack={handleBack} buttonLabel="Next" />;
       case 3:
-        return <Step2Address onNext={handleSubmit} onBack={handleBack} buttonLabel="Submit application" isSubmitting={isSubmitting} />;
+        return <Step0Account initialName={methods.getValues("fullName")} initialEmail={methods.getValues("email")} onComplete={async ({ name, email, uid }) => {
+          methods.setValue("fullName", methods.getValues("fullName") || name);
+          methods.setValue("email", email);
+          await handleSubmit({ uid, email });
+        }} />;
       default:
         return null;
     }
