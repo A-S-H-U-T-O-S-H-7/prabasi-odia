@@ -294,13 +294,30 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-[#E7D7E8]/50 transition-colors"
-          >
-            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          {/* Mobile account action + menu */}
+          <div className="flex items-center gap-1.5 md:hidden">
+            {!loading && (
+              <Link
+                href={isAuthenticated && hasJoinedCommunity ? '/profile' : '/join-community'}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                  isAuthenticated && hasJoinedCommunity
+                    ? 'bg-[#E7D7E8]/70 text-[#6B1E5B] hover:bg-[#E7D7E8]'
+                    : 'bg-[#6B1E5B] text-white hover:bg-[#531547]'
+                }`}
+              >
+                <User className="h-3.5 w-3.5" />
+                <span>{isAuthenticated && hasJoinedCommunity ? 'Profile' : 'Register'}</span>
+              </Link>
+            )}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isOpen}
+              className="p-2 rounded-lg hover:bg-[#E7D7E8]/50 transition-colors"
+            >
+              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </div>
 

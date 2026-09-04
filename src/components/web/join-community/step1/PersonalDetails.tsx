@@ -85,11 +85,11 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
           Date of Birth <span className="text-red-400">*</span>
         </label>
         <div className="relative">
-          <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+          <Calendar className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
           <input 
             {...register("dob")} 
             type="date" 
-            className={`${inputClass("dob")} pl-12`}
+            className={`${inputClass("dob")} sm:pl-12`}
             max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
           />
         </div>
@@ -164,8 +164,8 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
             Occupation <span className="text-red-400">*</span>
           </label>
           <div className="relative">
-            <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-            <input {...register("occupation")} className={`${inputClass("occupation")} pl-12`} placeholder="Your profession / job title" />
+            <Briefcase className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
+            <input {...register("occupation")} className={`${inputClass("occupation")} sm:pl-12`} placeholder="Your profession / job title" />
           </div>
           <FieldHint>
             {shouldShowError("occupation") && (

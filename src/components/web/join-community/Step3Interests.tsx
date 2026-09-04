@@ -352,14 +352,14 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
                 Aadhar Number <span className="text-red-400">*</span>
               </label>
               <div className="relative">
-                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+                <Shield className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
                 <input
                   type="text"
                   inputMode="numeric"
                   maxLength={12}
                   value={aadharNumber}
                   placeholder="Enter 12-digit Aadhar number"
-                  className={`w-full px-4 py-2.5 pl-12 rounded-xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 ${
+                  className={`w-full px-3 py-2.5 rounded-xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 sm:px-4 sm:pl-12 ${
                     shouldShowError("aadharNumber")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : aadharNumber.length === 12
@@ -415,12 +415,12 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
                 Passport Number <span className="text-red-400">*</span>
               </label>
               <div className="relative">
-                <FaPassport className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+                <FaPassport className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
                 <input
                   type="text"
                   value={passportNumber}
                   placeholder="Enter passport number (6-9 characters)"
-                  className={`w-full px-4 py-2.5 pl-12 rounded-xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 uppercase ${
+                  className={`w-full px-3 py-2.5 rounded-xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 uppercase sm:px-4 sm:pl-12 ${
                     shouldShowError("passportNumber")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : passportNumber.length >= 6

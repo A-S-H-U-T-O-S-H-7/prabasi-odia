@@ -334,11 +334,11 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
               Country <span className="text-red-400">*</span>
             </label>
             <div className="relative">
-              <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+              <Globe className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
               <SearchableSelect
                 value={currentCountry || ""}
                 options={countries.map((country) => country.name)}
-                className={`${inputClass("currentCountry")} pl-12`}
+                className={`${inputClass("currentCountry")} sm:pl-12`}
                 disabled={loading.countries}
                 placeholder="Type country"
                 onChange={(value) => setValue("currentCountry", value, { shouldValidate: hasAttemptedSubmit || touchedFields.currentCountry })}

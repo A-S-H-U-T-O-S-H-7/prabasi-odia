@@ -435,12 +435,12 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
         </label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+            <Mail className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
             <input
               type="email"
               value={loginEmail}
               readOnly
-              className={`${inputClass("email")} pl-12 bg-[#F7F3F1]/80 cursor-not-allowed ${isEmailVerified ? "border-green-500" : ""}`}
+              className={`${inputClass("email")} bg-[#F7F3F1]/80 sm:pl-12 cursor-not-allowed ${isEmailVerified ? "border-green-500" : ""}`}
               placeholder="Login email"
             />
           </div>
@@ -524,11 +524,11 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
           </label>
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+              <Phone className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
               <input
                 type="tel"
                 value={watchMobileNumber || ""}
-                className={`${inputClass("mobileNumber")} pl-12 ${isMobileVerified ? "border-green-500" : ""}`}
+                className={`${inputClass("mobileNumber")} sm:pl-12 ${isMobileVerified ? "border-green-500" : ""}`}
                 placeholder="Enter mobile number"
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^0-9+\-\s()]/g, '');
