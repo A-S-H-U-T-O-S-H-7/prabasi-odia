@@ -34,6 +34,7 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [popoverSide, setPopoverSide] = useState<'left' | 'right'>('right');
 
   // Check if mobile on mount and on resize
   useEffect(() => {
@@ -59,10 +60,22 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
     setIsModalOpen(false);
   };
 
+  const handleMouseEnter = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile) return;
+
+    const cardBounds = event.currentTarget.getBoundingClientRect();
+    const popoverWidth = 500; // Popover width plus its gap from the card.
+    const hasRoomOnRight = window.innerWidth - cardBounds.right >= popoverWidth;
+    const hasRoomOnLeft = cardBounds.left >= popoverWidth;
+
+    setPopoverSide(!hasRoomOnRight && hasRoomOnLeft ? 'left' : 'right');
+    setIsHovered(true);
+  };
+
   return (
     <div 
       className="relative w-full"
-      onMouseEnter={() => !isMobile && setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => !isMobile && setIsHovered(false)}
     >
       {/* Main Card with Gradient Background */}
@@ -194,7 +207,9 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
 
       {/* Desktop Tooltip Popover */}
       {!isMobile && (
-        <div className="absolute top-1/2 left-full z-50 -translate-y-1/2 ml-4 pointer-events-none">
+        <div className={`absolute top-1/2 z-50 -translate-y-1/2 pointer-events-none ${
+          popoverSide === 'left' ? 'right-full mr-4' : 'left-full ml-4'
+        }`}>
           <AnimatePresence>
             {isHovered && (
               <motion.div
@@ -206,8 +221,8 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
               >
                 <div className="relative">
                   {/* Pointer/Triangle */}
-                  <div className="absolute -left-2 top-1/2 -translate-y-1/2">
-                    <div className="w-3 h-3 bg-white rotate-45 border-l border-t border-[#6B1E5B]/20 shadow-lg" />
+                  <div className={`absolute top-1/2 -translate-y-1/2 ${popoverSide === 'left' ? '-right-2' : '-left-2'}`}>
+                    <div className={`w-3 h-3 bg-white rotate-45 shadow-lg ${popoverSide === 'left' ? 'border-r border-b' : 'border-l border-t'} border-[#6B1E5B]/20`} />
                   </div>
 
                   {/* Popover Content */}
