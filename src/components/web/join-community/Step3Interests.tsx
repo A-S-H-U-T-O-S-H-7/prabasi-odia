@@ -2,11 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { 
-  Heart, Users, Droplet, Handshake, Sparkles, GraduationCap, 
-  Network, AlertCircle, Check, Shield, Loader2, XCircle, 
-  Upload, Camera, FileText, Image as ImageIcon, X
-} from "lucide-react";
+import { AlertCircle, Check, Droplet, GraduationCap, Handshake, Heart, Network, Shield, Sparkles, Upload, Users, X } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { FaPassport } from "react-icons/fa";
@@ -14,7 +10,8 @@ import Image from "next/image";
 
 interface Step3InterestsProps {
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
+  compact?: boolean;
 }
 
 const interestOptions = [
@@ -23,7 +20,6 @@ const interestOptions = [
   { id: "jobHelp", label: "Job Help / Referrals", icon: Handshake, color: "bg-blue-100 text-blue-700 border-blue-200" },
   { id: "socialAwareness", label: "Social Awareness", icon: Sparkles, color: "bg-orange-100 text-orange-700 border-orange-200" },
   { id: "cleanlinessDrives", label: "Cleanliness Drives", icon: Users, color: "bg-green-100 text-green-700 border-green-200" },
-  { id: "culturalEvents", label: "Cultural Events", icon: Sparkles, color: "bg-amber-100 text-amber-700 border-amber-200" },
   { id: "mentorship", label: "Mentorship", icon: GraduationCap, color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
   { id: "startupNetworking", label: "Startup Networking", icon: Network, color: "bg-teal-100 text-teal-700 border-teal-200" },
 ];
@@ -35,12 +31,14 @@ function DocumentUpload({
   accept = "image/*",
   required = false,
   onUpload,
+  compact = false,
 }: {
   label: string;
   name: string;
   accept?: string;
   required?: boolean;
   onUpload?: (file: File) => void;
+  compact?: boolean;
 }) {
   const { setValue, watch, trigger, formState: { errors, touchedFields } } = useFormContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,7 +123,7 @@ function DocumentUpload({
         }`}
       >
         {preview ? (
-          <div className="relative w-full h-28">
+          <div className={`relative w-full ${compact ? "h-16" : "h-28"}`}>
             <Image src={preview} alt={label} fill className="object-cover rounded-xl" />
             <button
               type="button"
@@ -139,12 +137,12 @@ function DocumentUpload({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-6 px-4">
-            <div className="w-10 h-10 rounded-full bg-[#6B1E5B]/10 flex items-center justify-center mb-2">
+          <div className={`flex flex-col items-center justify-center px-4 ${compact ? "py-2" : "py-6"}`}>
+            <div className={`${compact ? "hidden" : "w-10 h-10 mb-2"} rounded-full bg-[#6B1E5B]/10 flex items-center justify-center`}>
               <Upload className="w-5 h-5 text-[#6B1E5B]/60" />
             </div>
-            <p className="text-sm font-medium text-[#2A1636]">Click or drag to upload</p>
-            <p className="text-xs text-[#6B5E5A]/60 mt-0.5">PNG, JPG, WEBP, PDF (Max 5MB)</p>
+            <p className="text-sm font-medium text-[#2A1636]">{compact ? "Choose optional file" : "Click or drag to upload"}</p>
+            {!compact && <p className="text-xs text-[#6B5E5A]/60 mt-0.5">PNG, JPG, WEBP, PDF (Max 5MB)</p>}
           </div>
         )}
         <input ref={fileInputRef} type="file" accept={accept} className="hidden" onChange={handleChange} />
@@ -157,7 +155,7 @@ function DocumentUpload({
   );
 }
 
-export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) {
+export default function Step3Interests({ onNext, onBack, compact = false }: Step3InterestsProps) {
   const { watch, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [hasAadhar, setHasAadhar] = useState<"yes" | "no" | null>(null);
@@ -165,17 +163,18 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
   const selectedInterests = watch("interests") || [];
   const aadharNumber = watch("aadharNumber") || "";
   const passportNumber = watch("passportNumber") || "";
+  const identityConsent = watch("identityConsent") || false;
 
   const shouldShowError = (name: string) => Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
 
   const toggleInterest = (id: string) => {
     const current = selectedInterests || [];
-    const updated = current.includes(id) ? current.filter((i: string) => i !== id) : [...current, id];
-    setValue("interests", updated, { shouldValidate: true });
+    setValue("interests", current.includes(id) ? current.filter((i: string) => i !== id) : [...current, id]);
   };
 
   const handleHasAadhar = (value: "yes" | "no") => {
     setHasAadhar(value);
+    setValue("idType", value === "yes" ? "aadhar" : "passport", { shouldValidate: true });
     // Clear the other field when switching
     if (value === "yes") {
       setValue("passportNumber", "");
@@ -191,11 +190,6 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
     setHasAttemptedSubmit(true);
 
     // ✅ 1. Check if at least 2 interests are selected
-    if ((selectedInterests || []).length < 2) {
-      toast.error("Please select at least 2 interests");
-      return;
-    }
-
     // ✅ 2. Check if Aadhar/Passport selection is made
     if (!hasAadhar) {
       toast.error("Please select whether you have Aadhar or Passport");
@@ -235,21 +229,21 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4 }}
-      className="space-y-5 md:space-y-6"
+      className={compact ? "space-y-3 border-t border-[#D4C8C0]/30 pt-3 sm:pt-4" : "space-y-5 md:space-y-6"}
     >
       {/* Header */}
-      <div className="flex items-center gap-3">
+      {!compact && <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center flex-shrink-0">
-          <Sparkles className="w-4 h-4 text-[#6B1E5B]" />
+          <Shield className="w-4 h-4 text-[#6B1E5B]" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-[#2A1636]">💖 Your Passions & Identity</h2>
-          <p className="text-sm text-[#6B5E5A]">What drives you? Select at least 2 interests</p>
+          <h2 className="text-lg font-bold text-[#2A1636]">Identity verification</h2>
+          <p className="text-sm text-[#6B5E5A]">Provide your Aadhar or passport details</p>
         </div>
-      </div>
+      </div>}
 
-      {/* Interests Grid */}
-      <div>
+      {/* Interests Grid removed */}
+      {false && <div>
         <label className="block text-sm font-medium text-[#2A1636] mb-3">
           I'm interested in... <span className="text-red-400">* (Min 2)</span>
         </label>
@@ -315,44 +309,23 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </div>}
 
       {/* Do you have Aadhar? Section */}
-      <div className="pt-2 border-t border-[#D4C8C0]/20">
+      <div className={compact ? "rounded-xl bg-[#6B1E5B]/5 p-2.5 sm:p-3" : "pt-2 border-t border-[#D4C8C0]/20"}>
         <label className="block text-sm font-medium text-[#2A1636] mb-3">
           Do you have Aadhar? <span className="text-red-400">*</span>
         </label>
         
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleHasAadhar("yes")}
-            className={`p-4 rounded-2xl border-2 transition-all duration-300 flex items-center justify-center gap-3 ${
-              hasAadhar === "yes"
-                ? "border-[#6B1E5B] bg-[#6B1E5B]/5 shadow-md"
-                : "border-[#D4C8C0]/30 bg-white/40 hover:border-[#6B1E5B]/30"
-            }`}
-          >
-            <Shield className={`w-5 h-5 ${hasAadhar === "yes" ? "text-[#6B1E5B]" : "text-[#6B5E5A]"}`} />
-            <span className={`font-semibold ${hasAadhar === "yes" ? "text-[#6B1E5B]" : "text-[#2A1636]"}`}>Yes</span>
-          </motion.button>
-
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleHasAadhar("no")}
-            className={`p-4 rounded-2xl border-2 transition-all duration-300 flex items-center justify-center gap-3 ${
-              hasAadhar === "no"
-                ? "border-[#D9772B] bg-[#D9772B]/5 shadow-md"
-                : "border-[#D4C8C0]/30 bg-white/40 hover:border-[#D9772B]/30"
-            }`}
-          >
-            <FaPassport className={`w-5 h-5 ${hasAadhar === "no" ? "text-[#D9772B]" : "text-[#6B5E5A]"}`} />
-            <span className={`font-semibold ${hasAadhar === "no" ? "text-[#D9772B]" : "text-[#2A1636]"}`}>No (Passport)</span>
-          </motion.button>
+        <div className="mb-3 flex flex-wrap gap-3 sm:gap-4">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2A1636]">
+            <input type="radio" name="identity-document" checked={hasAadhar === "yes"} onChange={() => handleHasAadhar("yes")} className="h-4 w-4 accent-[#6B1E5B]" />
+            <Shield className="h-4 w-4 text-[#6B1E5B]" /> I have Aadhar
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2A1636]">
+            <input type="radio" name="identity-document" checked={hasAadhar === "no"} onChange={() => handleHasAadhar("no")} className="h-4 w-4 accent-[#D9772B]" />
+            <FaPassport className="h-4 w-4 text-[#D9772B]" /> I have a passport
+          </label>
         </div>
 
         {hasAttemptedSubmit && !hasAadhar && (
@@ -371,7 +344,7 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="space-y-4"
+            className={compact ? "space-y-3" : "space-y-4"}
           >
             {/* Aadhar Number - MANDATORY */}
             <div>
@@ -386,7 +359,7 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
                   maxLength={12}
                   value={aadharNumber}
                   placeholder="Enter 12-digit Aadhar number"
-                  className={`w-full px-4 py-3 pl-12 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 ${
+                  className={`w-full px-4 py-2.5 pl-12 rounded-xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 ${
                     shouldShowError("aadharNumber")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : aadharNumber.length === 12
@@ -417,21 +390,13 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
             </div>
 
             {/* Aadhar Front Upload - OPTIONAL */}
-            <DocumentUpload
-              label="Aadhar Front"
-              name="aadharFront"
-              required={false}
-            />
-
-            {/* Aadhar Back Upload - OPTIONAL */}
-            <DocumentUpload
-              label="Aadhar Back"
-              name="aadharBack"
-              required={false}
-            />
+            <div className={compact ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : "space-y-4"}>
+              <DocumentUpload label="Aadhar Front" name="aadharFront" required={false} compact={compact} />
+              <DocumentUpload label="Aadhar Back" name="aadharBack" required={false} compact={compact} />
+            </div>
 
             {/* Optional note */}
-            <p className="text-xs text-[#6B5E5A]/60 italic">
+            <p className={`${compact ? "hidden " : ""}text-xs text-[#6B5E5A]/60 italic`}>
               📎 Uploading Aadhar documents is optional but helps with faster verification.
             </p>
           </motion.div>
@@ -442,7 +407,7 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="space-y-4"
+            className={compact ? "space-y-3" : "space-y-4"}
           >
             {/* Passport Number - MANDATORY */}
             <div>
@@ -455,7 +420,7 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
                   type="text"
                   value={passportNumber}
                   placeholder="Enter passport number (6-9 characters)"
-                  className={`w-full px-4 py-3 pl-12 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 uppercase ${
+                  className={`w-full px-4 py-2.5 pl-12 rounded-xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 uppercase ${
                     shouldShowError("passportNumber")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : passportNumber.length >= 6
@@ -490,29 +455,39 @@ export default function Step3Interests({ onNext, onBack }: Step3InterestsProps) 
               label="Passport Document (First Page)"
               name="passportFile"
               required={false}
+              compact={compact}
             />
 
             {/* Optional note */}
-            <p className="text-xs text-[#6B5E5A]/60 italic">
+            <p className={`${compact ? "hidden " : ""}text-xs text-[#6B5E5A]/60 italic`}>
               📎 Uploading passport document is optional but helps with faster verification.
             </p>
           </motion.div>
         ) : null}
       </AnimatePresence>
 
+      <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-[#D4C8C0]/40 bg-white/50 px-3 py-2.5 text-xs leading-5 text-[#6B5E5A]">
+        <input
+          type="checkbox"
+          checked={identityConsent}
+          onChange={(event) => setValue("identityConsent", event.target.checked, { shouldValidate: true })}
+          className="mt-0.5 h-4 w-4 shrink-0 rounded accent-[#6B1E5B]"
+        />
+        <span>I hereby confirm that I am providing these identity details with my consent and that the information is accurate.</span>
+      </label>
       {/* Navigation Buttons */}
-      <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6">
-        <button 
+      <div className={`flex ${compact ? "justify-end pt-3 mt-3" : "justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6"}`}>
+        {!compact && <button
           onClick={onBack} 
           className="px-6 py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer"
         >
           ← Back
-        </button>
+        </button>}
         <button 
           onClick={handleNext}
           className="px-6 py-2.5 rounded-xl font-medium transition-all duration-300 cursor-pointer bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 hover:scale-[1.02] flex items-center gap-2"
         >
-          Submit application
+          {compact ? "Next" : "Submit application"}
         </button>
       </div>
     </motion.div>

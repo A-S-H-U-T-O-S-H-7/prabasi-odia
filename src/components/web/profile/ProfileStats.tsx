@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Heart, Users, MapPin } from "lucide-react";
+import { Calendar, MapPin } from "lucide-react";
 
 interface ProfileStatsProps {
   profile: any;
@@ -21,15 +21,8 @@ export default function ProfileStats({ profile }: ProfileStatsProps) {
     }
   };
 
-  // Count actual family members with names
-  const familyCount = profile.familyMembers 
-    ? profile.familyMembers.filter((m: any) => m.name && m.name.trim() !== "").length 
-    : 0;
-
   const stats = [
     { icon: Calendar, label: "Member Since", value: formatMemberSince(profile.createdAt) },
-    { icon: Heart, label: "Interests", value: (profile.interests || []).length || 0 },
-    { icon: Users, label: "Family Members", value: familyCount },
     { icon: MapPin, label: "Location", value: profile.currentCity || "N/A" },
   ];
 

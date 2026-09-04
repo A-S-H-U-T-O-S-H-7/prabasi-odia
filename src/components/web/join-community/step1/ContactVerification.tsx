@@ -422,12 +422,12 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
   };
 
   const inputClass = (name: string) => `
-    w-full px-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 bg-white/50 focus:ring-2
+    w-full px-3 py-2.5 rounded-xl border transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 bg-white/50 focus:ring-2 sm:px-4 sm:py-3 sm:rounded-2xl
     ${shouldShowError(name) ? "border-red-400 focus:border-red-400 focus:ring-red-200" : "border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20"}
   `;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Login Email */}
       <div>
         <label className="block text-sm font-medium text-[#2A1636] mb-2">
@@ -494,18 +494,18 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
       </div>
 
       {/* Country Code + Mobile Number */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1.6fr] gap-4">
+      <div className="grid grid-cols-[5.25rem_minmax(0,1fr)] gap-2 md:grid-cols-[1fr_1.6fr] sm:gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
-            Country Code <span className="text-red-400">*</span>
+            <span className="sm:hidden">C. Code</span><span className="hidden sm:inline">Country Code</span> <span className="text-red-400">*</span>
           </label>
           <div className="relative">
-            <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
+            <Globe className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
             <select
               {...register("mobileCountryCode")}
-              className={`${inputClass("mobileCountryCode")} pl-12 appearance-none cursor-pointer`}
+              className={`${inputClass("mobileCountryCode")} appearance-none cursor-pointer sm:pl-12`}
             >
-              <option value="">Select Country</option>
+              <option value="">Code</option>
               {countryCodes.map(({ code, country }) => (
                 <option key={code} value={code}>{code} ({country})</option>
               ))}
@@ -548,7 +548,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSendOtp}
                 disabled={isSendingOtp || isMobileVerified || resendCooldown > 0}
-                className={`px-4 py-3 rounded-2xl text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
+                className={`rounded-xl px-2 py-2.5 text-xs font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 sm:px-4 sm:py-3 sm:text-sm sm:rounded-2xl ${
                   isMobileVerified
                     ? "bg-green-600 text-white"
                     : "bg-gradient-to-r from-[#6B1E5B] to-[#8A2E72] text-white shadow-md shadow-[#6B1E5B]/20"
@@ -610,7 +610,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="p-4 rounded-2xl border border-[#D4C8C0]/40 bg-white/60 space-y-3"
+            className="space-y-3 rounded-xl border border-[#D4C8C0]/40 bg-white/60 p-3 sm:rounded-2xl sm:p-4"
           >
             <div>
               <label className="block text-sm font-medium text-[#2A1636] mb-1">

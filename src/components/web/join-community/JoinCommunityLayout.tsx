@@ -47,17 +47,17 @@ export default function JoinCommunityLayout({
 
       
 
-      <div className="relative z-10 min-h-screen w-full flex items-center justify-center px-4 sm:px-6 py-8">
+      <div className="relative z-10 min-h-screen w-full flex items-start justify-center px-2 py-4 sm:items-center sm:px-6 sm:py-8">
         <div className="w-full max-w-4xl">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-8"
+            className="mb-4 text-center sm:mb-8"
           >
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#2A1636]">{title}</h1>
-            <p className="text-[#6B5E5A] mt-2 text-sm sm:text-base">{subtitle}</p>
+            <h1 className="text-2xl font-serif font-bold text-[#2A1636] sm:text-4xl">{title}</h1>
+            <p className="mt-1 text-sm text-[#6B5E5A] sm:mt-2 sm:text-base">{subtitle}</p>
           </motion.div>
 
           {/* Step Indicator */}
@@ -68,7 +68,7 @@ export default function JoinCommunityLayout({
             initial={{ opacity: 0, y: 30, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-6 relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-[0_20px_60px_rgba(107,30,91,0.08)] p-4 sm:p-6 md:p-8"
+            className="relative mt-4 overflow-hidden rounded-2xl border border-white/60 bg-white/80 p-3 shadow-[0_20px_60px_rgba(107,30,91,0.08)] backdrop-blur-xl sm:mt-6 sm:rounded-3xl sm:p-6 md:p-8"
           >
             <div className="absolute -right-32 -top-32 w-64 h-64 rounded-full bg-[#6B1E5B]/5 blur-[80px]" />
             <div className="absolute -left-32 bottom-0 w-64 h-64 rounded-full bg-[#D9772B]/5 blur-[80px]" />

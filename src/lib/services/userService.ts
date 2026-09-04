@@ -40,6 +40,7 @@ export interface UserProfileData {
   idType?: 'aadhar' | 'passport';
   aadharNumber?: string | null;
   passportNumber?: string | null;
+  identityConsent?: boolean;
   documents?: {
     aadharFront?: string;
     aadharBack?: string;

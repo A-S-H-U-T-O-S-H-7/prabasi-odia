@@ -57,18 +57,18 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
       <label className="block text-sm font-medium text-[#2A1636] mb-2">
         Profile Photo <span className="text-red-400">*</span>
       </label>
-      <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-[#D9772B]/20 bg-[#FFF7E8] px-3 py-2.5 text-xs leading-5 text-[#6B5E5A]">
+      <div className="mb-2 flex items-start gap-2 rounded-xl border border-[#D9772B]/20 bg-[#FFF7E8] px-2.5 py-2 text-xs leading-4 text-[#6B5E5A] sm:mb-3 sm:gap-2.5 sm:px-3 sm:py-2.5 sm:leading-5">
         <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#D9772B]" />
         <p>
           Please upload only a recent, clear <strong className="font-semibold text-[#2A1636]">passport-size photo</strong> with your face clearly visible. This photo will be printed on your Prabasi Odia member card, so please avoid selfies, group photos, filters.
         </p>
       </div>
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => fileInputRef.current?.click()}
-          className={`relative w-24 h-24 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden flex items-center justify-center bg-gradient-to-br from-white/40 to-[#6B1E5B]/5 hover:from-white/60 hover:to-[#6B1E5B]/10 group flex-shrink-0 ${
+          className={`relative h-20 w-20 rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden flex items-center justify-center bg-gradient-to-br from-white/40 to-[#6B1E5B]/5 hover:from-white/60 hover:to-[#6B1E5B]/10 group flex-shrink-0 sm:h-24 sm:w-24 sm:rounded-2xl ${
             watchPhoto instanceof File
               ? "border-green-500 bg-green-50/30"
               : shouldShowError() || photoError
@@ -87,7 +87,7 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
         </motion.div>
 
-        <div className="flex-1 min-h-24 flex items-center">
+        <div className="flex min-h-20 flex-1 items-center sm:min-h-24">
           <AnimatePresence mode="wait">
             {(shouldShowError() || photoError) && (
               <motion.div

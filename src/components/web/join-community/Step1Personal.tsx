@@ -12,20 +12,10 @@ import { isIndianCountryCode } from "@/lib/mobileVerification";
 import ProfilePhotoUpload from "./step1/ProfilePhotoUpload";
 import PersonalDetails from "./step1/PersonalDetails";
 import ContactVerification from "./step1/ContactVerification";
-import FamilyMembers from "./step1/FamilyMembers";
-import NavigationButtons from "./step1/NavigationButtons";
-
-interface FamilyMember {
-  id: string;
-  name: string;
-  dob: string;
-  relation: string;
-}
+import Step3Interests from "./Step3Interests";
 
 interface Step1PersonalProps {
   onNext: () => void;
-  onBack?: () => void;
-  isFirstStep?: boolean;
 }
 
 const calculateAge = (dob: string): number => {
@@ -40,8 +30,8 @@ const calculateAge = (dob: string): number => {
   return age;
 };
 
-export default function Step1Personal({ onNext, onBack, isFirstStep = true }: Step1PersonalProps) {
-  const { getValues, setValue, trigger, watch } = useFormContext();
+export default function Step1Personal({ onNext }: Step1PersonalProps) {
+  const { getValues, trigger, watch } = useFormContext();
   const { user } = useAuthStore();
   const loginEmail = String(user?.email || getValues("email") || "").trim();
 
@@ -53,33 +43,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
   useEffect(() => {
     if (mobileVerified || emailVerified) setVerificationError("");
   }, [mobileVerified, emailVerified]);
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => {
-    const savedMembers = getValues("familyMembers") as FamilyMember[] | undefined;
-    if (savedMembers?.length) {
-      const seen = new Set<string>();
-      return savedMembers.map((member, index) => {
-        let id = member.id || `family-${index}-${Date.now()}`;
-        if (seen.has(id)) {
-          id = `family-${index}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-        }
-        seen.add(id);
-        return {
-          ...member,
-          id,
-          name: member.name || "",
-          dob: member.dob || "",
-          relation: member.relation || "",
-        };
-      });
-    }
-    return [{ id: `family-0-${Date.now()}`, name: "", dob: "", relation: "" }];
-  });
-  const [familyAgeErrors, setFamilyAgeErrors] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    setValue("familyMembers", familyMembers, { shouldDirty: true });
-  }, [familyMembers, setValue]);
-
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
     setVerificationError("");
@@ -92,17 +55,6 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
         toast.error("You must be at least 18 years old to join");
         return;
       }
-    }
-
-    // Check family members age
-    const adultMembers = familyMembers.filter((m) => {
-      const age = calculateAge(m.dob);
-      return age >= 18 && m.dob && m.name;
-    });
-
-    if (adultMembers.length > 0) {
-      toast.error(`Family members ${adultMembers.map((m) => m.name).join(", ")} are 18+ and need to join separately.`);
-      return;
     }
 
     const fieldsToValidate = ["fullName", "dob", "gender", "bloodGroup", "mobileNumber", "mobileCountryCode", "photo", "occupation"];
@@ -148,15 +100,15 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4 }}
-      className="space-y-5 md:space-y-6"
+      className="space-y-3 sm:space-y-5 md:space-y-6"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B1E5B]/20 to-[#D9772B]/20 flex items-center justify-center flex-shrink-0">
           <User className="w-4 h-4 text-[#6B1E5B]" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-[#2A1636]">Your Identity & Family</h2>
-          <p className="text-sm text-[#6B5E5A]">Tell us about yourself and your family</p>
+          <h2 className="text-lg font-bold text-[#2A1636]">Personal & Identity Details</h2>
+          <p className="text-sm text-[#6B5E5A]">Tell us about yourself and verify your identity</p>
         </div>
       </div>
 
@@ -164,17 +116,11 @@ export default function Step1Personal({ onNext, onBack, isFirstStep = true }: St
       <PersonalDetails hasAttemptedSubmit={hasAttemptedSubmit} setHasAttemptedSubmit={setHasAttemptedSubmit} />
       <ContactVerification loginEmail={loginEmail} />
       {verificationError && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 sm:px-4 sm:py-3">
           {verificationError}
         </div>
       )}
-      <FamilyMembers 
-        familyMembers={familyMembers}
-        setFamilyMembers={setFamilyMembers}
-        familyAgeErrors={familyAgeErrors}
-        setFamilyAgeErrors={setFamilyAgeErrors}
-      />
-      <NavigationButtons isFirstStep={isFirstStep} onBack={onBack} onNext={handleNext} />
+      <Step3Interests compact onNext={handleNext} />
     </motion.div>
   );
 }

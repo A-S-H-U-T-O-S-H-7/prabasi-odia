@@ -10,7 +10,6 @@ import { useAuthStore } from "@/lib/store";
 import JoinCommunityLayout from "@/components/web/join-community/JoinCommunityLayout";
 import Step1Personal from "@/components/web/join-community/Step1Personal";
 import Step2Address,{ CANT_FIND_COMMUNITY} from "@/components/web/join-community/Step2Address";
-import Step3Interests from "@/components/web/join-community/Step3Interests";
 import Step0Account from "@/components/web/join-community/Step0Account";
 import SuccessPage from "@/components/web/join-community/SuccessPage";
 import { userService, type UserProfileData } from "@/lib/services/userService";
@@ -89,9 +88,6 @@ const schema = z.object({
   nearbyCommunityName: z.string().optional(),
   requestedCommunityName: z.string().optional(),
 
-  // Interests
-  interests: z.array(z.string()).min(2, "Please select at least 2 interests"),
-  
   // ID fields - using zod enum with proper type
   idType: z.enum(["aadhar", "passport"]).default("aadhar"),
   aadharNumber: z.string()
@@ -102,13 +98,13 @@ const schema = z.object({
     .optional()
     .refine((val) => !val || (val.length >= 6 && val.length <= 9 && /^[A-Z0-9]+$/.test(val)), 
       "Passport number must be 6-9 characters"),
+  identityConsent: z.boolean(),
   
   // ✅ Document uploads - optional
   aadharFront: z.any().optional(),
   aadharBack: z.any().optional(),
   passportFile: z.any().optional(),
 
-  familyMembers: z.array(z.any()).optional(),
 }).superRefine((data, ctx) => {
   // Validate Indian mobile numbers more strictly for SMS OTP
   if (isIndianCountryCode(data.mobileCountryCode)) {
@@ -155,9 +151,8 @@ type FormData = z.infer<typeof schema>;
 
 const STEPS = [
   { title: "Membership Application", subtitle: "Create an account to begin your application" },
-  { title: "Personal & Family", subtitle: "Tell us about yourself and your family" },
+  { title: "Personal Details", subtitle: "Tell us about yourself" },
   { title: "Your Roots", subtitle: "Where do you call home?" },
-  { title: "Passions & Identity", subtitle: "Share your interests and identity details, then submit" },
 ];
 
 export default function JoinCommunityPage() {
@@ -196,14 +191,13 @@ export default function JoinCommunityPage() {
       nearbyCommunityId: "",
       nearbyCommunityName: "",
       requestedCommunityName: "",
-      interests: [],
       idType: "aadhar" as "aadhar" | "passport",
       aadharNumber: "",
       passportNumber: "",
+      identityConsent: true,
       aadharFront: undefined,
       aadharBack: undefined,
       passportFile: undefined,
-      familyMembers: [{ name: "", dob: "", relation: "" }],
     },
     mode: "onChange",
   });
@@ -306,11 +300,12 @@ export default function JoinCommunityPage() {
         nearbyCommunityName: isCommunityRequest ? null : selectedCommunityName,
         requestedCommunityName: isCommunityRequest ? requestedCommunityName : null,
         communityRequestStatus,
-        interests: data.interests,
+        interests: [],
         idType: data.idType,
         aadharNumber: data.idType === "aadhar" ? data.aadharNumber : null,
         passportNumber: data.idType === "passport" ? data.passportNumber : null,
-        familyMembers: data.familyMembers || [],
+        identityConsent: data.identityConsent,
+        familyMembers: [],
         hasJoinedCommunity: true,
         isVerified: false,
         applicationStatus: 'pending_review' as const,
@@ -386,11 +381,9 @@ export default function JoinCommunityPage() {
           setCurrentStep(2);
         }} />;
       case 2:
-        return <Step1Personal onNext={handleNext} onBack={() => setCurrentStep(1)} isFirstStep={false} />;
+        return <Step1Personal onNext={handleNext} />;
       case 3:
-        return <Step2Address onNext={handleNext} onBack={handleBack} />;
-      case 4:
-        return <Step3Interests onNext={handleSubmit} onBack={handleBack} />;
+        return <Step2Address onNext={handleSubmit} onBack={handleBack} buttonLabel="Submit application" />;
       default:
         return null;
     }

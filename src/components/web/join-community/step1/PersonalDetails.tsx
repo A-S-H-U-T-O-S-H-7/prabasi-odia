@@ -52,7 +52,7 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
   };
 
   const inputClass = (name: string) => `
-    w-full px-4 py-3 rounded-2xl border transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 bg-white/50 focus:ring-2
+    w-full px-3 py-2.5 rounded-xl border transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30 bg-white/50 focus:ring-2 sm:px-4 sm:py-3 sm:rounded-2xl
     ${shouldShowError(name) ? "border-red-400 focus:border-red-400 focus:ring-red-200" : "border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20"}
   `;
 
@@ -63,10 +63,10 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Full Name and Date of Birth */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <div className="col-span-2">
         <label className="block text-sm font-medium text-[#2A1636] mb-2">
           Full Name <span className="text-red-400">*</span>
         </label>
@@ -112,29 +112,29 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
         </FieldHint>
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-[#2A1636] mb-2">
+          Gender <span className="text-red-400">*</span>
+        </label>
+        <select {...register("gender")} className={`${inputClass("gender")} appearance-none cursor-pointer`}>
+          <option value="">Select</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+        <FieldHint>
+          {shouldShowError("gender") && (
+            <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
+              {errors.gender?.message as string}
+            </motion.p>
+          )}
+        </FieldHint>
       </div>
 
-      {/* Gender + Blood Group + Occupation */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-[#2A1636] mb-2">
-            Gender <span className="text-red-400">*</span>
-          </label>
-          <select {...register("gender")} className={`${inputClass("gender")} appearance-none cursor-pointer`}>
-            <option value="">Select</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-          <FieldHint>
-            {shouldShowError("gender") && (
-              <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
-                {errors.gender?.message as string}
-              </motion.p>
-            )}
-          </FieldHint>
-        </div>
+      </div>
 
+      {/* Blood Group + Occupation */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Blood Group <span className="text-red-400">*</span>

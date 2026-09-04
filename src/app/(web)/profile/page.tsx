@@ -6,8 +6,6 @@ import { useAuthStore, useUserStore } from "@/lib/store";
 import ProfileHeader from "@/components/web/profile/ProfileHeader";
 import ProfileStats from "@/components/web//profile/ProfileStats";
 import ProfileAbout from "@/components/web//profile/ProfileAbout";
-import ProfileInterests from "@/components/web//profile/ProfileInterests";
-import ProfileFamily from "@/components/web//profile/ProfileFamily";
 import ProfileMemberCard from "@/components/web//profile/ProfileMemberCard";
 import ProfileActivity from "@/components/web//profile/ProfileActivity";
 import ProfileAddresses from "@/components/web/profile/ProfileAddresses";
@@ -104,8 +102,6 @@ export default function ProfilePage() {
             <div className="lg:col-span-2 space-y-6">
               <ProfilePeopleNearby profile={profile} />
               <ProfileAbout profile={profile} />
-              <ProfileInterests interests={profile.interests || []} />
-              <ProfileFamily familyMembers={profile.familyMembers || []} />
               {profile.isVerified && profile.memberId ? (
                 <ProfileMemberCard profile={profile} />
               ) : (

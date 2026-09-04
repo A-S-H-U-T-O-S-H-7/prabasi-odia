@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
-import { MapPin, Home, Building, Globe, Users } from "lucide-react";
+import { ChevronDown, MapPin, Home, Building, Globe, Users } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useLocationData } from "@/hooks/useLocationData";
@@ -15,6 +15,7 @@ export { CANT_FIND_COMMUNITY };
 interface Step2AddressProps {
   onNext: () => void;
   onBack: () => void;
+  buttonLabel?: string;
 }
 
 const odishaDistricts = [
@@ -38,7 +39,61 @@ const sanitizeOdishaPin = (raw: string, previous: string): string => {
 
 const sanitizeGenericPin = (raw: string): string => raw.replace(/\D/g, "").slice(0, 6);
 
-export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
+interface SearchableSelectProps {
+  value: string;
+  options: string[];
+  placeholder: string;
+  disabled?: boolean;
+  className: string;
+  onChange: (value: string) => void;
+}
+
+function SearchableSelect({ value, options, placeholder, disabled = false, className, onChange }: SearchableSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const query = value.toLowerCase();
+  const matches = options.filter((option) => option.toLowerCase().includes(query));
+
+  return (
+    <div className="relative">
+      <input
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
+        placeholder={placeholder}
+        autoComplete="off"
+        disabled={disabled}
+        className={`${className} pr-10`}
+      />
+      <ChevronDown className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B5E5A] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      {isOpen && !disabled && (
+        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-[#D4C8C0]/60 bg-white p-1 shadow-lg">
+          {matches.length ? matches.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onChange(option);
+                setIsOpen(false);
+              }}
+              className="block w-full rounded-lg px-3 py-2 text-left text-sm text-[#2A1636] hover:bg-[#6B1E5B]/10"
+            >
+              {option}
+            </button>
+          )) : (
+            <p className="px-3 py-2 text-sm text-[#6B5E5A]">No matching options</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Step2Address({ onNext, onBack, buttonLabel = "Next" }: Step2AddressProps) {
   const { register, watch, trigger, setValue, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [communities, setCommunities] = useState<PublicCommunity[]>([]);
@@ -149,7 +204,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
   const shouldShowError = (name: string) => Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
 
   const inputClass = (name: string) => `
-    w-full px-4 py-3 rounded-2xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30
+    w-full px-4 py-2.5 rounded-xl border bg-white/50 focus:ring-2 transition-all duration-300 outline-none text-[#2A1636] placeholder:text-[#6B5E5A]/30
     ${shouldShowError(name) ? "border-red-400 focus:border-red-400 focus:ring-red-200" : "border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20"}
   `;
 
@@ -183,7 +238,7 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6"
+      className="space-y-4 sm:space-y-6"
     >
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-[#6B1E5B]/10 flex items-center justify-center flex-shrink-0">
@@ -196,11 +251,11 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       </div>
 
       {/* Odisha Address Section */}
-      <div className="bg-[#6B1E5B]/5 rounded-2xl p-4 border border-[#6B1E5B]/10">
-        <h3 className="text-sm font-semibold text-[#2A1636] mb-4 flex items-center gap-2">
+      <div className="bg-[#6B1E5B]/5 rounded-xl border border-[#6B1E5B]/10 p-2.5 sm:rounded-2xl sm:p-3">
+        <h3 className="text-sm font-semibold text-[#2A1636] mb-3 flex items-center gap-2">
           <Home className="w-4 h-4 text-[#6B1E5B]" /> Odisha Home Address
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-3">
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Home Address <span className="text-red-400">*</span>
@@ -213,12 +268,13 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               District <span className="text-red-400">*</span>
             </label>
-            <select {...register("odishaDistrict")} className={`${inputClass("odishaDistrict")} appearance-none cursor-pointer`}>
-              <option value="">Select district</option>
-              {odishaDistricts.map((district) => (
-                <option key={district} value={district}>{district}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              value={formData.odishaDistrict || ""}
+              options={odishaDistricts}
+              placeholder="Select district"
+              className={inputClass("odishaDistrict")}
+              onChange={(value) => setValue("odishaDistrict", value, { shouldValidate: hasAttemptedSubmit || touchedFields.odishaDistrict })}
+            />
             <ErrorMessage name="odishaDistrict" />
           </div>
 
@@ -258,13 +314,13 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       </div>
 
       {/* Current Address Section */}
-      <div className="bg-[#D9772B]/5 rounded-2xl p-4 border border-[#D9772B]/10">
+      <div className="bg-[#D9772B]/5 rounded-xl border border-[#D9772B]/10 p-2.5 sm:rounded-2xl sm:p-3">
         <h3 className="text-sm font-semibold text-[#2A1636] mb-1 flex items-center gap-2">
           <Building className="w-4 h-4 text-[#D9772B]" /> Current Address
         </h3>
-        <p className="text-xs text-[#D9772B] mb-4">Current address must be outside Odisha (Prabasi living elsewhere).</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
+        <p className="text-xs text-[#D9772B] mb-3">Current address must be outside Odisha (Prabasi living elsewhere).</p>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+          <div className="lg:col-span-4">
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Current Address <span className="text-red-400">*</span>
             </label>
@@ -278,16 +334,14 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             </label>
             <div className="relative">
               <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-              <select
-                {...register("currentCountry")}
-                className={`${inputClass("currentCountry")} appearance-none cursor-pointer pl-12`}
+              <SearchableSelect
+                value={currentCountry || ""}
+                options={countries.map((country) => country.name)}
+                className={`${inputClass("currentCountry")} pl-12`}
                 disabled={loading.countries}
-              >
-                <option value="">Select Country</option>
-                {countries.map((country) => (
-                  <option key={country.iso2} value={country.name}>{country.name}</option>
-                ))}
-              </select>
+                placeholder="Type country"
+                onChange={(value) => setValue("currentCountry", value, { shouldValidate: hasAttemptedSubmit || touchedFields.currentCountry })}
+              />
             </div>
             <div className="min-h-5 mt-1">
               {loading.countries && <p className="text-xs text-[#6B5E5A]">Loading countries...</p>}
@@ -299,16 +353,14 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               State <span className="text-red-400">*</span>
             </label>
-            <select
-              {...register("currentState")}
-              className={`${inputClass("currentState")} appearance-none cursor-pointer`}
+            <SearchableSelect
+              value={currentState || ""}
+              options={availableStates.map((state) => state.name)}
+              className={inputClass("currentState")}
               disabled={!availableStates.length || loading.states}
-            >
-              <option value="">Select State</option>
-              {availableStates.map((state) => (
-                <option key={state.iso2} value={state.name}>{state.name}</option>
-              ))}
-            </select>
+              placeholder="Type state"
+              onChange={(value) => setValue("currentState", value, { shouldValidate: hasAttemptedSubmit || touchedFields.currentState })}
+            />
             <div className="min-h-5 mt-1">
               {loading.states && <p className="text-xs text-[#6B5E5A]">Loading states...</p>}
             </div>
@@ -319,16 +371,14 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               City <span className="text-red-400">*</span>
             </label>
-            <select
-              {...register("currentCity")}
-              className={`${inputClass("currentCity")} appearance-none cursor-pointer`}
+            <SearchableSelect
+              value={currentCity || ""}
+              options={cities.map((city) => city.name)}
+              className={inputClass("currentCity")}
               disabled={!cities.length || loading.cities}
-            >
-              <option value="">Select City</option>
-              {cities.map((city) => (
-                <option key={city.id} value={city.name}>{city.name}</option>
-              ))}
-            </select>
+              placeholder="Type city"
+              onChange={(value) => setValue("currentCity", value, { shouldValidate: hasAttemptedSubmit || touchedFields.currentCity })}
+            />
 
             <div className="min-h-5 mt-1">
               <AnimatePresence mode="wait">
@@ -379,11 +429,11 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       </div>
 
       {/* Nearby Community Section */}
-      <div className="bg-[#6B1E5B]/5 rounded-2xl p-4 border border-[#6B1E5B]/10">
-        <h3 className="text-sm font-semibold text-[#2A1636] mb-4 flex items-center gap-2">
+      <div className="bg-[#6B1E5B]/5 rounded-xl border border-[#6B1E5B]/10 p-2.5 sm:rounded-2xl sm:p-4">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#2A1636] sm:mb-4">
           <Users className="w-4 h-4 text-[#6B1E5B]" /> Your Nearby Community
         </h3>
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div>
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               Nearby Community <span className="text-red-400">*</span>
@@ -432,12 +482,12 @@ export default function Step2Address({ onNext, onBack }: Step2AddressProps) {
       <input type="hidden" {...register("currentLatitude", { valueAsNumber: true })} />
       <input type="hidden" {...register("currentLongitude", { valueAsNumber: true })} />
 
-      <div className="flex justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6">
-        <button onClick={onBack} className="px-6 py-2.5 rounded-xl border border-[#D4C8C0]/30 text-[#6B5E5A] font-medium hover:bg-white/50 transition-all duration-300 cursor-pointer">
+      <div className="mt-4 flex justify-between border-t border-[#D4C8C0]/20 pt-4 sm:mt-6 sm:pt-6">
+        <button onClick={onBack} className="rounded-xl border border-[#D4C8C0]/30 px-4 py-2 text-sm font-medium text-[#6B5E5A] transition-all duration-300 hover:bg-white/50 sm:px-6 sm:py-2.5 sm:text-base cursor-pointer">
           ← Back
         </button>
-        <button onClick={handleNext} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] text-white font-medium shadow-lg shadow-[#6B1E5B]/20 hover:shadow-[#6B1E5B]/40 transition-all duration-300 hover:scale-[1.02] cursor-pointer">
-          Next →
+        <button onClick={handleNext} className="rounded-xl bg-gradient-to-r from-[#6B1E5B] via-[#8A2E72] to-[#D9772B] px-4 py-2 text-sm font-medium text-white shadow-lg shadow-[#6B1E5B]/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-[#6B1E5B]/40 sm:px-6 sm:py-2.5 sm:text-base cursor-pointer">
+          {buttonLabel} →
         </button>
       </div>
     </motion.div>

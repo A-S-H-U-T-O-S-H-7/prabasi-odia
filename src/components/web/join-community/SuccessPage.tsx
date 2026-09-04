@@ -6,8 +6,6 @@ import {
   Mail, Share2, ArrowRight, Heart, Shield
 } from "lucide-react";
 import { FaTwitter, FaLinkedin, FaWhatsapp } from "react-icons/fa";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 interface SuccessPageProps {
   onGoHome: () => void;
@@ -15,27 +13,6 @@ interface SuccessPageProps {
 }
 
 export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps) {
-  const router = useRouter();
-  const [countdown, setCountdown] = useState(5);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Use setTimeout to defer the navigation
-          setTimeout(() => {
-            router.push('/profile');
-          }, 100);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [router]);
-
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -203,22 +180,6 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
           Go to Home
         </motion.button>
       </motion.div>
-
-      {/* Auto Redirect */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="mt-4 md:mt-6 text-[10px] md:text-xs text-[#6B5E5A]/50 flex items-center justify-center gap-1.5"
-      >
-        <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
-        Redirecting to profile in {countdown}s...
-        <motion.span
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
-          className="inline-block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#6B1E5B]"
-        />
-      </motion.p>
 
       {/* Decorative Elements */}
       <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-[#D9772B]/5 blur-3xl pointer-events-none" />
