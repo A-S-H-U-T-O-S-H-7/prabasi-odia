@@ -1,36 +1,29 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { UserPlus, Users, ShieldCheck, Handshake, ArrowRight } from "lucide-react";
+import { UserPlus, ShieldCheck, Handshake } from "lucide-react";
 
 const steps = [
   {
     icon: UserPlus,
-    title: "Sign Up",
-    description: "Create your account and join the Prabasi Odia community.",
+    title: "Register",
+    description: "Create your account and complete your profile to join the Prabasi Odia community.",
     color: "from-[#6B1E5B] to-[#8A2E72]",
     number: "01",
-  },
-  {
-    icon: Users,
-    title: "Join Community",
-    description: "Complete your profile and become a member of the community.",
-    color: "from-[#D9772B] to-[#E6A11C]",
-    number: "02",
   },
   {
     icon: ShieldCheck,
     title: "Get Verified",
     description: "Verify your identity to build trust and access exclusive features.",
     color: "from-[#059669] to-[#0EA5E9]",
-    number: "03",
+    number: "02",
   },
   {
     icon: Handshake,
     title: "Connect",
     description: "Join communities, attend events, and connect with Odias near you.",
     color: "from-[#8B5CF6] to-[#EC4899]",
-    number: "04",
+    number: "03",
   },
 ];
 
@@ -50,19 +43,19 @@ export default function HowItWorks() {
             How It Works
           </span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-[#2A1636] mt-3 md:mt-4">
-            Join in <span className="text-[#6B1E5B]">4 Simple Steps</span>
+            Join in <span className="text-[#6B1E5B]">3 Simple Steps</span>
           </h2>
           <p className="text-[#6B5E5A] mt-2 max-w-2xl mx-auto text-sm md:text-base">
             Getting started is quick and easy. Here's how you can become a part of the Prabasi Odia community.
           </p>
         </motion.div>
 
-        {/* ========== DESKTOP VIEW (4 Columns) ========== */}
+        {/* ========== DESKTOP VIEW (3 Columns) ========== */}
         <div className="hidden md:block relative">
           {/* Connecting Line */}
-          <div className="absolute top-1/2 left-[12%] right-[12%] h-0.5 bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] via-[#059669] to-[#8B5CF6] -translate-y-1/2" />
+          <div className="absolute top-1/2 left-[16.67%] right-[16.67%] h-0.5 bg-gradient-to-r from-[#6B1E5B] via-[#059669] to-[#8B5CF6] -translate-y-1/2" />
 
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             {steps.map((step, index) => {
               const Icon = step.icon;
               return (

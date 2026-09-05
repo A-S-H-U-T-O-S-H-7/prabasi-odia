@@ -5,6 +5,7 @@ import CommunityFeatures from '@/components/web/home/Featuredcards';
 import FeaturesSection from '@/components/web/home/FeaturesSection';
 import Hero from '@/components/web/home/hero/Hero';
 import HowItWorks from '@/components/web/home/HowItWorks';
+import AppDownloadBanner from '@/components/web/home/AppDownloadBanner';
 import PartnersSection from '@/components/web/home/AssociatesSection';
 import TestimonialsSection from '@/components/web/home/TestimonialsSection';
 import WelcomePopup from '@/components/web/home/WelcomePopup';
@@ -17,6 +18,7 @@ export default function HomePage() {
       <WelcomePopup />
       <Hero/>
       <HowItWorks/>
+      <AppDownloadBanner/>
       <FeaturesSection/>
       <CommunitiesPreview/>
       <CommunityFeatures/>

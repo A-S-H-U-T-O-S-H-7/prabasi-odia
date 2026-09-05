@@ -14,6 +14,7 @@ import {
   FaWhatsapp
 } from "react-icons/fa";
 import { getContactInfo } from "@/lib/services/settingsService";
+import PlayStoreButton from "@/components/web/PlayStoreButton";
 
 const footerLinks = {
   Community: [
@@ -99,6 +100,9 @@ export default function Footer() {
             <div className="flex items-center gap-2 mt-4 text-sm text-white/50">
               <Heart className="w-4 h-4 text-[#D9772B]" />
               <span>Made with love for the Odia community</span>
+            </div>
+            <div className="mt-5">
+              <PlayStoreButton />
             </div>
           </div>
 
