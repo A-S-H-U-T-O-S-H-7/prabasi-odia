@@ -86,6 +86,21 @@ export default function CommunitySelect({
     setSearchTerm("");
   };
 
+  const requestCommunityButton = (
+    <button
+      type="button"
+      onClick={() => handleSelect(CANT_FIND_COMMUNITY)}
+      className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-colors ${
+        isCantFind
+          ? "bg-[#D9772B] text-white"
+          : "border-2 border-dashed border-[#D9772B]/30 text-[#D9772B] hover:bg-[#D9772B]/5"
+      }`}
+    >
+      <HelpCircle className="w-4 h-4" />
+      Can't find your community? Request a new one
+    </button>
+  );
+
   return (
     <div className="relative w-full">
       {/* Trigger Button */}
@@ -229,24 +244,14 @@ export default function CommunitySelect({
                 {searchTerm && filteredNearby.length === 0 && filteredOthers.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-[#6B5E5A]">No communities found matching "{searchTerm}"</p>
+                    <div className="mt-4">{requestCommunityButton}</div>
                   </div>
                 )}
               </div>
 
               {/* Footer */}
               <div className="p-4 border-t border-[#E7D7E8]/50 flex-shrink-0 bg-[#FFF9F2]/50">
-                <button
-                  type="button"
-                  onClick={() => handleSelect(CANT_FIND_COMMUNITY)}
-                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    isCantFind
-                      ? "bg-[#D9772B] text-white"
-                      : "border-2 border-dashed border-[#D9772B]/30 text-[#D9772B] hover:bg-[#D9772B]/5"
-                  }`}
-                >
-                  <HelpCircle className="w-4 h-4" />
-                  Can't find your community? Request a new one
-                </button>
+                {requestCommunityButton}
               </div>
             </motion.div>
           </>
