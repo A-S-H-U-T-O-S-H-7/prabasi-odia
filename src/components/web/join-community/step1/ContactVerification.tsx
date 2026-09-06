@@ -4,10 +4,12 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Mail, Phone, Globe, Check, Loader2, AlertCircle
+  Mail, Phone, Check, Loader2, AlertCircle
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
+import { useCountries } from "@/hooks/useCountries";
+import CountryCodeSelect from "./CountryCodeSelect";
 import { 
   isIndianCountryCode,
   normalizeIndianPhone,
@@ -18,55 +20,13 @@ interface ContactVerificationProps {
   loginEmail: string;
 }
 
-const countryCodes = [
-  { code: "+91", country: "India" },
-  { code: "+1", country: "USA/Canada" },
-  { code: "+44", country: "UK" },
-  { code: "+61", country: "Australia" },
-  { code: "+971", country: "UAE" },
-  { code: "+966", country: "Saudi Arabia" },
-  { code: "+65", country: "Singapore" },
-  { code: "+60", country: "Malaysia" },
-  { code: "+92", country: "Pakistan" },
-  { code: "+880", country: "Bangladesh" },
-  { code: "+977", country: "Nepal" },
-  { code: "+94", country: "Sri Lanka" },
-  { code: "+64", country: "New Zealand" },
-  { code: "+33", country: "France" },
-  { code: "+49", country: "Germany" },
-  { code: "+39", country: "Italy" },
-  { code: "+81", country: "Japan" },
-  { code: "+86", country: "China" },
-  { code: "+82", country: "South Korea" },
-  { code: "+55", country: "Brazil" },
-  { code: "+27", country: "South Africa" },
-  { code: "+234", country: "Nigeria" },
-  { code: "+62", country: "Indonesia" },
-  { code: "+63", country: "Philippines" },
-  { code: "+66", country: "Thailand" },
-  { code: "+84", country: "Vietnam" },
-  { code: "+90", country: "Turkey" },
-  { code: "+30", country: "Greece" },
-  { code: "+31", country: "Netherlands" },
-  { code: "+32", country: "Belgium" },
-  { code: "+34", country: "Spain" },
-  { code: "+41", country: "Switzerland" },
-  { code: "+46", country: "Sweden" },
-  { code: "+47", country: "Norway" },
-  { code: "+48", country: "Poland" },
-  { code: "+52", country: "Mexico" },
-  { code: "+54", country: "Argentina" },
-  { code: "+56", country: "Chile" },
-  { code: "+57", country: "Colombia" },
-  { code: "+58", country: "Venezuela" },
-  { code: "+20", country: "Egypt" },
-  { code: "+254", country: "Kenya" },
-  { code: "+255", country: "Tanzania" },
-  { code: "+256", country: "Uganda" },
-];
-
 export default function ContactVerification({ loginEmail }: ContactVerificationProps) {
-  const { register, watch, getValues, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
+  const { control, watch, getValues, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
+  const { countries, loading: loadingCountries, error: countriesError, retry: retryCountries } = useCountries();
+  const countryCodes = countries.flatMap((country) => {
+    const digits = String(country.phonecode ?? "").replace(/\D/g, "");
+    return digits ? [{ code: `+${digits}`, country: country.name, iso2: country.iso2 }] : [];
+  });
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [otpSent, setOtpSent] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
@@ -502,19 +462,34 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             <span className="sm:hidden">C. Code</span><span className="hidden sm:inline">Country Code</span> <span className="text-red-400">*</span>
           </label>
-          <div className="relative">
-            <Globe className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
-            <select
-              {...register("mobileCountryCode")}
-              className={`${inputClass("mobileCountryCode")} appearance-none cursor-pointer sm:pl-12`}
-            >
-              <option value="">Code</option>
-              {countryCodes.map(({ code, country }) => (
-                <option key={code} value={code}>{code} ({country})</option>
-              ))}
-            </select>
-          </div>
+          <Controller
+            name="mobileCountryCode"
+            control={control}
+            render={({ field }) => (
+              <CountryCodeSelect
+                options={countryCodes}
+                value={field.value || ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                inputRef={field.ref}
+                name={field.name}
+                disabled={loadingCountries || countryCodes.length === 0}
+                loading={loadingCountries}
+                className={inputClass("mobileCountryCode")}
+                invalid={shouldShowError("mobileCountryCode")}
+              />
+            )}
+          />
           <div className="min-h-5 mt-1">
+            {countriesError && (
+              <p role="alert" className="text-red-400 text-xs">
+                {countriesError}{" "}
+                <button type="button" onClick={retryCountries} className="underline">Retry</button>
+              </p>
+            )}
+            {!loadingCountries && !countriesError && countryCodes.length === 0 && (
+              <p role="alert" className="text-red-400 text-xs">No phone country codes are available.</p>
+            )}
             {shouldShowError("mobileCountryCode") && (
               <p className="text-red-400 text-sm">{errors.mobileCountryCode?.message as string}</p>
             )}

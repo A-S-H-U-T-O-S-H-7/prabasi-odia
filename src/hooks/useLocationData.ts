@@ -1,38 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useCountries } from './useCountries';
 
 export const useLocationData = (formData: { country: string; state: string }) => {
-  const [countries, setCountries] = useState<any[]>([]);
+  const { countries, loading: loadingCountries } = useCountries();
   const [states, setStates] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
   const [loading, setLoading] = useState({
-    countries: false,
     states: false,
     cities: false
   });
 
   const API_KEY = process.env.NEXT_PUBLIC_LOCATION_API_KEY || '';
-
-  // Fetch countries on mount
-  useEffect(() => {
-    if (!API_KEY) {
-      console.warn('Location API key not found. Please add NEXT_PUBLIC_LOCATION_API_KEY to .env.local');
-      return;
-    }
-
-    setLoading(prev => ({ ...prev, countries: true }));
-    fetch("https://api.countrystatecity.in/v1/countries", {
-      headers: { "X-CSCAPI-KEY": API_KEY },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setCountries(data || []);
-        setLoading(prev => ({ ...prev, countries: false }));
-      })
-      .catch((err) => {
-        console.error("Failed to fetch countries:", err);
-        setLoading(prev => ({ ...prev, countries: false }));
-      });
-  }, [API_KEY]);
 
   // Fetch states when country changes
   useEffect(() => {
@@ -94,6 +72,6 @@ export const useLocationData = (formData: { country: string; state: string }) =>
     countries,
     states,
     cities,
-    loading
+    loading: { ...loading, countries: loadingCountries }
   };
 };
