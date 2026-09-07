@@ -140,7 +140,7 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
           </h3>
           
           <p className="text-sm font-medium text-[#D9772B] mt-0.5">
-            {advisoryCategoryDetails(member.category).role}{member.position ? ` · ${member.position}` : ''}
+            {advisoryCategoryDetails(member.category).role}
           </p>
           
           {member.designation && (
@@ -316,7 +316,7 @@ function PopoverContent({ member }: { member: Member }) {
             {member.name}
           </h4>
           <p className="text-xs text-[#D9772B] font-medium">
-            {advisoryCategoryDetails(member.category).role}{member.position ? ` · ${member.position}` : ''}
+            {advisoryCategoryDetails(member.category).role}
           </p>
         </div>
       </div>
@@ -427,7 +427,7 @@ function MobileModalContent({ member }: { member: Member }) {
             {member.name}
           </h3>
           <p className="text-sm font-medium text-[#D9772B]">
-            {advisoryCategoryDetails(member.category).role}{member.position ? ` · ${member.position}` : ''}
+            {advisoryCategoryDetails(member.category).role}
           </p>
           {member.organization && (
             <p className="text-xs text-[#5A4A4A]">

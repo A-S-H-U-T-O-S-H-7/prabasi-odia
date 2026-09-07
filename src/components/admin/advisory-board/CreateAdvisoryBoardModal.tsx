@@ -55,6 +55,7 @@ export default function CreateAdvisoryBoardModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isAdvisor = formData.category === 'advisor';
 
   useEffect(() => {
     if (editingMember) {
@@ -175,7 +176,16 @@ export default function CreateAdvisoryBoardModal({
         <div className="overflow-y-auto flex-1 p-5">
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block text-sm font-medium text-[#2A1636]">Member category
-              <select value={formData.category} onChange={(event) => setFormData({ ...formData, category: normalizeAdvisoryCategory(event.target.value) })} className="mt-1.5 w-full rounded-xl border-2 border-[#D4C8C0]/50 bg-white px-4 py-2.5 text-sm">
+              <select value={formData.category} onChange={(event) => {
+                const category = normalizeAdvisoryCategory(event.target.value);
+                setFormData({
+                  ...formData,
+                  category,
+                  ...(category === 'advisor' ? {
+                    organization: '', designation: '', bio: '', linkedin: '', twitter: '', website: '', featured: false, isActive: true,
+                  } : {}),
+                });
+              }} className="mt-1.5 w-full rounded-xl border-2 border-[#D4C8C0]/50 bg-white px-4 py-2.5 text-sm">
                 {ADVISORY_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.title} — {category.role}</option>)}
               </select>
             </label>
@@ -282,6 +292,7 @@ export default function CreateAdvisoryBoardModal({
               </div>
             </div>
 
+            {!isAdvisor && <>
             {/* Organization + Designation/Expertise */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -330,6 +341,7 @@ export default function CreateAdvisoryBoardModal({
               />
             </div>
 
+            </>}
             {/* Location + Joined Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -361,6 +373,7 @@ export default function CreateAdvisoryBoardModal({
               </div>
             </div>
 
+            {!isAdvisor && <>
             {/* Social links */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -417,6 +430,7 @@ export default function CreateAdvisoryBoardModal({
             </div>
 
             {/* Order + flags */}
+            </>}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
               <div>
                 <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
@@ -435,7 +449,7 @@ export default function CreateAdvisoryBoardModal({
                   min="0"
                 />
               </div>
-              <label className="flex items-center gap-2 cursor-pointer pb-2.5">
+              {!isAdvisor && <label className="flex items-center gap-2 cursor-pointer pb-2.5">
                 <input
                   type="checkbox"
                   checked={formData.isActive}
@@ -445,8 +459,8 @@ export default function CreateAdvisoryBoardModal({
                   className="w-4 h-4 rounded border-[#D4C8C0] text-[#6B1E5B] focus:ring-[#6B1E5B]/20 cursor-pointer"
                 />
                 <span className="text-sm font-medium text-[#2A1636]">Active</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer pb-2.5">
+              </label>}
+              {!isAdvisor && <label className="flex items-center gap-2 cursor-pointer pb-2.5">
                 <input
                   type="checkbox"
                   checked={formData.featured}
@@ -456,7 +470,7 @@ export default function CreateAdvisoryBoardModal({
                   className="w-4 h-4 rounded border-[#D4C8C0] text-[#6B1E5B] focus:ring-[#6B1E5B]/20 cursor-pointer"
                 />
                 <span className="text-sm font-medium text-[#2A1636]">Featured</span>
-              </label>
+              </label>}
             </div>
 
             <div className="flex gap-3 pt-4 border-t border-[#E7D7E8]">

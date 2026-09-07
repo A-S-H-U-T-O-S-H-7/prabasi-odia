@@ -129,6 +129,8 @@ export const adminAdvisoryBoardService = {
     try {
       const docRef = doc(collection(db, COLLECTION));
       const now = new Date().toISOString();
+      const category = normalizeAdvisoryCategory(data.category);
+      const isAdvisor = category === 'advisor';
 
       let photoURL = '';
       if (data.photoFile && data.photoFile instanceof File) {
@@ -138,20 +140,20 @@ export const adminAdvisoryBoardService = {
       }
 
       const memberData = {
-        category: normalizeAdvisoryCategory(data.category),
+        category,
         name: data.name,
         position: data.position,
         photoURL,
-        organization: data.organization || '',
-        designation: data.designation || '',
-        bio: data.bio || '',
+        organization: isAdvisor ? '' : data.organization || '',
+        designation: isAdvisor ? '' : data.designation || '',
+        bio: isAdvisor ? '' : data.bio || '',
         location: data.location || '',
         order: typeof data.order === 'number' ? data.order : parseInt(data.order) || 0,
-        isActive: data.isActive !== undefined ? data.isActive : true,
-        featured: data.featured || false,
-        linkedin: data.linkedin || '',
-        twitter: data.twitter || '',
-        website: data.website || '',
+        isActive: isAdvisor ? true : data.isActive !== undefined ? data.isActive : true,
+        featured: isAdvisor ? false : data.featured || false,
+        linkedin: isAdvisor ? '' : data.linkedin || '',
+        twitter: isAdvisor ? '' : data.twitter || '',
+        website: isAdvisor ? '' : data.website || '',
         joinedDate: data.joinedDate || '',
         createdAt: now,
         updatedAt: now,
@@ -168,6 +170,8 @@ export const adminAdvisoryBoardService = {
   async updateMember(id: string, data: any) {
     try {
       const docRef = doc(db, COLLECTION, id);
+      const category = normalizeAdvisoryCategory(data.category);
+      const isAdvisor = category === 'advisor';
 
       let photoURL = data.photoURL || '';
       if (data.photoFile && data.photoFile instanceof File) {
@@ -178,20 +182,20 @@ export const adminAdvisoryBoardService = {
       }
 
       const updateData = {
-        category: normalizeAdvisoryCategory(data.category),
+        category,
         name: data.name,
         position: data.position,
         photoURL,
-        organization: data.organization || '',
-        designation: data.designation || '',
-        bio: data.bio || '',
+        organization: isAdvisor ? '' : data.organization || '',
+        designation: isAdvisor ? '' : data.designation || '',
+        bio: isAdvisor ? '' : data.bio || '',
         location: data.location || '',
         order: typeof data.order === 'number' ? data.order : parseInt(data.order) || 0,
-        isActive: data.isActive !== undefined ? data.isActive : true,
-        featured: data.featured || false,
-        linkedin: data.linkedin || '',
-        twitter: data.twitter || '',
-        website: data.website || '',
+        isActive: isAdvisor ? true : data.isActive !== undefined ? data.isActive : true,
+        featured: isAdvisor ? false : data.featured || false,
+        linkedin: isAdvisor ? '' : data.linkedin || '',
+        twitter: isAdvisor ? '' : data.twitter || '',
+        website: isAdvisor ? '' : data.website || '',
         joinedDate: data.joinedDate || '',
         updatedAt: new Date().toISOString(),
       };

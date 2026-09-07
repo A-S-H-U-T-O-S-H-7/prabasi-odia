@@ -16,6 +16,7 @@ export default function AdvisoryBoardPage() {
   const router = useRouter();
   const [members, setMembers] = useState<AdvisoryBoardMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMembers();
@@ -60,20 +61,55 @@ export default function AdvisoryBoardPage() {
           Hover a card to see more details
         </div>
 
-        {loading ? <AdvisoryBoardGrid members={[]} loading /> : (
-          <div className="space-y-10">
-            {ADVISORY_CATEGORIES.map((category) => {
-              const group = members.filter((member) => normalizeAdvisoryCategory(member.category) === category.value);
-              return <section key={category.value} aria-labelledby={`${category.value}-heading`}>
-                <div className="mb-4 flex items-center justify-between border-b border-[#E7D7E8] pb-3">
-                  <h2 id={`${category.value}-heading`} className="text-2xl font-serif font-bold text-[#2A1636]">{category.title}</h2>
-                  <span className="rounded-full bg-[#6B1E5B]/10 px-3 py-1 text-xs font-medium text-[#6B1E5B]">{group.length} {group.length === 1 ? 'member' : 'members'}</span>
+        {loading ? <AdvisoryBoardGrid members={[]} loading /> : (() => {
+          const availableCategories = ADVISORY_CATEGORIES.filter((category) =>
+            members.some((member) => normalizeAdvisoryCategory(member.category) === category.value)
+          );
+          const selectedCategory = availableCategories.find((category) => category.value === activeCategory) ?? availableCategories[0];
+          const selectedMembers = selectedCategory
+            ? members.filter((member) => normalizeAdvisoryCategory(member.category) === selectedCategory.value)
+            : [];
+
+          if (!selectedCategory) return null;
+
+          return (
+            <section aria-labelledby={`${selectedCategory.value}-heading`}>
+              <div className="mb-5 flex flex-col gap-3 border-b border-[#E7D7E8] pb-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 id={`${selectedCategory.value}-heading`} className="text-2xl font-serif font-bold text-[#2A1636]">
+                    {selectedCategory.title}
+                  </h2>
+                  <span className="rounded-full bg-[#6B1E5B]/10 px-3 py-1 text-xs font-medium text-[#6B1E5B]">
+                    {selectedMembers.length} {selectedMembers.length === 1 ? 'member' : 'members'}
+                  </span>
                 </div>
-                {group.length ? <AdvisoryBoardGrid members={group} /> : <p className="rounded-xl bg-white/70 p-5 text-sm text-[#6B5E5A]">Members will be announced soon.</p>}
-              </section>;
-            })}
-          </div>
-        )}
+
+                <div className="flex flex-wrap gap-2 sm:justify-end" role="tablist" aria-label="Advisory member categories">
+                  {availableCategories.map((category) => {
+                    const isSelected = category.value === selectedCategory.value;
+                    return (
+                      <button
+                        key={category.value}
+                        type="button"
+                        role="tab"
+                        aria-selected={isSelected}
+                        onClick={() => setActiveCategory(category.value)}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          isSelected
+                            ? 'bg-[#6B1E5B] text-white shadow-sm'
+                            : 'bg-white text-[#6B1E5B] ring-1 ring-[#6B1E5B]/20 hover:bg-[#6B1E5B]/10'
+                        }`}
+                      >
+                        {category.role}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <AdvisoryBoardGrid members={selectedMembers} />
+            </section>
+          );
+        })()}
       </div>
     </div>
   );
