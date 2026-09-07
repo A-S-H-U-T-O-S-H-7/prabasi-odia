@@ -43,7 +43,7 @@ export default function AdvisoryBoardHero({
         className="relative z-10 text-center py-16 md:py-24 lg:py-28 px-4"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white">
-          Advisory <span className="text-[#E6A11C]">Board</span>
+          Patrons, Mentors &amp; <span className="text-[#E6A11C]">Advisors</span>
         </h1>
         <p className="text-sm md:text-lg text-white/80 mt-3 md:mt-4 max-w-2xl mx-auto px-2">
           Meet the leaders guiding Prabasi Odia with wisdom, experience, and

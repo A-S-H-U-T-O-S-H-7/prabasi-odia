@@ -3,10 +3,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
 import { AlertCircle, Check, Droplet, GraduationCap, Handshake, Heart, Network, Shield, Sparkles, Upload, Users, X } from "lucide-react";
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { FaPassport } from "react-icons/fa";
 import Image from "next/image";
+import { useJoinFormSupport } from "./JoinFormSupport";
 
 interface Step3InterestsProps {
   onNext: () => void;
@@ -45,6 +46,12 @@ function DocumentUpload({
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const file = watch(name);
+  useEffect(() => {
+    if (!(file instanceof File)) { setPreview(null); return; }
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
   const error = errors[name];
   const touched = touchedFields[name];
   const showError = (touched || false) && error;
@@ -124,7 +131,7 @@ function DocumentUpload({
       >
         {preview ? (
           <div className={`relative w-full ${compact ? "h-16" : "h-28"}`}>
-            <Image src={preview} alt={label} fill className="object-cover rounded-xl" />
+            {file?.type === 'application/pdf' ? <p className="p-3 text-sm text-[#6B5E5A]">{file.name}</p> : <Image src={preview} alt={label} fill className="object-cover rounded-xl" />}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); removeFile(); }}
@@ -156,9 +163,10 @@ function DocumentUpload({
 }
 
 export default function Step3Interests({ onNext, onBack, compact = false }: Step3InterestsProps) {
+  const support = useJoinFormSupport();
   const { watch, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-  const [hasAadhar, setHasAadhar] = useState<"yes" | "no" | null>(null);
+  const hasAadhar = watch('identityDocumentSelected') ? (watch('idType') === 'passport' ? 'no' : 'yes') : null;
   
   const selectedInterests = watch("interests") || [];
   const aadharNumber = watch("aadharNumber") || "";
@@ -173,7 +181,7 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
   };
 
   const handleHasAadhar = (value: "yes" | "no") => {
-    setHasAadhar(value);
+    setValue('identityDocumentSelected', true);
     setValue("idType", value === "yes" ? "aadhar" : "passport", { shouldValidate: true });
     // Clear the other field when switching
     if (value === "yes") {
@@ -193,6 +201,7 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
     // ✅ 2. Check if Aadhar/Passport selection is made
     if (!hasAadhar) {
       toast.error("Please select whether you have Aadhar or Passport");
+      support.recordNextFailure();
       return;
     }
 
@@ -201,6 +210,7 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
       // Validate Aadhar number - MANDATORY
       if (!aadharNumber || aadharNumber.length < 12) {
         toast.error("Please enter a valid 12-digit Aadhar number");
+        support.recordNextFailure();
         return;
       }
       
@@ -213,6 +223,7 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
       // Validate Passport number - MANDATORY
       if (!passportNumber || passportNumber.length < 6) {
         toast.error("Please enter a valid passport number (6-9 characters)");
+        support.recordNextFailure();
         return;
       }
       

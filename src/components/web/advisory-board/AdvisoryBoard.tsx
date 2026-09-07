@@ -10,6 +10,7 @@ import {
 } from "@/lib/services/adminAdvisoryBoardService";
 import AdvisoryBoardHero from "./AdvisoryBoardHero";
 import AdvisoryBoardGrid from "./AdvisoryBoardGrid";
+import { ADVISORY_CATEGORIES, normalizeAdvisoryCategory } from "@/lib/advisoryCategories";
 
 export default function AdvisoryBoardPage() {
   const router = useRouter();
@@ -59,7 +60,20 @@ export default function AdvisoryBoardPage() {
           Hover a card to see more details
         </div>
 
-        <AdvisoryBoardGrid members={members} loading={loading} />
+        {loading ? <AdvisoryBoardGrid members={[]} loading /> : (
+          <div className="space-y-10">
+            {ADVISORY_CATEGORIES.map((category) => {
+              const group = members.filter((member) => normalizeAdvisoryCategory(member.category) === category.value);
+              return <section key={category.value} aria-labelledby={`${category.value}-heading`}>
+                <div className="mb-4 flex items-center justify-between border-b border-[#E7D7E8] pb-3">
+                  <h2 id={`${category.value}-heading`} className="text-2xl font-serif font-bold text-[#2A1636]">{category.title}</h2>
+                  <span className="rounded-full bg-[#6B1E5B]/10 px-3 py-1 text-xs font-medium text-[#6B1E5B]">{group.length} {group.length === 1 ? 'member' : 'members'}</span>
+                </div>
+                {group.length ? <AdvisoryBoardGrid members={group} /> : <p className="rounded-xl bg-white/70 p-5 text-sm text-[#6B5E5A]">Members will be announced soon.</p>}
+              </section>;
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

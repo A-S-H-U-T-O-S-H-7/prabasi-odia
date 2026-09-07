@@ -3,6 +3,7 @@
 import { Edit, Trash2, Eye, EyeOff, Star } from "lucide-react";
 import Image from "next/image";
 import { AdvisoryBoardMember } from "@/lib/services/adminAdvisoryBoardService";
+import { advisoryCategoryDetails } from "@/lib/advisoryCategories";
 
 interface AdvisoryBoardTableRowProps {
   member: AdvisoryBoardMember;
@@ -67,6 +68,7 @@ export default function AdvisoryBoardTableRow({
             {member.organization && (
               <p className="text-xs text-[#6B5E5A] truncate">{member.organization}</p>
             )}
+            <p className="mt-1 text-xs font-medium text-[#6B1E5B]">{advisoryCategoryDetails(member.category).title} · {advisoryCategoryDetails(member.category).role}</p>
           </div>
         </div>
       </td>

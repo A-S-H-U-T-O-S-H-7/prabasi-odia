@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
 import { AlertCircle, Check, CheckCircle2, Info, RotateCcw, Upload, X } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface ProfilePhotoUploadProps {
   hasAttemptedSubmit: boolean;
@@ -26,6 +26,12 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
   const dragStart = useRef<{ x: number; y: number; cropX: number; cropY: number } | null>(null);
 
   const watchPhoto = watch("photo");
+  useEffect(() => {
+    if (!(watchPhoto instanceof File)) { setPhotoPreview(null); return; }
+    const url = URL.createObjectURL(watchPhoto);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [watchPhoto]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,7 +108,6 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
     canvas.toBlob((blob) => {
       if (!blob) return;
       const croppedFile = new File([blob], `profile-${Date.now()}.jpg`, { type: "image/jpeg" });
-      setPhotoPreview(URL.createObjectURL(blob));
       setValue("photo", croppedFile, { shouldValidate: true });
       if (hasAttemptedSubmit || touchedFields.photo) trigger("photo");
       setCropSource(null);

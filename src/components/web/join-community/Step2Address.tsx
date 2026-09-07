@@ -1,4 +1,5 @@
 "use client";
+import { useJoinFormSupport } from "./JoinFormSupport";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
@@ -95,6 +96,7 @@ function SearchableSelect({ value, options, placeholder, disabled = false, class
 }
 
 export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isSubmitting = false }: Step2AddressProps) {
+  const support = useJoinFormSupport();
   const { register, watch, trigger, setValue, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [communities, setCommunities] = useState<PublicCommunity[]>([]);
@@ -224,8 +226,10 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
     if (await trigger(fields)) {
+      support.resetNextFailures();
       onNext();
     } else {
+      support.recordNextFailure();
       toast.error("Please fill all required address fields correctly");
     }
   };

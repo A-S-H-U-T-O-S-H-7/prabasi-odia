@@ -13,6 +13,7 @@ import ProfilePhotoUpload from "./step1/ProfilePhotoUpload";
 import PersonalDetails from "./step1/PersonalDetails";
 import ContactVerification from "./step1/ContactVerification";
 import Step3Interests from "./Step3Interests";
+import { useJoinFormSupport } from "./JoinFormSupport";
 
 interface Step1PersonalProps {
   onNext: () => void;
@@ -31,6 +32,7 @@ const calculateAge = (dob: string): number => {
 };
 
 export default function Step1Personal({ onNext }: Step1PersonalProps) {
+  const support = useJoinFormSupport();
   const { getValues, trigger, watch } = useFormContext();
   const { user } = useAuthStore();
   const loginEmail = String(watch("email") || user?.email || "").trim();
@@ -53,6 +55,7 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
       const age = calculateAge(dob);
       if (age < 18) {
         toast.error("You must be at least 18 years old to join");
+        support.recordNextFailure();
         return;
       }
     }
@@ -62,6 +65,7 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
 
     if (!isValid) {
       toast.error("Please fill all required fields correctly");
+      support.recordNextFailure();
       return;
     }
 
@@ -88,9 +92,11 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
           : "Please verify the OTP sent to your email first";
       toast.error(message);
       setVerificationError(message);
+      support.recordNextFailure();
       return;
     }
 
+    support.resetNextFailures();
     onNext();
   };
 

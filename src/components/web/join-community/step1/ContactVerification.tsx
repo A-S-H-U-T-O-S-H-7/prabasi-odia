@@ -10,8 +10,10 @@ import { toast } from "react-hot-toast";
 import { Controller, useFormContext } from "react-hook-form";
 import { useCountries } from "@/hooks/useCountries";
 import CountryCodeSelect from "./CountryCodeSelect";
+import { useJoinFormSupport } from "../JoinFormSupport";
 import { 
   isIndianCountryCode,
+  normalizeEmail,
   normalizeIndianPhone,
   OTP_RESEND_COOLDOWN_SECONDS 
 } from "@/lib/mobileVerification";
@@ -21,6 +23,7 @@ interface ContactVerificationProps {
 }
 
 export default function ContactVerification({ loginEmail }: ContactVerificationProps) {
+  const support = useJoinFormSupport();
   const { control, watch, getValues, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
   const { countries, loading: loadingCountries, error: countriesError, retry: retryCountries } = useCountries();
   const countryCodes = countries.flatMap((country) => {
@@ -191,11 +194,10 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 
   // ============ EMAIL OTP API ============
   const requestEmailOtp = async () => {
-    const email = loginEmail;
-    const fullName = String(getValues("fullName") || "").trim();
+    const email = normalizeEmail(loginEmail);
 
     if (!email) {
-      throw new Error("Email is required");
+      throw new Error("Enter a valid email address");
     }
 
     const formData = new FormData();
@@ -206,6 +208,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
     const response = await fetch("https://svsamiti.com/prabasiodia/email-otp.php", {
       method: "POST",
       body: formData,
+      signal: AbortSignal.timeout(15_000),
     });
 
     const data = await response.json().catch(() => null);
@@ -218,10 +221,10 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
   };
 
   const verifyEmailOtp = async (otp: string) => {
-    const email = loginEmail;
+    const email = normalizeEmail(loginEmail);
 
     if (!email) {
-      throw new Error("Email is required");
+      throw new Error("Enter a valid email address");
     }
 
     const formData = new FormData();
@@ -231,6 +234,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
     const response = await fetch("https://svsamiti.com/prabasiodia/verify-email-otp.php", {
       method: "POST",
       body: formData,
+      signal: AbortSignal.timeout(15_000),
     });
 
     const data = await response.json().catch(() => null);
@@ -243,6 +247,8 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 
   // ============ SEND OTP Handler ============
   const handleSendOtp = async () => {
+    if (isSendingOtp || isVerifyingOtp || resendCooldown > 0) return;
+    support.recordOtpAttempt(isIndianNumber ? getPhonePayload() : loginEmail.toLowerCase());
     // Validate based on channel
     if (isIndianNumber) {
       const isPhoneValid = await trigger(["mobileNumber", "mobileCountryCode"]);

@@ -8,11 +8,12 @@ import {
 import { FaTwitter, FaLinkedin, FaWhatsapp } from "react-icons/fa";
 
 interface SuccessPageProps {
+  emailStatus?: 'pending' | 'sent' | 'failed';
   onGoHome: () => void;
   onGoProfile: () => void;
 }
 
-export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps) {
+export default function SuccessPage({ onGoHome, onGoProfile, emailStatus = 'pending' }: SuccessPageProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -77,8 +78,8 @@ export default function SuccessPage({ onGoHome, onGoProfile }: SuccessPageProps)
           <Mail className="h-4 w-4" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-[#2A1636]">Check your email for confirmation</p>
-          <p className="mt-1 text-xs leading-5 text-[#6B5E5A]">We’ve sent a confirmation to your registered email address. If it is not in your inbox shortly, please check your Spam or Promotions folder.</p>
+          <p className="text-sm font-semibold text-[#2A1636]">{emailStatus === 'sent' ? 'Check your email for confirmation' : emailStatus === 'failed' ? 'Application saved; confirmation email delayed' : 'Your confirmation email is being sent'}</p>
+          <p role="status" className="mt-1 text-xs leading-5 text-[#6B5E5A]">{emailStatus === 'sent' ? 'A confirmation was sent to your registered email address. Please check your Spam or Promotions folder if needed.' : emailStatus === 'failed' ? 'Your application was submitted successfully. You do not need to submit again; you can check its status from your profile.' : 'Your application was submitted successfully. You can continue while we send your confirmation email.'}</p>
         </div>
       </motion.div>
 

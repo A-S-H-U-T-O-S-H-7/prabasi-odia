@@ -173,18 +173,20 @@ export const userService = {
     }
   },
 
-  async uploadDocument(uid: string, file: File, type: 'aadharFront' | 'aadharBack' | 'passportFile' | 'profilePhoto') {
+  async uploadDocument(uid: string, file: File, type: 'aadharFront' | 'aadharBack' | 'passportFile' | 'profilePhoto', saveToProfile = true) {
     const path = `users/${uid}/documents/${type}`;
     const storageRef = ref(storage, path);
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
     
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      [`documents.${type}`]: downloadURL,
-      ...(type === 'profilePhoto' ? { photoURL: downloadURL } : {}),
-      updatedAt: new Date().toISOString(),
-    });
+    if (saveToProfile) {
+      const userRef = doc(db, 'users', uid);
+      await updateDoc(userRef, {
+        [`documents.${type}`]: downloadURL,
+        ...(type === 'profilePhoto' ? { photoURL: downloadURL } : {}),
+        updatedAt: new Date().toISOString(),
+      });
+    }
     
     return { success: true, url: downloadURL };
   },

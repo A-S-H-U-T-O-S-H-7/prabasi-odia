@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +16,8 @@ import { userService, type UserProfileData } from "@/lib/services/userService";
 import { emailService } from "@/lib/services/emailService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
 import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
+import { useJoinFormDraft } from "@/hooks/useJoinFormDraft";
+import JoinFormSupport from "@/components/web/join-community/JoinFormSupport";
 
 // Calculate age from DOB
 const calculateAge = (dob: string): number => {
@@ -43,6 +45,9 @@ const schema = z.object({
       return age >= 18;
     }, "You must be at least 18 years old"),
   gender: z.string().min(1, "Gender is required"),
+  dobDay: z.string().optional(),
+  dobMonth: z.string().optional(),
+  dobYear: z.string().optional(),
   bloodGroup: z.string().min(1, "Blood group is required"),
   mobileCountryCode: z.string().min(1, "Country code is required"),
   mobileNumber: z.string()
@@ -99,6 +104,7 @@ const schema = z.object({
     .refine((val) => !val || (val.length >= 6 && val.length <= 9 && /^[A-Z0-9]+$/.test(val)), 
       "Passport number must be 6-9 characters"),
   identityConsent: z.boolean(),
+  identityDocumentSelected: z.boolean().optional(),
   
   // ✅ Document uploads - optional
   aadharFront: z.any().optional(),
@@ -161,6 +167,10 @@ export default function JoinCommunityPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
+  const [submissionStatus, setSubmissionStatus] = useState('');
+  const [emailStatus, setEmailStatus] = useState<'pending' | 'sent' | 'failed'>('pending');
+  const submissionInFlight = useRef(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -199,6 +209,7 @@ export default function JoinCommunityPage() {
       aadharNumber: "",
       passportNumber: "",
       identityConsent: true,
+      identityDocumentSelected: false,
       aadharFront: undefined,
       aadharBack: undefined,
       passportFile: undefined,
@@ -206,40 +217,46 @@ export default function JoinCommunityPage() {
     mode: "onChange",
   });
 
+  const draft = useJoinFormDraft(methods, currentStep, setCurrentStep);
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
   const handleSubmit = async (accountUser = user) => {
-    if (isSubmitting) return;
+    if (submissionInFlight.current || isSuccess) return;
+    submissionInFlight.current = true;
     setIsSubmitting(true);
+    setSubmissionError('');
+    setSubmissionStatus('Checking your application...');
 
-    if (!accountUser) {
-      toast.error("Please create your account to submit the application");
-      setCurrentStep(3);
-      setIsSubmitting(false);
-      return;
-    }
-    const isValid = await methods.trigger();
-    if (!isValid) {
-      toast.error("Please correct the highlighted required fields");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const data = methods.getValues();
-    if (isIndianCountryCode(data.mobileCountryCode) && !data.mobileVerified) {
-      toast.error("Please verify your mobile number first");
-      setCurrentStep(1);
-      setIsSubmitting(false);
-      return;
-    }
-    if (!isIndianCountryCode(data.mobileCountryCode) && !data.emailVerified) {
-      toast.error("Please verify the OTP sent to your email first");
-      setCurrentStep(1);
-      setIsSubmitting(false);
-      return;
-    }
+    const showFailure = (message: string, step?: number) => {
+      setSubmissionError(message);
+      toast.error(message);
+      if (step) setCurrentStep(step);
+    };
 
     try {
+      if (!accountUser?.uid) {
+        showFailure('Please create your account to submit the application.', 3);
+        return;
+      }
+
+      const validation = schema.safeParse(methods.getValues());
+      if (!validation.success) {
+        await methods.trigger();
+        const issue = validation.error.issues[0];
+        const field = String(issue.path[0] || '');
+        const addressFields = ['odishaHomeAddress', 'odishaDistrict', 'odishaCity', 'odishaPinCode', 'currentAddress', 'currentCountry', 'currentState', 'currentCity', 'currentPinCode', 'currentLatitude', 'currentLongitude', 'nearbyCommunityId', 'nearbyCommunityName', 'requestedCommunityName'];
+        showFailure(issue.message, addressFields.includes(field) ? 2 : 1);
+        return;
+      }
+      const data = validation.data;
+      if (isIndianCountryCode(data.mobileCountryCode) && !data.mobileVerified) {
+        showFailure('Please verify your mobile number again before submitting your restored application.', 1);
+        return;
+      }
+      if (!isIndianCountryCode(data.mobileCountryCode) && (!data.emailVerified || data.verifiedEmail?.toLowerCase() !== data.email?.toLowerCase())) {
+        showFailure('Please verify your email address before submitting your application.', 1);
+        return;
+      }
 
       const duplicate = await userService.findDuplicateIdentity({
         uid: accountUser.uid,
@@ -254,7 +271,7 @@ export default function JoinCommunityPage() {
           aadhar: "Aadhar number",
           passport: "passport number",
         };
-        toast.error(`This ${labels[duplicate.field]} is already linked to another account.`);
+        showFailure(`This ${labels[duplicate.field]} is already linked to another account.`, 1);
         return;
       }
 
@@ -268,7 +285,8 @@ export default function JoinCommunityPage() {
       let currentLatitude = data.currentLatitude ?? null;
       let currentLongitude = data.currentLongitude ?? null;
 
-      if (!currentLatitude || !currentLongitude || currentLatitude === 0 || currentLongitude === 0) {
+      if (currentLatitude == null || currentLongitude == null) {
+        setSubmissionStatus('Checking your location...');
         const geocoded = await geocodeLocation({
           city: data.currentCity,
           state: data.currentState,
@@ -321,51 +339,40 @@ export default function JoinCommunityPage() {
         applicationStatus: 'pending_review' as const,
       };
 
-      await userService.createUserProfile(accountUser.uid, profileData);
-
-      // ✅ Upload profile photo
-      if (data.photo instanceof File) {
-        await userService.uploadDocument(accountUser.uid, data.photo, 'profilePhoto');
+      // Upload first; only mark the application submitted when every upload is ready.
+      const documents: NonNullable<UserProfileData['documents']> = {};
+      const upload = async (file: File, type: keyof typeof documents) => {
+        const result = await userService.uploadDocument(accountUser.uid, file, type, false);
+        documents[type] = result.url;
+      };
+      setSubmissionStatus('Uploading your profile photo...');
+      await upload(data.photo, 'profilePhoto');
+      setSubmissionStatus('Uploading your documents...');
+      if (data.idType === 'aadhar') {
+        if (data.aadharFront instanceof File) await upload(data.aadharFront, 'aadharFront');
+        if (data.aadharBack instanceof File) await upload(data.aadharBack, 'aadharBack');
+      } else if (data.passportFile instanceof File) {
+        await upload(data.passportFile, 'passportFile');
       }
 
-      // ✅ Upload Aadhar documents (if provided)
-      if (data.idType === "aadhar") {
-        if (data.aadharFront instanceof File) {
-          await userService.uploadDocument(accountUser.uid, data.aadharFront, 'aadharFront');
-        }
-        if (data.aadharBack instanceof File) {
-          await userService.uploadDocument(accountUser.uid, data.aadharBack, 'aadharBack');
-        }
-      } else if (data.idType === "passport") {
-        if (data.passportFile instanceof File) {
-          await userService.uploadDocument(accountUser.uid, data.passportFile, 'passportFile');
-        }
-      }
+      setSubmissionStatus('Saving your application...');
+      await userService.createUserProfile(accountUser.uid, {
+        ...profileData, documents, photoURL: documents.profilePhoto,
+      });
 
-      // The welcome/application email is sent only once the complete form has
-      // been submitted, never merely when an account is created.
-      try {
-        await emailService.sendWelcomeEmail({
-          name: data.fullName,
-          email: accountUser.email || data.email || "",
-        });
-      } catch (emailError) {
-        console.error("Application email error:", emailError);
-      }
-
-      // A pending application is never added to a community. Admin approval
-      // performs that assignment and keeps member counts accurate.
-
+      // Email delivery and local draft cleanup must not hold up confirmation.
       setIsSuccess(true);
-      toast.success(
-        isCommunityRequest
-          ? 'Profile submitted! Your community request will be reviewed by admin.'
-          : 'Application submitted! Our team will verify your details.'
-      );
+      void draft.clearDraft();
+      toast.success('Application submitted! Our team will verify your details.');
+      void emailService.sendWelcomeEmail({ name: data.fullName, email: accountUser.email || data.email || '' })
+        .then((result) => setEmailStatus(result.success ? 'sent' : 'failed'))
+        .catch(() => setEmailStatus('failed'));
     } catch (error: any) {
-      toast.error(error?.message || 'Something went wrong. Please try again.');
+      showFailure(error?.message || 'Your application could not be submitted. Your entries are saved; please try again.');
       console.error('Submit error:', error);
     } finally {
+      submissionInFlight.current = false;
+      setSubmissionStatus('');
       setIsSubmitting(false);
     }
   };
@@ -380,7 +387,7 @@ export default function JoinCommunityPage() {
 
   const renderStep = () => {
     if (isSuccess) {
-      return <SuccessPage onGoHome={handleGoHome} onGoProfile={handleGoProfile} />;
+      return <SuccessPage emailStatus={emailStatus} onGoHome={handleGoHome} onGoProfile={handleGoProfile} />;
     }
 
     switch (currentStep) {
@@ -389,7 +396,7 @@ export default function JoinCommunityPage() {
       case 2:
         return <Step2Address onNext={handleNext} onBack={handleBack} buttonLabel="Next" />;
       case 3:
-        return <Step0Account initialName={methods.getValues("fullName")} initialEmail={methods.getValues("email")} onComplete={async ({ name, email, uid }) => {
+        return <Step0Account isSubmitting={isSubmitting} onBack={handleBack} initialName={methods.getValues("fullName")} initialEmail={methods.getValues("email")} onComplete={async ({ name, email, uid }) => {
           methods.setValue("fullName", methods.getValues("fullName") || name);
           methods.setValue("email", email);
           await handleSubmit({ uid, email });
@@ -401,14 +408,19 @@ export default function JoinCommunityPage() {
 
   return (
     <FormProvider {...methods}>
+      <JoinFormSupport step={currentStep}>
       <JoinCommunityLayout
         currentStep={currentStep}
         totalSteps={STEPS.length}
-        title={STEPS[currentStep - 1]?.title || 'Join Community'}
-        subtitle={STEPS[currentStep - 1]?.subtitle || ''}
+        title={isSuccess ? 'Application submitted' : STEPS[currentStep - 1]?.title || 'Join Community'}
+        subtitle={isSuccess ? 'Thank you for joining Prabasi Odia' : STEPS[currentStep - 1]?.subtitle || ''}
       >
-        {renderStep()}
+        {!isSuccess && <p role="status" className="mb-3 text-xs text-[#6B5E5A]">{draft.ready ? draft.status : 'Restoring your progress…'}</p>}
+        {!isSuccess && submissionError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{submissionError}</p>}
+        {!isSuccess && isSubmitting && <p role="status" className="mb-4 text-sm font-medium text-[#6B1E5B]">{submissionStatus}</p>}
+        {draft.ready && renderStep()}
       </JoinCommunityLayout>
+      </JoinFormSupport>
     </FormProvider>
   );
 }

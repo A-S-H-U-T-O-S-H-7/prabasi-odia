@@ -6,6 +6,7 @@ import { FaLinkedin, FaTwitter } from "react-icons/fa";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
 import { AdvisoryBoardMember } from "@/lib/services/adminAdvisoryBoardService";
+import { ADVISORY_CATEGORIES, normalizeAdvisoryCategory, type AdvisoryCategory } from "@/lib/advisoryCategories";
 
 interface CreateAdvisoryBoardModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ const ALLOWED_IMAGE_TYPES = [
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
 const emptyForm = {
+  category: 'advisor' as AdvisoryCategory,
   name: "",
   position: "",
   photoURL: "",
@@ -57,6 +59,7 @@ export default function CreateAdvisoryBoardModal({
   useEffect(() => {
     if (editingMember) {
       setFormData({
+        category: normalizeAdvisoryCategory(editingMember.category),
         name: editingMember.name || "",
         position: editingMember.position || "",
         photoURL: editingMember.photoURL || "",
@@ -171,6 +174,11 @@ export default function CreateAdvisoryBoardModal({
 
         <div className="overflow-y-auto flex-1 p-5">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block text-sm font-medium text-[#2A1636]">Member category
+              <select value={formData.category} onChange={(event) => setFormData({ ...formData, category: normalizeAdvisoryCategory(event.target.value) })} className="mt-1.5 w-full rounded-xl border-2 border-[#D4C8C0]/50 bg-white px-4 py-2.5 text-sm">
+                {ADVISORY_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.title} — {category.role}</option>)}
+              </select>
+            </label>
             {/* Photo */}
             <div>
               <label className="block text-sm font-medium text-[#2A1636] mb-1.5">

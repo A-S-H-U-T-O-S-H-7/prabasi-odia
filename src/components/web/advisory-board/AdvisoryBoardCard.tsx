@@ -5,11 +5,13 @@ import Image from 'next/image';
 import { Star, ExternalLink, Calendar, X, Mail, Phone, MapPin, ChevronRight, ChevronDown } from 'lucide-react';
 import { FaLinkedinIn, FaTwitter } from "react-icons/fa";
 import { useState, useEffect } from 'react';
+import { advisoryCategoryDetails, type AdvisoryCategory } from '@/lib/advisoryCategories';
 
 interface Member {
   id: string;
   name: string;
   position: string;
+  category?: AdvisoryCategory;
   designation?: string;
   organization?: string;
   bio?: string;
@@ -138,7 +140,7 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
           </h3>
           
           <p className="text-sm font-medium text-[#D9772B] mt-0.5">
-            {member.position}
+            {advisoryCategoryDetails(member.category).role}{member.position ? ` · ${member.position}` : ''}
           </p>
           
           {member.designation && (
@@ -314,7 +316,7 @@ function PopoverContent({ member }: { member: Member }) {
             {member.name}
           </h4>
           <p className="text-xs text-[#D9772B] font-medium">
-            {member.position}
+            {advisoryCategoryDetails(member.category).role}{member.position ? ` · ${member.position}` : ''}
           </p>
         </div>
       </div>
@@ -425,7 +427,7 @@ function MobileModalContent({ member }: { member: Member }) {
             {member.name}
           </h3>
           <p className="text-sm font-medium text-[#D9772B]">
-            {member.position}
+            {advisoryCategoryDetails(member.category).role}{member.position ? ` · ${member.position}` : ''}
           </p>
           {member.organization && (
             <p className="text-xs text-[#5A4A4A]">

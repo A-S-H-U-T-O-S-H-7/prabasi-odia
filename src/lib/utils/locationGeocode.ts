@@ -21,7 +21,8 @@ export async function geocodeLocation(location: {
   if (googleKey) {
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${googleKey}`
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${googleKey}`,
+        { signal: AbortSignal.timeout(8_000) }
       );
       const data = await response.json();
       const result = data?.results?.[0]?.geometry?.location;
@@ -36,7 +37,8 @@ export async function geocodeLocation(location: {
   // Fallback to Nominatim (OpenStreetMap)
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
+      { signal: AbortSignal.timeout(8_000) }
     );
     const data = await response.json();
     if (Array.isArray(data) && data[0]) {

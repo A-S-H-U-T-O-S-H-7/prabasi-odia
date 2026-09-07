@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
         'User-Agent': 'Prabasi-Odia/1.0',
       },
       body: formData,
+      signal: AbortSignal.timeout(30_000),
     });
 
     const responseText = await response.text();
@@ -105,7 +106,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(data, { status: response.ok ? 200 : 502 });
+    const sent = response.ok && (data.status === true || data.success === true);
+    return NextResponse.json(
+      { status: sent, message: data.message || (sent ? 'Verification email sent' : 'Failed to send verification email') },
+      { status: sent ? 200 : 502 }
+    );
   } catch (error) {
     console.error('Verification email error:', error);
     return NextResponse.json(

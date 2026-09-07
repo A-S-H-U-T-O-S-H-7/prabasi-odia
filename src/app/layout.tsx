@@ -6,6 +6,7 @@ import { AnimatePresence } from "framer-motion";
 import SplashScreen from "@/components/web/layout/SplashScreen";
 import { useAuthStore } from "@/lib/store";
 import "./globals.css";
+import { Toaster } from "react-hot-toast";
 
 const libreBaskerville = Libre_Baskerville({
   weight: ["400", "700"],
@@ -47,6 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${libreBaskerville.variable} ${poppins.variable}`}>
       <body className="font-body antialiased">
+        <Toaster position="top-center" />
         <AnimatePresence mode="wait">
           {isLoading ? (
             <SplashScreen key="splash" />

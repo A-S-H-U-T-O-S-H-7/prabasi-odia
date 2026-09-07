@@ -1,4 +1,5 @@
 import { db, storage } from '@/lib/firebase/config';
+import { normalizeAdvisoryCategory, type AdvisoryCategory } from '@/lib/advisoryCategories';
 import {
   collection,
   doc,
@@ -19,6 +20,7 @@ export interface AdvisoryBoardMember {
   id: string;
   name: string;
   position: string;
+  category: AdvisoryCategory;
   photoURL: string;
   organization?: string;
   designation?: string;
@@ -40,6 +42,7 @@ function mapMember(id: string, data: Record<string, any>): AdvisoryBoardMember {
     id,
     name: data.name || '',
     position: data.position || '',
+    category: normalizeAdvisoryCategory(data.category),
     photoURL: data.photoURL || '',
     organization: data.organization || '',
     designation: data.designation || '',
@@ -135,6 +138,7 @@ export const adminAdvisoryBoardService = {
       }
 
       const memberData = {
+        category: normalizeAdvisoryCategory(data.category),
         name: data.name,
         position: data.position,
         photoURL,
@@ -174,6 +178,7 @@ export const adminAdvisoryBoardService = {
       }
 
       const updateData = {
+        category: normalizeAdvisoryCategory(data.category),
         name: data.name,
         position: data.position,
         photoURL,

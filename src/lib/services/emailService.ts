@@ -28,6 +28,7 @@ export const emailService = {
       const response = await axios({
         method: "POST",
         url: "/api/email/welcome", // ← Local API route
+        timeout: 25_000,
         headers: {
           "Content-Type": "application/json",
         },

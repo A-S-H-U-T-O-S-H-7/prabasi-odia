@@ -252,7 +252,7 @@ export default function AdminAdvisoryBoardPage() {
               Advisory Board
             </h1>
             <p className="text-sm text-[#6B5E5A] mt-1">
-              Manage advisory board members shown on the public page
+              Manage patrons, mentors, and advisors shown on the public page
             </p>
           </div>
         </div>
