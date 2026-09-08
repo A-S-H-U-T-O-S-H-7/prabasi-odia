@@ -405,7 +405,7 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
                       src={profile.photoURL}
                       alt={profile?.displayName || "Member"}
                       fill
-                      className="object-cover"
+                      className="object-contain object-center p-0.5"
                       sizes="112px"
                     />
                   ) : (

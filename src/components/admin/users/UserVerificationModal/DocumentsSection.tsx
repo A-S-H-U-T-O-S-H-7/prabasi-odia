@@ -25,12 +25,12 @@ export function DocumentsSection({ user, hasAadharFront, hasAadharBack, hasPassp
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Profile Photo */}
         <div className="flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-[#D4C8C0]/30">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
+          <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white">
             {profilePhoto ? (
               <img
                 src={profilePhoto}
                 alt="Profile"
-                className="w-full h-full object-cover"
+                className="w-full h-full p-0.5 object-contain object-center"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">

@@ -352,7 +352,7 @@ export default function UserVerificationModal({
                         alt={user.displayName || "User"}
                         width={48}
                         height={48}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full bg-white p-0.5 object-contain object-center"
                       />
                     ) : (
                       <span>{user.displayName?.charAt(0) || "U"}</span>

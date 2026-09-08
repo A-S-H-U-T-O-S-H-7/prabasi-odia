@@ -47,12 +47,12 @@ export function DocumentViewer({ url, label }: DocumentViewerProps) {
                 <XIcon className="w-5 h-5 text-[#6B5E5A]" />
               </button>
             </div>
-            <div className="flex-1 p-4 flex items-center justify-center bg-gray-50 overflow-hidden">
+            <div className="min-h-0 flex-1 p-4 flex items-center justify-center bg-gray-50 overflow-hidden">
               {!imageError ? (
                 <img
                   src={url}
                   alt={label}
-                  className="max-w-full max-h-full object-contain"
+                  className="w-full h-full min-h-0 object-contain object-center"
                   onError={() => setImageError(true)}
                   loading="lazy"
                 />

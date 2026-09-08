@@ -36,7 +36,7 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
                 alt={profile.displayName || "User"}
                 width={96}
                 height={96}
-                className="w-24 h-24 rounded-2xl border-4 border-white shadow-lg object-cover"
+                className="w-24 h-24 rounded-2xl border-4 border-white bg-white p-0.5 shadow-lg object-contain object-center"
                 onError={() => setImgError(true)}
                 unoptimized={profile.photoURL.includes('firebasestorage')}
               />
