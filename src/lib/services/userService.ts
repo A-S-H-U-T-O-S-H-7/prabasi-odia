@@ -18,6 +18,7 @@ export interface UserProfileData {
   photoURL?: string;
   phoneNumber?: string;
   mobileCountryCode?: string;
+  residencyStatus?: 'RI' | 'NRI';
   phoneKey?: string;
   age: number;
   gender: string;

@@ -2,6 +2,7 @@
 
 import { UserData } from "@/lib/services/adminUserService";
 import { CheckCircle, XCircle, Eye, User, Pencil } from "lucide-react";
+import ResidencyBadge from "./ResidencyBadge";
 
 interface UserTableProps {
   users: UserData[];
@@ -64,6 +65,7 @@ export default function UserTable({ users, onViewUser, onEditUser, loading = fal
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-[#2A1636] truncate">{user.displayName || "Unknown"}</p>
                       <p className="text-xs text-[#6B5E5A] truncate">{user.email}</p>
+                      <div className="mt-1"><ResidencyBadge status={user.residencyStatus} compact /></div>
                     </div>
                   </div>
                 </td>

@@ -16,6 +16,7 @@ import { userService, type UserProfileData } from "@/lib/services/userService";
 import { emailService } from "@/lib/services/emailService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
 import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
+import { residencyDefaults, isResidencyContactVerified } from "@/lib/residency";
 import { useJoinFormDraft } from "@/hooks/useJoinFormDraft";
 import JoinFormSupport from "@/components/web/join-community/JoinFormSupport";
 
@@ -34,6 +35,7 @@ const calculateAge = (dob: string): number => {
 
 // Define the schema
 const schema = z.object({
+  residencyStatus: z.enum(["RI", "NRI"]),
   // Personal Info
   photo: z.any().refine((file) => file instanceof File, "Profile photo is required"),
   fullName: z.string().min(2, "Full name is required"),
@@ -84,10 +86,7 @@ const schema = z.object({
   currentCity: z.string().min(2, "Current city is required"),
   currentLatitude: z.number().optional(),
   currentLongitude: z.number().optional(),
-  currentPinCode: z.string()
-    .min(6, "Pin code must be 6 digits")
-    .max(6, "Pin code must be 6 digits")
-    .regex(/^[0-9]+$/, "Pin code must contain only numbers"),
+  currentPinCode: z.string().trim().min(1, "Postal code is required").max(16, "Postal code is too long"),
 
   nearbyCommunityId: z.string().min(1, "Please select your nearby community"),
   nearbyCommunityName: z.string().optional(),
@@ -112,6 +111,18 @@ const schema = z.object({
   passportFile: z.any().optional(),
 
 }).superRefine((data, ctx) => {
+  if (data.residencyStatus === "RI" && data.mobileCountryCode !== "+91") {
+    ctx.addIssue({ code: "custom", message: "Resident Indians must use a +91 mobile number for SMS verification", path: ["mobileCountryCode"] });
+  }
+  if (data.residencyStatus === "RI" && data.idType !== "aadhar") {
+    ctx.addIssue({ code: "custom", message: "Aadhar is required for Resident Indians", path: ["idType"] });
+  }
+  if (data.residencyStatus === "NRI" && !z.email().safeParse(data.email?.trim()).success) {
+    ctx.addIssue({ code: "custom", message: "Enter a valid email address for OTP verification", path: ["email"] });
+  }
+  if (data.currentCountry === "India" && !/^\d{6}$/.test(data.currentPinCode)) {
+    ctx.addIssue({ code: "custom", message: "Pin code must be 6 digits", path: ["currentPinCode"] });
+  }
   // Validate Indian mobile numbers more strictly for SMS OTP
   if (isIndianCountryCode(data.mobileCountryCode)) {
     const phone = `${data.mobileCountryCode || ""}${data.mobileNumber || ""}`;
@@ -183,7 +194,6 @@ export default function JoinCommunityPage() {
       dob: "",
       gender: "",
       bloodGroup: "",
-      mobileCountryCode: "+91",
       mobileNumber: "",
       occupation: "",
       email: "",
@@ -196,7 +206,6 @@ export default function JoinCommunityPage() {
       odishaCity: "",
       odishaPinCode: "",
       currentAddress: "",
-      currentCountry: "",
       currentState: "",
       currentCity: "",
       currentLatitude: undefined,
@@ -205,11 +214,10 @@ export default function JoinCommunityPage() {
       nearbyCommunityId: "",
       nearbyCommunityName: "",
       requestedCommunityName: "",
-      idType: "aadhar" as "aadhar" | "passport",
       aadharNumber: "",
       passportNumber: "",
       identityConsent: true,
-      identityDocumentSelected: false,
+      ...residencyDefaults("RI"),
       aadharFront: undefined,
       aadharBack: undefined,
       passportFile: undefined,
@@ -249,12 +257,10 @@ export default function JoinCommunityPage() {
         return;
       }
       const data = validation.data;
-      if (isIndianCountryCode(data.mobileCountryCode) && !data.mobileVerified) {
-        showFailure('Please verify your mobile number again before submitting your restored application.', 1);
-        return;
-      }
-      if (!isIndianCountryCode(data.mobileCountryCode) && (!data.emailVerified || data.verifiedEmail?.toLowerCase() !== data.email?.toLowerCase())) {
-        showFailure('Please verify your email address before submitting your application.', 1);
+      if (!isResidencyContactVerified(data)) {
+        showFailure(data.residencyStatus === "NRI"
+          ? 'Please verify your email address before submitting your application.'
+          : 'Please verify your mobile number before submitting your application.', 1);
         return;
       }
 
@@ -304,6 +310,7 @@ export default function JoinCommunityPage() {
       const profileData = {
         uid: accountUser.uid,
         displayName: data.fullName,
+        residencyStatus: data.residencyStatus,
         email: accountUser.email || data.email || '',
         phoneNumber: data.mobileNumber,
         mobileCountryCode: data.mobileCountryCode,

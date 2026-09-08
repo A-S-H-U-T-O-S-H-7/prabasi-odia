@@ -4,7 +4,7 @@ import { useJoinFormSupport } from "./JoinFormSupport";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFormContext } from "react-hook-form";
 import { ChevronDown, Loader2, MapPin, Home, Building, Globe, Users } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import { toast } from "react-hot-toast";
 import { useLocationData } from "@/hooks/useLocationData";
 import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCommunityService";
@@ -46,32 +46,58 @@ interface SearchableSelectProps {
   options: string[];
   placeholder: string;
   disabled?: boolean;
+  blockedMessage?: string;
   className: string;
   onChange: (value: string) => void;
 }
 
-function SearchableSelect({ value, options, placeholder, disabled = false, className, onChange }: SearchableSelectProps) {
+function SearchableSelect({ value, options, placeholder, disabled = false, blockedMessage, className, onChange }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [shownMessage, setShownMessage] = useState<string>();
+  const messageId = useId();
+  const showGuidance = Boolean(blockedMessage && shownMessage === blockedMessage);
   const query = value.toLowerCase();
   const matches = options.filter((option) => option.toLowerCase().includes(query));
 
+  useEffect(() => {
+    setShownMessage(undefined);
+    setIsOpen(false);
+  }, [blockedMessage]);
+
+  const handleOpen = () => {
+    if (blockedMessage) {
+      setShownMessage(blockedMessage);
+      setIsOpen(false);
+      return;
+    }
+    if (!disabled) setIsOpen(true);
+  };
+
   return (
     <div className="relative">
-      <input
-        value={value}
-        onChange={(event) => {
-          onChange(event.target.value);
-          setIsOpen(true);
-        }}
-        onFocus={() => setIsOpen(true)}
-        onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
-        placeholder={placeholder}
-        autoComplete="off"
-        disabled={disabled}
-        className={`${className} pr-10`}
-      />
-      <ChevronDown className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B5E5A] transition-transform ${isOpen ? "rotate-180" : ""}`} />
-      {isOpen && !disabled && (
+      <div className="relative">
+        <input
+          value={value}
+          onChange={(event) => {
+            if (blockedMessage) return;
+            onChange(event.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={handleOpen}
+          onClick={handleOpen}
+          onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
+          placeholder={placeholder}
+          autoComplete="off"
+          disabled={disabled && !blockedMessage}
+          readOnly={Boolean(blockedMessage)}
+          aria-disabled={disabled || Boolean(blockedMessage)}
+          aria-describedby={showGuidance ? messageId : undefined}
+          className={`${className} pr-10`}
+        />
+        <ChevronDown className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B5E5A] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </div>
+      {showGuidance && <p id={messageId} role="status" className="mt-1.5 text-xs text-amber-700">{blockedMessage}</p>}
+      {isOpen && !disabled && !blockedMessage && (
         <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-[#D4C8C0]/60 bg-white p-1 shadow-lg">
           {matches.length ? matches.map((option) => (
             <button
@@ -108,6 +134,7 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
   const nearbyCommunityId = formData.nearbyCommunityId || "";
   const currentState = formData.currentState;
   const currentCountry = formData.currentCountry;
+  const isIndianAddress = currentCountry === "India";
   const currentCity = formData.currentCity;
   const currentLatitude = formData.currentLatitude;
   const currentLongitude = formData.currentLongitude;
@@ -119,6 +146,8 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
   });
 
   const availableStates = useMemo(() => states.filter((state) => !isOdishaState(state.name)), [states]);
+  const hasSelectedCountry = countries.some((country) => country.name === currentCountry);
+  const hasSelectedState = availableStates.some((state) => state.name === currentState);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,6 +177,8 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
   }, [currentState, setValue]);
 
   useEffect(() => {
+    let cancelled = false;
+    setIsGeocoding(false);
     const canGeocode = currentCity && currentState && currentCountry;
     if (!canGeocode) {
       setValue("currentLatitude", undefined);
@@ -162,6 +193,7 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
         setGeocodeError(null);
         const result = await geocodeLocation({ city: currentCity, state: currentState, country: currentCountry });
 
+        if (cancelled) return;
         if (result) {
           setValue("currentLatitude", result.lat, { shouldValidate: false });
           setValue("currentLongitude", result.lng, { shouldValidate: false });
@@ -171,14 +203,15 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
           setGeocodeError("Could not find coordinates for this location. Please check your address.");
         }
       } catch (error) {
+        if (cancelled) return;
         console.error("Geocoding failed:", error);
         setGeocodeError("Geocoding failed. Please try again.");
       } finally {
-        setIsGeocoding(false);
+        if (!cancelled) setIsGeocoding(false);
       }
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [currentCity, currentState, currentCountry, setValue]);
 
   useEffect(() => {
@@ -211,8 +244,10 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
     ${shouldShowError(name) ? "border-red-400 focus:border-red-400 focus:ring-red-200" : "border-[#D4C8C0]/50 focus:border-[#6B1E5B] focus:ring-[#6B1E5B]/20"}
   `;
 
-  const ErrorMessage = ({ name }: { name: string }) => (
-    <div className="min-h-5 mt-1" aria-live="polite">
+  const currentAddressFeedbackClass = "mt-1 min-h-0 empty:mt-0 lg:mt-1 lg:min-h-5 lg:empty:mt-1";
+
+  const ErrorMessage = ({ name, compactOnMobile = false }: { name: string; compactOnMobile?: boolean }) => (
+    <div className={compactOnMobile ? currentAddressFeedbackClass : "min-h-5 mt-1"} aria-live="polite">
       <AnimatePresence mode="wait">
         {shouldShowError(name) && (
           <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
@@ -330,7 +365,7 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
               Current Address <span className="text-red-400">*</span>
             </label>
             <input {...register("currentAddress")} className={inputClass("currentAddress")} placeholder="House/Flat no., Street, Area" />
-            <ErrorMessage name="currentAddress" />
+            <ErrorMessage name="currentAddress" compactOnMobile />
           </div>
 
           <div>
@@ -344,14 +379,19 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
                 options={countries.map((country) => country.name)}
                 className={`${inputClass("currentCountry")} sm:pl-12`}
                 disabled={loading.countries}
-                placeholder="Type country"
-                onChange={(value) => setValue("currentCountry", value, { shouldValidate: hasAttemptedSubmit || touchedFields.currentCountry })}
+                placeholder={formData.residencyStatus === "NRI" ? "Select your current country" : "Type country"}
+                onChange={(value) => {
+                  setValue("currentCountry", value, { shouldDirty: true, shouldValidate: hasAttemptedSubmit || touchedFields.currentCountry });
+                  ["currentState", "currentCity", "currentPinCode", "nearbyCommunityId", "nearbyCommunityName", "requestedCommunityName"].forEach((field) => setValue(field, "", { shouldDirty: true }));
+                  setValue("currentLatitude", undefined);
+                  setValue("currentLongitude", undefined);
+                }}
               />
             </div>
-            <div className="min-h-5 mt-1">
+            <div className={currentAddressFeedbackClass}>
               {loading.countries && <p className="text-xs text-[#6B5E5A]">Loading countries...</p>}
             </div>
-            <ErrorMessage name="currentCountry" />
+            <ErrorMessage name="currentCountry" compactOnMobile />
           </div>
 
           <div>
@@ -363,13 +403,19 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
               options={availableStates.map((state) => state.name)}
               className={inputClass("currentState")}
               disabled={!availableStates.length || loading.states}
+              blockedMessage={!hasSelectedCountry ? "Please select your country first to see the available states." : undefined}
               placeholder="Type state"
-              onChange={(value) => setValue("currentState", value, { shouldValidate: hasAttemptedSubmit || touchedFields.currentState })}
+              onChange={(value) => {
+                setValue("currentState", value, { shouldDirty: true, shouldValidate: hasAttemptedSubmit || touchedFields.currentState });
+                setValue("currentCity", "", { shouldDirty: true });
+                setValue("currentLatitude", undefined);
+                setValue("currentLongitude", undefined);
+              }}
             />
-            <div className="min-h-5 mt-1">
+            <div className={currentAddressFeedbackClass}>
               {loading.states && <p className="text-xs text-[#6B5E5A]">Loading states...</p>}
             </div>
-            <ErrorMessage name="currentState" />
+            <ErrorMessage name="currentState" compactOnMobile />
           </div>
 
           <div>
@@ -381,11 +427,16 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
               options={cities.map((city) => city.name)}
               className={inputClass("currentCity")}
               disabled={!cities.length || loading.cities}
+              blockedMessage={!hasSelectedCountry
+                ? "Please select your country first, then your state, to see the available cities."
+                : !hasSelectedState
+                  ? "Please select your state first to see the available cities."
+                  : undefined}
               placeholder="Type city"
               onChange={(value) => setValue("currentCity", value, { shouldValidate: hasAttemptedSubmit || touchedFields.currentCity })}
             />
 
-            <div className="min-h-5 mt-1">
+            <div className={currentAddressFeedbackClass}>
               <AnimatePresence mode="wait">
                 {loading.cities && (
                   <motion.p key="loading" className="text-xs text-[#6B5E5A]">Loading cities...</motion.p>
@@ -408,27 +459,27 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
                 )}
               </AnimatePresence>
             </div>
-            <ErrorMessage name="currentCity" />
+            <ErrorMessage name="currentCity" compactOnMobile />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
-              Pin Code <span className="text-red-400">*</span>
+              {isIndianAddress ? "Pin Code" : "Postal / ZIP Code"} <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
-              inputMode="numeric"
+              inputMode={isIndianAddress ? "numeric" : "text"}
               value={currentPin}
               className={inputClass("currentPinCode")}
-              placeholder="6 digit pin"
-              maxLength={6}
+              placeholder={isIndianAddress ? "6 digit pin" : "Postal / ZIP code"}
+              maxLength={isIndianAddress ? 6 : 16}
               onChange={(e) => {
-                const sanitized = sanitizeGenericPin(e.target.value);
+                const sanitized = isIndianAddress ? sanitizeGenericPin(e.target.value) : e.target.value.toUpperCase();
                 setValue("currentPinCode", sanitized, { shouldValidate: hasAttemptedSubmit || touchedFields.currentPinCode });
               }}
               onBlur={() => trigger("currentPinCode")}
             />
-            <ErrorMessage name="currentPinCode" />
+            <ErrorMessage name="currentPinCode" compactOnMobile />
           </div>
         </div>
       </div>

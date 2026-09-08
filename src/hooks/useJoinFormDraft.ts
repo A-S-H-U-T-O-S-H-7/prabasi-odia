@@ -17,7 +17,18 @@ export function useJoinFormDraft<T extends FieldValues>(methods: UseFormReturn<T
       if (cancelled) return;
       if (draft) {
         restored.current = true;
-        reset({ ...getValues(), ...draft.values } as T);
+        const values = { ...draft.values };
+        // Older drafts used the phone code to choose verification.
+        if (values.residencyStatus !== 'RI' && values.residencyStatus !== 'NRI') {
+          values.residencyStatus = (values.mobileCountryCode && values.mobileCountryCode !== '+91') ||
+            values.idType === 'passport' || (values.currentCountry && values.currentCountry !== 'India') ? 'NRI' : 'RI';
+        }
+        if (values.residencyStatus === 'RI') {
+          values.idType = 'aadhar';
+          values.identityDocumentSelected = true;
+          values.currentCountry = values.currentCountry || 'India';
+        }
+        reset({ ...getValues(), ...values } as T);
         setStep(draft.step);
         setStatus('Your draft was restored. Verify your contact again before submitting.');
       }

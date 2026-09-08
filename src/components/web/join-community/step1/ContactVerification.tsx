@@ -12,7 +12,6 @@ import { useCountries } from "@/hooks/useCountries";
 import CountryCodeSelect from "./CountryCodeSelect";
 import { useJoinFormSupport } from "../JoinFormSupport";
 import { 
-  isIndianCountryCode,
   normalizeEmail,
   normalizeIndianPhone,
   OTP_RESEND_COOLDOWN_SECONDS 
@@ -41,68 +40,31 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
   const [showVerificationWarning, setShowVerificationWarning] = useState(false);
   const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const isVerifyingRef = useRef(false);
-  const isResettingRef = useRef(false);
+  const requestVersion = useRef(0);
 
   const watchMobileNumber = watch("mobileNumber");
   const watchMobileCountryCode = watch("mobileCountryCode");
-  const isIndianNumber = isIndianCountryCode(watchMobileCountryCode);
-  const isContactVerified = isIndianNumber ? isMobileVerified : isEmailVerified;
+  const residencyStatus = watch("residencyStatus");
+  const isResidentIndian = residencyStatus === "RI";
+  const isContactVerified = isResidentIndian ? isMobileVerified : isEmailVerified;
+  const contactKey = isResidentIndian
+    ? `RI:${watchMobileCountryCode}:${String(watchMobileNumber || "").replace(/[\s\-()]/g, "")}`
+    : `NRI:${loginEmail.trim().toLowerCase()}`;
+  const previousContactKey = useRef(contactKey);
 
-  // Reset verification when mobile number changes
+  // Invalidate pending requests as well as completed verification when the recipient changes.
   useEffect(() => {
-    if (isResettingRef.current) return;
-    
-    if (!isIndianNumber) return;
-    
-    const currentPhone = `${watchMobileCountryCode || ""}${watchMobileNumber || ""}`;
-    const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
-    
-    if (isMobileVerified && verifiedPhone) {
-      const normalizedCurrent = normalizeIndianPhone(currentPhone);
-      const normalizedVerified = normalizeIndianPhone(verifiedPhone);
-      
-      if (normalizedCurrent !== normalizedVerified) {
-        isResettingRef.current = true;
-        resetVerification();
-        setTimeout(() => {
-          isResettingRef.current = false;
-        }, 100);
-      }
-    }
-  }, [watchMobileNumber, watchMobileCountryCode]);
+    if (previousContactKey.current === contactKey) return;
+    previousContactKey.current = contactKey;
+    requestVersion.current += 1;
+    resetVerification();
+  }, [contactKey]);
 
-  // Reset verification when country code changes
-  useEffect(() => {
-    if (isResettingRef.current) return;
-    
-    if (isIndianNumber) {
-      const currentPhone = `${watchMobileCountryCode || ""}${watchMobileNumber || ""}`;
-      const verifiedPhone = String(getValues("verifiedMobileNumber") || "");
-      
-      if (isMobileVerified && verifiedPhone) {
-        const normalizedCurrent = normalizeIndianPhone(currentPhone);
-        const normalizedVerified = normalizeIndianPhone(verifiedPhone);
-        
-        if (normalizedCurrent !== normalizedVerified) {
-          isResettingRef.current = true;
-          resetVerification();
-          setTimeout(() => {
-            isResettingRef.current = false;
-          }, 100);
-        }
-      }
-      return;
-    }
-    
-    if (isEmailVerified && getValues("verifiedEmail") === loginEmail.toLowerCase()) return;
-    if (otpSent || isEmailVerified || isMobileVerified) {
-      isResettingRef.current = true;
-      resetVerification();
-      setTimeout(() => {
-        isResettingRef.current = false;
-      }, 100);
-    }
-  }, [watchMobileCountryCode]);
+  useEffect(() => () => { requestVersion.current += 1; }, []);
+
+  const currentContactKey = () => getValues("residencyStatus") === "RI"
+    ? `RI:${getValues("mobileCountryCode")}:${String(getValues("mobileNumber") || "").replace(/[\s\-()]/g, "")}`
+    : `NRI:${String(getValues("email") || loginEmail).trim().toLowerCase()}`;
 
   // Timer for resend cooldown
   useEffect(() => {
@@ -114,6 +76,10 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
   }, [resendCooldown]);
 
   const resetVerification = () => {
+    setResendCooldown(0);
+    setIsSendingOtp(false);
+    setIsVerifyingOtp(false);
+    isVerifyingRef.current = false;
     setOtpSent(false);
     setOtpDigits(["", "", "", "", "", ""]);
     setOtpError(null);
@@ -248,9 +214,12 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
   // ============ SEND OTP Handler ============
   const handleSendOtp = async () => {
     if (isSendingOtp || isVerifyingOtp || resendCooldown > 0) return;
-    support.recordOtpAttempt(isIndianNumber ? getPhonePayload() : loginEmail.toLowerCase());
+    const version = requestVersion.current;
+    const recipient = currentContactKey();
+    const isCurrent = () => version === requestVersion.current && recipient === currentContactKey();
+    support.recordOtpAttempt(isResidentIndian ? getPhonePayload() : loginEmail.toLowerCase());
     // Validate based on channel
-    if (isIndianNumber) {
+    if (isResidentIndian) {
       const isPhoneValid = await trigger(["mobileNumber", "mobileCountryCode"]);
       const phonePayload = getPhonePayload();
       const normalizedPhone = normalizeIndianPhone(phonePayload);
@@ -260,21 +229,24 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
         return;
       }
     } else if (!loginEmail) {
-      toast.error("No email is linked to your account. Please login with email or Google.");
+      toast.error("Enter your email address before requesting an OTP.");
       return;
     }
 
+    if (!isCurrent()) return;
     setIsSendingOtp(true);
     setOtpError(null);
     setShowVerificationWarning(false);
 
     try {
       let data;
-      if (isIndianNumber) {
+      if (isResidentIndian) {
         data = await requestSmsOtp();
+        if (!isCurrent()) return;
         toast.success(data.message || "OTP sent to your mobile number");
       } else {
         data = await requestEmailOtp();
+        if (!isCurrent()) return;
         toast.success(data.message || "OTP sent to your email");
       }
       
@@ -283,11 +255,12 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
       setResendCooldown(OTP_RESEND_COOLDOWN_SECONDS);
       setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
     } catch (error) {
+      if (!isCurrent()) return;
       const message = error instanceof Error ? error.message : "Unable to send OTP";
       setOtpError(message);
       toast.error(message);
     } finally {
-      setIsSendingOtp(false);
+      if (isCurrent()) setIsSendingOtp(false);
     }
   };
 
@@ -299,6 +272,9 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
       return;
     }
 
+    const version = requestVersion.current;
+    const recipient = currentContactKey();
+    const isCurrent = () => version === requestVersion.current && recipient === currentContactKey();
     isVerifyingRef.current = true;
     setIsVerifyingOtp(true);
     setOtpError(null);
@@ -306,17 +282,18 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 
     try {
       let result;
-      if (isIndianNumber) {
+      if (isResidentIndian) {
         result = await verifySmsOtp(otp);
       } else {
         result = await verifyEmailOtp(otp);
       }
 
+      if (!isCurrent()) return;
       if (!result.success) {
         throw new Error(result.message || "Invalid OTP");
       }
 
-      if (isIndianNumber) {
+      if (isResidentIndian) {
         setIsMobileVerified(true);
         setValue("mobileVerified", true, { shouldDirty: true, shouldValidate: true });
         
@@ -333,14 +310,17 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
       }
       setOtpError(null);
     } catch (error) {
+      if (!isCurrent()) return;
       const message = error instanceof Error ? error.message : "Unable to verify OTP";
-      if (isIndianNumber) setIsMobileVerified(false);
+      if (isResidentIndian) setIsMobileVerified(false);
       else setIsEmailVerified(false);
       setOtpError(message);
       toast.error(message);
     } finally {
-      isVerifyingRef.current = false;
-      setIsVerifyingOtp(false);
+      if (isCurrent()) {
+        isVerifyingRef.current = false;
+        setIsVerifyingOtp(false);
+      }
     }
   };
 
@@ -400,28 +380,27 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
           Email ID <span className="text-red-400">*</span>
         </label>
         <div className="flex gap-2">
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <Mail className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
             <input
               type="email"
               value={loginEmail}
               onChange={(event) => {
                 setValue("email", event.target.value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-                if (isEmailVerified) resetVerification();
               }}
               className={`${inputClass("email")} sm:pl-12 ${isEmailVerified ? "border-green-500" : ""}`}
               placeholder="you@example.com"
             />
           </div>
-          {/* Email OTP Send Button - Only for non-Indian numbers */}
-          {!isIndianNumber && (
+          {/* Email OTP Send Button - Only for NRIs */}
+          {!isResidentIndian && (
             <motion.button
               type="button"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSendOtp}
-              disabled={isSendingOtp || isEmailVerified || resendCooldown > 0 || !loginEmail}
-              className={`px-4 py-3 rounded-2xl text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
+              disabled={isSendingOtp || isVerifyingOtp || isEmailVerified || resendCooldown > 0 || !loginEmail}
+              className={`px-2 py-2.5 rounded-xl text-xs sm:px-4 sm:py-3 sm:rounded-2xl sm:text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
                 isEmailVerified
                   ? "bg-green-600 text-white"
                   : "bg-gradient-to-r from-[#6B1E5B] to-[#8A2E72] text-white shadow-md shadow-[#6B1E5B]/20"
@@ -454,9 +433,9 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
             </div>
           ) : (
             <p className="text-xs text-[#6B5E5A]/70">
-              {isIndianNumber
+              {isResidentIndian
                 ? "This email will be used when you create your account"
-                : "OTP will be sent to this email because your number is outside India"}
+                : "As an NRI, you will receive your OTP at this email address"}
             </p>
           )}
         </div>
@@ -507,7 +486,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
             Mobile Number <span className="text-red-400">*</span>
           </label>
           <div className="flex gap-2">
-            <div className="relative flex-1">
+            <div className="relative min-w-0 flex-1">
               <Phone className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
               <input
                 type="tel"
@@ -524,14 +503,14 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
                 }}
               />
             </div>
-            {/* SMS OTP Send Button - Only for Indian numbers */}
-            {isIndianNumber && (
+            {/* SMS OTP Send Button - Only for Resident Indians */}
+            {isResidentIndian && (
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSendOtp}
-                disabled={isSendingOtp || isMobileVerified || resendCooldown > 0}
+                disabled={isSendingOtp || isVerifyingOtp || isMobileVerified || resendCooldown > 0}
                 className={`rounded-xl px-2 py-2.5 text-xs font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 sm:px-4 sm:py-3 sm:text-sm sm:rounded-2xl ${
                   isMobileVerified
                     ? "bg-green-600 text-white"
@@ -567,9 +546,9 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
               <div className="flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                 <p className="text-[10px] text-amber-600">
-                  {isIndianNumber
+                  {isResidentIndian
                     ? "OTP will be sent to this Indian mobile number"
-                    : "Outside India numbers are verified by email OTP"}
+                    : "NRI contact verification uses email OTP"}
                 </p>
               </div>
             )}
@@ -581,7 +560,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
       {showVerificationWarning && !isContactVerified && (
         <div className="text-red-400 text-sm flex items-center gap-1.5">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {isIndianNumber
+          {isResidentIndian
             ? "Please verify your mobile number first"
             : "Please verify the OTP sent to your email first"}
         </div>
@@ -601,7 +580,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
                 Enter 6-digit OTP <span className="text-red-400">*</span>
               </label>
               <p className="text-xs text-[#6B5E5A]">
-                {isIndianNumber
+                {isResidentIndian
                   ? "OTP has been sent to your mobile number"
                   : `OTP has been sent to ${loginEmail}`}
               </p>

@@ -1,7 +1,8 @@
 "use client";
 
-import { User, CalendarDays, Heart, Droplet, Smartphone, Briefcase } from "lucide-react";
+import { User, CalendarDays, Heart, Droplet, Smartphone, Briefcase, Globe } from "lucide-react";
 import { UserData } from "@/lib/services/adminUserService";
+import ResidencyBadge from "../ResidencyBadge";
 
 interface PersonalDetailsProps {
   user: UserData;
@@ -17,6 +18,12 @@ export function PersonalDetails({ user, formatDate, calculateAge }: PersonalDeta
         Personal Details
       </h4>
       <div className="space-y-2.5 text-sm">
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <span className="text-[#6B5E5A] flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5" /> Residency status
+          </span>
+          <ResidencyBadge status={user.residencyStatus} />
+        </div>
         <div className="flex justify-between items-center">
           <span className="text-[#6B5E5A] flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" /> DOB

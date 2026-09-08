@@ -1,5 +1,6 @@
 // lib/services/adminUserService.ts
 import { db } from '@/lib/firebase/config';
+import type { ResidencyStatus } from '@/lib/residency';
 import {
   collection,
   getDocs,
@@ -29,6 +30,7 @@ export interface UserData {
   mobileNumber?: string;
   phoneNumber?: string;
   mobileCountryCode?: string; 
+  residencyStatus?: ResidencyStatus;
   age?: number;
   gender?: string;
   bloodGroup?: string;

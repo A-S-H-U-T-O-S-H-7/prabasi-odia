@@ -48,6 +48,10 @@ export function AddressDetails({ user }: AddressDetailsProps) {
             <p className="font-medium text-[#2A1636]">{user.currentAddress || "—"}</p>
           </div>
           <div>
+            <p className="text-[#6B5E5A] text-xs">Country</p>
+            <p className="font-medium text-[#2A1636]">{user.currentCountry || "Not provided"}</p>
+          </div>
+          <div>
             <p className="text-[#6B5E5A] text-xs">City</p>
             <p className="font-medium text-[#2A1636]">{user.currentCity || "—"}</p>
           </div>
@@ -56,7 +60,7 @@ export function AddressDetails({ user }: AddressDetailsProps) {
             <p className="font-medium text-[#2A1636]">{user.currentState || "—"}</p>
           </div>
           <div>
-            <p className="text-[#6B5E5A] text-xs">PIN Code</p>
+            <p className="text-[#6B5E5A] text-xs">{user.currentCountry === "India" ? "PIN Code" : "Postal / ZIP Code"}</p>
             <p className="font-medium text-[#2A1636]">{user.currentPinCode || "—"}</p>
           </div>
         </div>

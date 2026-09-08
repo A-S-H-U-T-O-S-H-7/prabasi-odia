@@ -3,6 +3,7 @@
 import { UserData } from "@/lib/services/adminUserService";
 import { useEffect, useState } from "react";
 import { CheckCircle, User, UserPlus, ShieldCheck } from "lucide-react";
+import ResidencyBadge from "../users/ResidencyBadge";
 
 interface RegisteredUserTableProps {
   users: UserData[];
@@ -72,6 +73,7 @@ export default function RegisteredUserTable({
                         {user.displayName || "Unknown"}
                       </p>
                       <p className="text-xs text-[#6B5E5A] truncate">{user.email}</p>
+                      {user.hasJoinedCommunity && <div className="mt-1"><ResidencyBadge status={user.residencyStatus} compact /></div>}
                     </div>
                   </div>
                 </td>

@@ -166,7 +166,8 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
   const support = useJoinFormSupport();
   const { watch, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-  const hasAadhar = watch('identityDocumentSelected') ? (watch('idType') === 'passport' ? 'no' : 'yes') : null;
+  const isNri = watch('residencyStatus') === 'NRI';
+  const hasAadhar = !isNri ? 'yes' : watch('identityDocumentSelected') ? (watch('idType') === 'passport' ? 'no' : 'yes') : null;
   
   const selectedInterests = watch("interests") || [];
   const aadharNumber = watch("aadharNumber") || "";
@@ -325,7 +326,7 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
       {/* Do you have Aadhar? Section */}
       <div className={compact ? "rounded-xl bg-[#6B1E5B]/5 p-2.5 sm:p-3" : "pt-2 border-t border-[#D4C8C0]/20"}>
         <label className="block text-sm font-medium text-[#2A1636] mb-3">
-          Do you have Aadhar? <span className="text-red-400">*</span>
+          Identity document <span className="text-red-400">*</span>
         </label>
         
         <div className="mb-3 flex flex-wrap gap-3 sm:gap-4">
@@ -333,10 +334,10 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
             <input type="radio" name="identity-document" checked={hasAadhar === "yes"} onChange={() => handleHasAadhar("yes")} className="h-4 w-4 accent-[#6B1E5B]" />
             <Shield className="h-4 w-4 text-[#6B1E5B]" /> I have Aadhar
           </label>
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2A1636]">
+          {isNri && <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2A1636]">
             <input type="radio" name="identity-document" checked={hasAadhar === "no"} onChange={() => handleHasAadhar("no")} className="h-4 w-4 accent-[#D9772B]" />
             <FaPassport className="h-4 w-4 text-[#D9772B]" /> I have a passport
-          </label>
+          </label>}
         </div>
 
         {hasAttemptedSubmit && !hasAadhar && (

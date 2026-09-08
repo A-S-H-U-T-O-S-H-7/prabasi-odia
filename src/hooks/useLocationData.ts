@@ -14,11 +14,11 @@ export const useLocationData = (formData: { country: string; state: string }) =>
 
   // Fetch states when country changes
   useEffect(() => {
-    if (!formData.country) {
-      setStates([]);
-      setCities([]);
-      return;
-    }
+    let cancelled = false;
+    setStates([]);
+    setCities([]);
+    setLoading(prev => ({ ...prev, states: false }));
+    if (!formData.country) return;
     
     const selectedCountry = countries.find((c) => c.name === formData.country);
     if (!selectedCountry) return;
@@ -29,24 +29,26 @@ export const useLocationData = (formData: { country: string; state: string }) =>
     })
       .then((res) => res.json())
       .then((data) => {
-        setStates(data || []);
+        if (cancelled) return;
+        setStates(Array.isArray(data) ? data : []);
         setLoading(prev => ({ ...prev, states: false }));
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error("Failed to fetch states:", err);
         setStates([]);
         setLoading(prev => ({ ...prev, states: false }));
       });
     
-    setCities([]);
+    return () => { cancelled = true; };
   }, [formData.country, countries, API_KEY]);
 
   // Fetch cities when state changes
   useEffect(() => {
-    if (!formData.state || !formData.country) {
-      setCities([]);
-      return;
-    }
+    let cancelled = false;
+    setCities([]);
+    setLoading(prev => ({ ...prev, cities: false }));
+    if (!formData.state || !formData.country) return;
     
     const selectedCountry = countries.find((c) => c.name === formData.country);
     const selectedState = states.find((s) => s.name === formData.state);
@@ -58,14 +60,17 @@ export const useLocationData = (formData: { country: string; state: string }) =>
     })
       .then((res) => res.json())
       .then((data) => {
-        setCities(data || []);
+        if (cancelled) return;
+        setCities(Array.isArray(data) ? data : []);
         setLoading(prev => ({ ...prev, cities: false }));
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error("Failed to fetch cities:", err);
         setCities([]);
         setLoading(prev => ({ ...prev, cities: false }));
       });
+    return () => { cancelled = true; };
   }, [formData.state, formData.country, countries, states, API_KEY]);
 
   return {

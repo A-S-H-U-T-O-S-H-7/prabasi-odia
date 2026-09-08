@@ -7,7 +7,8 @@ import { useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useAuthStore } from "@/lib/store";
-import { isIndianCountryCode } from "@/lib/mobileVerification";
+import { isResidencyContactVerified } from "@/lib/residency";
+import ResidencySelect from "./step1/ResidencySelect";
 
 import ProfilePhotoUpload from "./step1/ProfilePhotoUpload";
 import PersonalDetails from "./step1/PersonalDetails";
@@ -39,12 +40,13 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
 
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [verificationError, setVerificationError] = useState("");
+  const residencyStatus = watch("residencyStatus");
   const mobileVerified = watch("mobileVerified");
   const emailVerified = watch("emailVerified");
 
   useEffect(() => {
-    if (mobileVerified || emailVerified) setVerificationError("");
-  }, [mobileVerified, emailVerified]);
+    setVerificationError("");
+  }, [mobileVerified, emailVerified, residencyStatus]);
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
     setVerificationError("");
@@ -60,7 +62,7 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
       }
     }
 
-    const fieldsToValidate = ["fullName", "dob", "gender", "bloodGroup", "mobileNumber", "mobileCountryCode", "photo", "occupation"];
+    const fieldsToValidate = ["residencyStatus", "email", "fullName", "dob", "gender", "bloodGroup", "mobileNumber", "mobileCountryCode", "photo", "occupation"];
     const isValid = await trigger(fieldsToValidate);
 
     if (!isValid) {
@@ -69,25 +71,13 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
       return;
     }
 
-    const countryCode = String(getValues("mobileCountryCode") || "");
-    const indianNumber = isIndianCountryCode(countryCode);
-    
-    let contactVerified = false;
-
-    if (indianNumber) {
-      // ✅ FIX: Normalize both numbers for comparison
-      // ContactVerification resets this flag whenever the phone number changes.
-      // This avoids showing a stale error after a successfully verified OTP.
-      contactVerified = Boolean(getValues("mobileVerified"));
-    } else {
-      contactVerified = Boolean(getValues("emailVerified")) &&
-        String(getValues("verifiedEmail") || "").toLowerCase() === loginEmail.toLowerCase();
-    }
+    const isResidentIndian = getValues("residencyStatus") === "RI";
+    const contactVerified = isResidencyContactVerified(getValues());
 
     if (!contactVerified) {
-      const message = !indianNumber && !loginEmail
+      const message = !isResidentIndian && !loginEmail
         ? "Enter your email address before requesting an email OTP"
-        : indianNumber
+        : isResidentIndian
           ? "Please verify your mobile number first"
           : "Please verify the OTP sent to your email first";
       toast.error(message);
@@ -118,6 +108,7 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
         </div>
       </div>
 
+      <ResidencySelect />
       <ProfilePhotoUpload hasAttemptedSubmit={hasAttemptedSubmit} />
       <PersonalDetails hasAttemptedSubmit={hasAttemptedSubmit} setHasAttemptedSubmit={setHasAttemptedSubmit} />
       <ContactVerification loginEmail={loginEmail} />
