@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { Download, CheckCircle, ArrowLeftRight, Expand, X, Loader2, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Download, CheckCircle, ArrowLeftRight, Loader2, RefreshCw } from 'lucide-react';
 import { auth, authReady } from '@/lib/firebase/config';
 import { toast } from 'react-hot-toast';
 
@@ -20,17 +20,17 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
-  const dialog = useRef<HTMLDialogElement>(null);
   const canDownload = profile.isVerified === true && Boolean(profile.memberId && profile.memberId !== 'Pending');
   const updatedAt = String(profile.updatedAt || '');
 
   useEffect(() => {
-    if (!canDownload) { setBundle(null); setError(''); setLoading(false); dialog.current?.close(); return; }
+    if (!canDownload) { setBundle(null); setError(''); setLoading(false); return; }
     const controller = new AbortController();
     let cancelled = false;
     setLoading(true);
     setError('');
     setBundle(null);
+    setSide('front');
     void (async () => {
       try {
         await authReady;
@@ -70,10 +70,9 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
     }
   };
   const flip = () => setSide(value => value === 'front' ? 'back' : 'front');
-  const alt = bundle ? `${side === 'front' ? 'Front' : 'Back'} of ${bundle.details.name}'s Prabasi Odia member card` : 'Prabasi Odia member card';
 
   return (
-    <section className="min-w-0 rounded-2xl border border-[#E8DACA] bg-[#FFFCF7] p-3 shadow-sm sm:rounded-3xl sm:p-6" aria-label="Your member card">
+    <section className="w-full min-w-0 rounded-2xl border border-[#E8DACA] bg-[#FFFCF7] p-3 shadow-sm sm:rounded-3xl sm:p-6" aria-label="Your member card">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#96704B]">A shared heritage</p>
@@ -83,7 +82,7 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       </div>
 
       {loading ? (
-        <div role="status" className="flex aspect-[1000/630] flex-col items-center justify-center gap-3 rounded-2xl border border-[#E8DACA] bg-[#F7EFE3] text-sm text-[#826F6D]">
+        <div role="status" className="flex aspect-[1000/540] flex-col items-center justify-center gap-3 rounded-2xl border border-[#E8DACA] bg-[#F7EFE3] text-sm text-[#826F6D]">
           <Loader2 className="h-6 w-6 animate-spin text-[#582636]" />Preparing your member card...
         </div>
       ) : error ? (
@@ -93,12 +92,15 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
         </div>
       ) : bundle ? (
         <>
-          <button type="button" onClick={flip} aria-label={side === 'front' ? 'Show back of member card' : 'Show front of member card'} className="block w-full rounded-2xl text-left shadow-[0_12px_30px_-14px_rgba(88,38,54,0.4)] outline-none transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:ring-[#582636] focus-visible:ring-offset-4">
-            <img src={bundle[side]} alt={alt} width={1000} height={630} className="block h-auto w-full rounded-2xl" />
+          <button type="button" onClick={flip} aria-label={side === 'front' ? 'Show back of member card' : 'Show front of member card'} className="block w-full rounded-2xl text-left outline-none [perspective:1400px] focus-visible:ring-2 focus-visible:ring-[#582636] focus-visible:ring-offset-4">
+            <span className="relative block aspect-[1000/540] w-full transition-transform duration-700 ease-in-out [transform-style:preserve-3d] motion-reduce:transition-none" style={{ transform: side === 'back' ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
+              <img src={bundle.front} alt={`Front of ${bundle.details.name}'s Prabasi Odia member card`} aria-hidden={side !== 'front'} width={1000} height={540} draggable={false} className="absolute inset-0 block h-full w-full rounded-2xl shadow-lg [backface-visibility:hidden] [-webkit-backface-visibility:hidden]" />
+              <img src={bundle.back} alt={`Back of ${bundle.details.name}'s Prabasi Odia member card`} aria-hidden={side !== 'back'} width={1000} height={540} draggable={false} className="absolute inset-0 block h-full w-full rounded-2xl shadow-lg [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]" />
+            </span>
           </button>
           <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#826F6D]">
             <button type="button" onClick={flip} className="inline-flex items-center gap-1.5 rounded-lg px-1 py-2 hover:text-[#582636]"><ArrowLeftRight className="h-3.5 w-3.5" />{side === 'front' ? 'View reverse' : 'View front'}</button>
-            <button type="button" onClick={() => dialog.current?.showModal()} className="inline-flex items-center gap-1.5 rounded-lg px-1 py-2 hover:text-[#582636]"><Expand className="h-3.5 w-3.5" />View larger</button>
+            <span aria-live="polite">{side === 'front' ? 'Front' : 'Reverse'} · {side === 'front' ? '1' : '2'} / 2</span>
           </div>
           <dl className="mt-2 grid gap-2 border-t border-[#E8DACA] pt-3 text-sm sm:sr-only">
             <div><dt className="text-[10px] uppercase tracking-wider text-[#826F6D]">Member</dt><dd className="break-words font-medium text-[#452330]">{bundle.details.name}</dd></div>
@@ -113,14 +115,6 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       </button>
       <p className="mt-2 text-center text-[11px] text-[#826F6D]">Front and reverse included in your PDF.</p>
 
-      <dialog ref={dialog} className="fixed inset-0 m-auto w-[calc(100%-24px)] max-w-5xl max-h-[90dvh] rounded-2xl border border-[#E8DACA] bg-[#FFFCF7] p-3 shadow-2xl backdrop:bg-black/65 sm:p-5" aria-label="Enlarged member card" onClick={event => { if (event.target === dialog.current) dialog.current.close(); }}>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <button type="button" onClick={flip} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#582636]"><ArrowLeftRight className="h-4 w-4" />{side === 'front' ? 'View reverse' : 'View front'}</button>
-          <button type="button" onClick={() => dialog.current?.close()} aria-label="Close enlarged card" className="rounded-full p-2 text-[#582636] hover:bg-[#F1E4D4]"><X className="h-5 w-5" /></button>
-        </div>
-        <div className="overflow-auto rounded-xl">{bundle && <img src={bundle[side]} alt={alt} width={1000} height={630} className="h-auto w-full min-w-[680px]" />}</div>
-        <p className="mt-3 text-xs text-[#826F6D] sm:hidden">Swipe across to see the full card.</p>
-      </dialog>
     </section>
   );
 }

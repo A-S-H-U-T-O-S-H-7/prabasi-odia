@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import QRCode from 'qrcode';
 import sharp from 'sharp';
-import { CARD_WIDTH, CARD_HEIGHT, CARD_DESIGN_VERSION, renderMemberCardFaces } from './memberCardTemplate';
+import { CARD_WIDTH, CARD_DESIGN_VERSION, renderMemberCardFaces } from './memberCardTemplate';
 
 export interface MemberCardInput {
   name: string;
@@ -50,9 +50,9 @@ export async function renderMemberCardImages(data: MemberCardInput) {
     memberPhoto(data.photoURL),
     QRCode.toDataURL(verifyUrl, { width: 504, margin: 4, color: { dark: '#452330', light: '#FFFFFF' }, errorCorrectionLevel: 'M' }),
   ]);
-  const faces = renderMemberCardFaces({ ...data, photoURL, qrDataUrl, logoIconUrl: localImage('logoicon.png'), svsLogoUrl: localImage('svslogo.png') });
+  const faces = renderMemberCardFaces({ ...data, photoURL, qrDataUrl, logoUrl: localImage('logo.png'), odishaArtUrl: localImage('images/member-card/odisha-heritage.png'), jagannathArtUrl: localImage('images/member-card/odisha-jagannath-v2.png'), svsLogoUrl: localImage('svslogo.png') });
   // One source image for every destination; no browser screenshots or separate PDF layout.
-  const [front, back] = await Promise.all([faces.front, faces.back].map(svg => sharp(Buffer.from(svg), { density: 216 }).png().toBuffer()));
+  const [front, back] = await Promise.all([faces.front, faces.back].map(svg => sharp(Buffer.from(svg), { density: 108 }).png({ palette: true, quality: 90, effort: 1, dither: 0 }).toBuffer()));
   return { front, back };
 }
 
@@ -60,7 +60,7 @@ export async function memberCardImagesToPDF(images: { front: Buffer; back: Buffe
   const document = await PDFDocument.create();
   for (const bytes of [images.front, images.back]) {
     const image = await document.embedPng(bytes);
-    const page = document.addPage([CARD_WIDTH * 0.75, CARD_HEIGHT * 0.75]);
+    const page = document.addPage([CARD_WIDTH * 0.75, CARD_WIDTH * 0.75 * image.height / image.width]);
     page.drawImage(image, { x: 0, y: 0, width: page.getWidth(), height: page.getHeight() });
   }
   document.setTitle(`Prabasi Odia Member Card - ${memberId}`);

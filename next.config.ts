@@ -3,9 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ['sharp', 'fontkit'],
   outputFileTracingIncludes: {
-    '/api/member-card': ['./public/fonts/member-card/**/*', './public/logoicon.png', './public/svslogo.png'],
-    '/api/member-card-pdf': ['./public/fonts/member-card/**/*', './public/logoicon.png', './public/svslogo.png'],
-    '/api/email/verification': ['./public/fonts/member-card/**/*', './public/logoicon.png', './public/svslogo.png'],
+    '/api/member-card': ['./public/fonts/member-card/**/*', './public/logo.png', './public/svslogo.png', './public/images/member-card/**/*'],
+    '/api/member-card-pdf': ['./public/fonts/member-card/**/*', './public/logo.png', './public/svslogo.png', './public/images/member-card/**/*'],
+    '/api/email/verification': ['./public/fonts/member-card/**/*', './public/logo.png', './public/svslogo.png', './public/images/member-card/**/*'],
   },
   images: {
     remotePatterns: [
