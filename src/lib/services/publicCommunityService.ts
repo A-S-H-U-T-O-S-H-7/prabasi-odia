@@ -20,6 +20,7 @@ export interface PublicCommunity {
   name: string;
   city: string;
   state: string;
+  country: string;
   description: string;
   coverImage?: string;
   memberCount: number;
@@ -47,6 +48,7 @@ export const publicCommunityService = {
           name: data.name || '',
           city: data.city || '',
           state: data.state || '',
+          country: data.country || 'India',
           description: data.description || '',
           coverImage: data.coverImage || '',
           memberCount: data.memberCount || 0,
@@ -81,6 +83,7 @@ export const publicCommunityService = {
           name: data.name || '',
           city: data.city || '',
           state: data.state || '',
+          country: data.country || 'India',
           description: data.description || '',
           coverImage: data.coverImage || '',
           memberCount: data.memberCount || 0,
@@ -242,6 +245,7 @@ export const publicCommunityService = {
           name: data.name || '',
           city: data.city || '',
           state: data.state || '',
+          country: data.country || 'India',
           description: data.description || '',
           coverImage: data.coverImage || '',
           memberCount: data.memberCount || 0,
