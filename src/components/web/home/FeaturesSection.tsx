@@ -34,7 +34,7 @@ const features = [
   },
   {
     icon: HiChartBar,
-    title: "Grow Together",
+    title: "Job Opportunities",
     description: "Career opportunities & networking",
     color: "text-[#059669]",
     bgColor: "bg-gradient-to-br from-[#059669]/20 to-[#059669]/5",

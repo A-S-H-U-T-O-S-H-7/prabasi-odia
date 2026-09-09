@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { ArrowLeft } from "lucide-react";
@@ -20,7 +20,18 @@ export default function CommunitiesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCity, setSelectedCity] = useState("all");
-  const [cities, setCities] = useState<string[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState('all');
+  const regionCommunities = useMemo(() => communities.filter(community => {
+    if (selectedRegion === 'all') return true;
+    const country = (community.country || 'India').trim().toLowerCase();
+    const isIndia = ['india', 'in', 'ind'].includes(country);
+    return selectedRegion === 'india' ? isIndia : !isIndia;
+  }), [communities, selectedRegion]);
+  const cities = useMemo(() => [...new Set(regionCommunities.map(c => c.city).filter(Boolean))].sort(), [regionCommunities]);
+  const handleRegionChange = (region: string) => {
+    setSelectedRegion(region);
+    setSelectedCity('all');
+  };
   const [totalMembers, setTotalMembers] = useState(0);
 
   const hasCompletedJoiningForm = user?.hasJoinedCommunity ?? hasJoinedCommunity;
@@ -43,8 +54,6 @@ export default function CommunitiesPage() {
         setCommunities(result.communities);
         setFilteredCommunities(result.communities);
         
-        const cityList = [...new Set(result.communities.map(c => c.city).filter(Boolean))];
-        setCities(cityList);
         
         const total = result.communities.reduce((sum, c) => sum + c.memberCount, 0);
         setTotalMembers(total);
@@ -97,7 +106,7 @@ export default function CommunitiesPage() {
   };
 
   useEffect(() => {
-    let filtered = communities;
+    let filtered = regionCommunities;
     
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -112,7 +121,7 @@ export default function CommunitiesPage() {
     }
     
     setFilteredCommunities(filtered);
-  }, [searchTerm, selectedCity, communities]);
+  }, [searchTerm, selectedCity, regionCommunities]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFF9F2] via-white to-[#F5EDE6] py-4 md:py-8 px-4">
@@ -140,6 +149,8 @@ export default function CommunitiesPage() {
             selectedCity={selectedCity}
             setSelectedCity={setSelectedCity}
             cities={cities}
+            selectedRegion={selectedRegion}
+            setSelectedRegion={handleRegionChange}
           />
         </div>
 
