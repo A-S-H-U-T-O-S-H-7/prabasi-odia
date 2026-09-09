@@ -66,10 +66,13 @@ export default function Navbar() {
     { href: '/', label: 'Home', icon: Home },
     { href: '/communities', label: 'Communities', icon: Users },
     { href: '/events', label: 'Events', icon: Calendar },
-    { href: '/advisory-board', label: 'Advisory Board' },
     { href: '/associates', label: 'Associates' },
     { href: '/partners', label: 'Partners' },
     { href: '/about', label: 'About' },
+  ];
+  const moreLinks = [
+    { href: '/jobs', label: 'Jobs & Startups' },
+    { href: '/advisory-board', label: 'Advisory Board' },
   ];
   const donateHref = isAuthenticated ? '/donation' : '/join-community';
 
@@ -162,6 +165,29 @@ export default function Navbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#6B1E5B] transition-all group-hover:w-full" />
               </Link>
             ))}
+            <div className="relative group">
+              <button
+                type="button"
+                className="flex items-center gap-1 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors text-sm font-medium py-2"
+                aria-haspopup="true"
+              >
+                More
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
+              </button>
+              <div className="absolute left-1/2 top-full z-50 w-52 -translate-x-1/2 pt-2 opacity-0 invisible translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200">
+                <div className="rounded-xl border border-[#E7D7E8] bg-[#FFF8F2] p-1.5 shadow-xl shadow-[#2A1636]/10">
+                  {moreLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="block rounded-lg px-3 py-2.5 text-sm text-[#6B5E5A] hover:bg-[#E7D7E8]/40 hover:text-[#6B1E5B] transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
             <Link
               href="/map"
               aria-label="Member Map"
@@ -343,6 +369,19 @@ export default function Navbar() {
                   <span>{link.label}</span>
                 </Link>
               ))}
+              <div className="border-t border-[#E7D7E8] pt-3">
+                <p className="px-1 pb-1 text-xs font-semibold uppercase tracking-wider text-[#8A2E72]">More</p>
+                {moreLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="flex items-center gap-3 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors py-2"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </div>
               <Link
                 href="/map"
                 className="flex items-center gap-3 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors py-2"
