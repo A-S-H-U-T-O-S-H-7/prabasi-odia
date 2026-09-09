@@ -1,3 +1,5 @@
+import type { MemberCardInput } from './memberCardPDF';
+
 export function coerceDate(value: unknown): Date | null {
   if (!value) return null;
 
@@ -38,6 +40,7 @@ export function formatMemberSince(value?: unknown): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
@@ -87,4 +90,20 @@ export function resolvePhotoURL(user: Record<string, any> = {}, fallback?: strin
 
 export function resolveMemberId(user: Record<string, any> = {}, fallback?: string) {
   return firstNonEmpty(fallback, user.memberId, user.member_id);
+}
+
+// Shared field resolution keeps profile downloads and email attachments consistent.
+export function resolveMemberCardInput(user: Record<string, any>, baseUrl: string): MemberCardInput {
+  return {
+    name: resolveMemberName(user),
+    memberId: resolveMemberId(user),
+    memberSince: formatMemberSince(user.createdAt || user.memberSince),
+    bloodGroup: resolveBloodGroup(user),
+    location: resolveLocation(user, user.location),
+    communityName: firstNonEmpty(user.nearbyCommunityName, user.requestedCommunityName, user.communityName),
+    residencyStatus: user.residencyStatus === 'RI' || user.residencyStatus === 'NRI' ? user.residencyStatus : undefined,
+    photoURL: resolvePhotoURL(user),
+    isVerified: user.isVerified === true,
+    baseUrl,
+  };
 }

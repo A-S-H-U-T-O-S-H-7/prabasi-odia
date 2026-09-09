@@ -230,7 +230,8 @@ export default function UserVerificationModal({
         memberSince: user!.createdAt || new Date().toISOString(),
         communityName: emailCommunityName,
         bloodGroup: user!.bloodGroup || "",
-        location: [user!.currentCity, user!.currentState].filter(Boolean).join(", "),
+        location: [user!.currentCity, user!.currentState, user!.currentCountry].filter(Boolean).join(", "),
+        residencyStatus: user!.residencyStatus,
         photoURL: user!.photoURL || user!.documents?.profilePhoto || "",
       });
       if (!emailResult.success) {

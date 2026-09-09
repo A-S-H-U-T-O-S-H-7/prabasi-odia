@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
 import { generateMemberCardPDF } from "@/lib/services/memberCardPDF";
-import {
-  formatMemberSince,
-  resolveBloodGroup,
-  resolveLocation,
-  resolveMemberName,
-  resolvePhotoURL,
-} from "@/lib/services/memberCardData";
+import { resolveMemberCardInput } from "@/lib/services/memberCardData";
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,23 +50,9 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://prabasiodia.svsamiti.com";
-    const memberSince = formatMemberSince(data.createdAt);
-    const location = resolveLocation(data);
-    const name = resolveMemberName(data);
-    const bloodGroup = resolveBloodGroup(data);
-    const photoURL = resolvePhotoURL(data);
-
-    const pdfBuffer = await generateMemberCardPDF({
-      name,
-      memberId: data.memberId,
-      memberSince,
-      bloodGroup,
-      location,
-      communityName: data.nearbyCommunityName || data.requestedCommunityName || "",
-      isVerified: true,
-      photoURL,
-      baseUrl,
-    });
+    const input = resolveMemberCardInput(data, baseUrl);
+    const { memberSince, location, name, bloodGroup } = input;
+    const pdfBuffer = await generateMemberCardPDF(input);
 
     const fileName = `member-card-${data.memberId}.pdf`;
 

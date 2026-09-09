@@ -7,6 +7,7 @@ import {
   resolveMemberId,
   resolveMemberName,
   resolvePhotoURL,
+  resolveMemberCardInput,
 } from '@/lib/services/memberCardData';
 import { generateMemberCardPDF } from '@/lib/services/memberCardPDF';
 
@@ -44,17 +45,9 @@ export async function POST(request: NextRequest) {
     let memberCardPdf: Buffer | null = null;
 
     try {
-      memberCardPdf = await generateMemberCardPDF({
-        name,
-        memberId,
-        memberSince,
-        bloodGroup,
-        location,
-        communityName,
-        isVerified: true,
-        photoURL,
-        baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'https://prabasiodia.svsamiti.com',
-      });
+      memberCardPdf = await generateMemberCardPDF(resolveMemberCardInput({
+        ...userData, name, memberId, memberSince, bloodGroup, location, communityName, photoURL, isVerified: true,
+      }, process.env.NEXT_PUBLIC_BASE_URL || 'https://prabasiodia.svsamiti.com'));
     } catch (cardError) {
       console.error('Member card generation failed for verification email:', cardError);
     }

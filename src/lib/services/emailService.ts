@@ -16,6 +16,7 @@ interface VerificationEmailData {
   bloodGroup?: string;
   location?: string;
   photoURL?: string;
+  residencyStatus?: 'RI' | 'NRI';
 }
 
 export const emailService = {
@@ -76,6 +77,7 @@ export const emailService = {
           bloodGroup: data.bloodGroup,
           location: data.location,
           photoURL: data.photoURL,
+          residencyStatus: data.residencyStatus,
         },
         timeout: 90_000,
         maxBodyLength: Infinity,
