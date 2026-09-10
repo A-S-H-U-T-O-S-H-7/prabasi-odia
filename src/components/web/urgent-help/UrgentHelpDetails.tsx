@@ -1,0 +1,11 @@
+'use client';
+
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { MapPin, Phone, X } from 'lucide-react';
+import type { UrgentHelpRequest } from '@/lib/services/urgentHelpService';
+
+export default function UrgentHelpDetails({ request, onClose }: { request: UrgentHelpRequest; onClose: () => void }) {
+  useEffect(() => { const prior = document.body.style.overflow; document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = prior; }; }, []);
+  return createPortal(<div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"><div role="dialog" aria-modal="true" aria-labelledby="urgent-help-detail-title" className="flex max-h-[calc(100dvh-32px)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-[#E7D7E8] bg-[#FFF9F2] shadow-2xl"><div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#E7D7E8] p-5 sm:px-7"><div><span className="rounded-full bg-[#FFF0EA] px-2.5 py-1 text-[11px] font-semibold text-[#9A5B20]">{request.category}</span><h2 id="urgent-help-detail-title" className="mt-3 text-xl font-bold text-[#2A1636]">{request.title}</h2><p className="mt-2 inline-flex items-center gap-1 text-sm text-[#6B5E5A]"><MapPin className="h-4 w-4" />{request.location}</p></div><button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-lg p-2 text-[#6B5E5A] hover:bg-[#E7D7E8]/50"><X className="h-5 w-5" /></button></div><div className="min-h-0 space-y-5 overflow-y-auto p-5 text-sm leading-7 text-[#6B5E5A] sm:p-7"><p className="whitespace-pre-wrap break-words">{request.message}</p>{request.media.map(media => <div key={media.url}>{media.type.startsWith('video/') ? <video controls className="max-h-80 w-full rounded-xl bg-black" src={media.url} /> : <img src={media.url} alt={media.name} className="max-h-80 w-full rounded-xl object-contain" />}</div>)}<div className="rounded-xl bg-[#FFF0EA] p-4"><strong className="text-[#2A1636]">Can you help?</strong><p className="mt-1">Contact {request.contactName} directly.</p><a href={`tel:${request.phone}`} className="mt-2 inline-flex items-center gap-2 font-semibold text-[#B45337]"><Phone className="h-4 w-4" />{request.phone}</a></div></div></div></div>, document.body);
+}

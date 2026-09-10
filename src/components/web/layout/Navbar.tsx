@@ -72,6 +72,7 @@ export default function Navbar() {
   ];
   const moreLinks = [
     { href: '/jobs', label: 'Jobs & Startups' },
+    { href: '/urgent-help', label: 'Urgent Help' },
     { href: '/advisory-board', label: 'Advisory Board' },
   ];
   const donateHref = isAuthenticated ? '/donation' : '/join-community';

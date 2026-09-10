@@ -9,6 +9,12 @@ export const adminJobsService = {
   updateStatus(jobId: string, status: JobStatus, rejectionReason = '') {
     return firestoreAdminJobsService.updateStatus(jobId, status, rejectionReason);
   },
+  updateJob(jobId: string, data: Pick<Job, 'title' | 'company' | 'category' | 'location' | 'description' | 'compensation' | 'contactName' | 'contactEmail'>) {
+    return firestoreAdminJobsService.updateJob(jobId, data);
+  },
+  deleteJob(jobId: string) {
+    return firestoreAdminJobsService.deleteJob(jobId);
+  },
   getApplications(jobId: string) {
     return firestoreAdminJobsService.getApplications(jobId);
   },

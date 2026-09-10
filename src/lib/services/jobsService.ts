@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
 
@@ -151,6 +151,14 @@ export const adminJobsService = {
 
   async updateStatus(jobId: string, status: JobStatus, rejectionReason = '') {
     await updateDoc(doc(db, 'jobs', jobId), { status, rejectionReason, updatedAt: new Date().toISOString() });
+  },
+
+  async updateJob(jobId: string, data: Pick<Job, 'title' | 'company' | 'category' | 'location' | 'description' | 'compensation' | 'contactName' | 'contactEmail'>) {
+    await updateDoc(doc(db, 'jobs', jobId), { ...data, updatedAt: new Date().toISOString() });
+  },
+
+  async deleteJob(jobId: string) {
+    await deleteDoc(doc(db, 'jobs', jobId));
   },
 
   async updateApplicationStatus(jobId: string, applicationId: string, status: JobApplication['status']) {

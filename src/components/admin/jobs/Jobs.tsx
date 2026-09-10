@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Check, Eye, FileText, Loader2, RefreshCw, Search, X } from 'lucide-react';
+import { Check, Edit3, Eye, FileText, Loader2, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import useAdminAuthStore from '@/lib/store/useAdminAuthStore';
 import { adminJobsService, type Job, type JobApplication, type JobStatus } from '@/lib/services/adminJobsService';
+import EditJobModal from './EditJobModal';
 
 const date = (value: string) => new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 const statusStyles: Record<JobStatus, string> = { pending: 'bg-amber-50 text-amber-700', approved: 'bg-emerald-50 text-emerald-700', rejected: 'bg-red-50 text-red-700', closed: 'bg-slate-100 text-slate-600' };
@@ -25,6 +26,7 @@ export default function AdminJobsPage() {
   const [applicationsLoading, setApplicationsLoading] = useState(false);
   const [applicationsError, setApplicationsError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
   const applicationRequest = useRef(0);
   const canManage = admin?.role === 'super_admin' || admin?.permissions?.includes('jobs');
 
@@ -99,6 +101,29 @@ export default function AdminJobsPage() {
     } catch { toast.error('Could not update the applicant status.'); }
     finally { setBusy(false); }
   };
+  const saveJobEdit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingJob || busy) return;
+    const form = new FormData(event.currentTarget);
+    setBusy(true);
+    try {
+      const update = { title: String(form.get('title') || '').trim(), company: String(form.get('company') || '').trim(), category: String(form.get('category')) as Job['category'], location: String(form.get('location') || '').trim(), description: String(form.get('description') || '').trim(), compensation: String(form.get('compensation') || '').trim(), contactName: String(form.get('contactName') || '').trim(), contactEmail: String(form.get('contactEmail') || '').trim() };
+      await adminJobsService.updateJob(editingJob.id, update);
+      setJobs(items => items.map(item => item.id === editingJob.id ? { ...item, ...update } : item));
+      if (selected?.id === editingJob.id) setSelected(item => item ? { ...item, ...update } : item);
+      setEditingJob(null); toast.success('Opportunity updated.');
+    } catch { toast.error('Could not save the opportunity changes.'); }
+    finally { setBusy(false); }
+  };
+  const deleteJob = async (job: Job) => {
+    if (busy) return;
+    const result = await Swal.fire({ title: 'Delete this opportunity?', text: `"${job.title}" will be permanently removed from the jobs board.`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete opportunity', cancelButtonText: 'Cancel', confirmButtonColor: '#DC2626', background: '#FFF9F2', color: '#2A1636', reverseButtons: true });
+    if (!result.isConfirmed) return;
+    setBusy(true);
+    try { await adminJobsService.deleteJob(job.id); setJobs(items => items.filter(item => item.id !== job.id)); setSelected(null); toast.success('Opportunity deleted.'); }
+    catch { toast.error('Could not delete this opportunity.'); }
+    finally { setBusy(false); }
+  };
 
   if (!isAuthenticated || !canManage) return <p className="p-6 text-sm text-[#6B5E5A]">Checking access...</p>;
   return <div className="mx-auto max-w-7xl">
@@ -123,6 +148,8 @@ export default function AdminJobsPage() {
           <td className="px-5 py-4"><span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${statusStyles[job.status]}`}>{job.status}</span></td>
           <td className="px-5 py-4"><div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy} onClick={() => void viewJob(job)} className="inline-flex items-center gap-1 rounded-lg border border-[#E7D7E8] px-2.5 py-2 text-xs font-semibold text-[#6B1E5B] disabled:opacity-50"><Eye className="h-3.5 w-3.5" /> View</button>
+            <button type="button" disabled={busy} onClick={() => setEditingJob(job)} className="inline-flex items-center gap-1 rounded-lg border border-[#E7D7E8] px-2.5 py-2 text-xs font-semibold text-[#6B1E5B] disabled:opacity-50"><Edit3 className="h-3.5 w-3.5" /> Edit</button>
+            <button type="button" disabled={busy} onClick={() => void deleteJob(job)} className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-2 text-xs font-semibold text-red-700 disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" /> Delete</button>
             {job.status === 'pending' && <><button type="button" disabled={busy} onClick={() => void updateStatus(job, 'approved')} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-2 text-xs font-semibold text-white disabled:opacity-50"><Check className="h-3.5 w-3.5" /> Approve</button><button type="button" disabled={busy} onClick={() => void updateStatus(job, 'rejected')} className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-2 text-xs font-semibold text-red-700 disabled:opacity-50"><X className="h-3.5 w-3.5" /> Reject</button></>}
             {job.status !== 'pending' && <button type="button" disabled={busy} onClick={() => void viewJob(job)} className="inline-flex items-center gap-1 rounded-lg bg-[#6B1E5B] px-2.5 py-2 text-xs font-semibold text-white disabled:opacity-50"><FileText className="h-3.5 w-3.5" /> Applicants</button>}
           </div></td>
@@ -130,6 +157,7 @@ export default function AdminJobsPage() {
       </table></div>}
     </div>
     {selected && <JobReviewModal job={selected} applications={applications} loading={applicationsLoading} error={applicationsError} busy={busy} onRetry={() => void viewJob(selected)} onClose={closeReview} onApprove={() => void updateStatus(selected, 'approved')} onReject={() => void updateStatus(selected, 'rejected')} onCloseJob={() => void updateStatus(selected, 'closed')} onApplicationStatus={changeApplicationStatus} />}
+    {editingJob && <EditJobModal job={editingJob} onClose={() => !busy && setEditingJob(null)} onSave={saveJobEdit} saving={busy} />}
   </div>;
 }
 
