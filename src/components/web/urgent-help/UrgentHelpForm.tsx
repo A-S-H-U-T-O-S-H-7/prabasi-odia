@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { HeartHandshake, Upload, X } from 'lucide-react';
 import { URGENT_HELP_CATEGORIES } from '@/lib/services/urgentHelpService';
+import { URGENT_HELP_MEDIA_ACCEPT, URGENT_HELP_MEDIA_HINT } from '@/lib/urgentHelpMedia';
 
 type Props = {
   onClose: () => void;
@@ -47,7 +48,7 @@ export default function UrgentHelpForm({ onClose, onSubmit, submitting, error, n
               <label className="flex flex-col gap-2 text-sm font-semibold text-[#2A1636]">Contact phone *<input name="phone" type="tel" required minLength={7} maxLength={25} className="rounded-xl border border-[#D4C8C0] bg-white px-4 py-3 font-normal outline-none focus:border-[#B45337]" placeholder="Include country code" /></label>
             </div>
             <label className="flex flex-col gap-2 text-sm font-semibold text-[#2A1636]">Account email<input value={email} readOnly className="cursor-not-allowed rounded-xl border border-[#D4C8C0] bg-[#F7F2EE] px-4 py-3 font-normal text-[#6B5E5A] outline-none" placeholder="Your signed-in account has no email" /><small className="font-normal text-xs leading-5 text-[#6B5E5A]">Fetched from your signed-in account and shared with admins for follow-up.</small></label>
-            <label className="flex flex-col gap-2 rounded-xl border border-dashed border-[#D4C8C0] bg-white p-4 text-sm font-semibold text-[#2A1636]"><span className="inline-flex items-center gap-2"><Upload className="h-4 w-4" /> Photos or short videos (optional)</span><input name="media" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" className="text-xs font-normal" /><small className="font-normal text-xs leading-5 text-[#6B5E5A]">Up to 3 files. JPG, PNG, WebP, MP4 or WebM; maximum 5 MB each.</small></label>
+            <label className="flex flex-col gap-2 rounded-xl border border-dashed border-[#D4C8C0] bg-white p-4 text-sm font-semibold text-[#2A1636]"><span className="inline-flex items-center gap-2"><Upload className="h-4 w-4" /> Photos or videos (optional)</span><input name="media" type="file" multiple accept={URGENT_HELP_MEDIA_ACCEPT} className="text-xs font-normal" /><small className="font-normal text-xs leading-5 text-[#6B5E5A]">{URGENT_HELP_MEDIA_HINT}</small></label>
             <label className="flex items-start gap-3 text-xs leading-6 text-[#6B5E5A]"><input name="consent" type="checkbox" required className="mt-1 accent-[#B45337]" /><span>I have permission to share this information and media. I understand approved media and location will be visible publicly.</span></label>
           </form>
         </div>

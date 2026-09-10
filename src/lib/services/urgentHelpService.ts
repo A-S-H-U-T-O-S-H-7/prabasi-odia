@@ -1,6 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
+import { validateUrgentHelpMedia } from '@/lib/urgentHelpMedia';
 
 export const URGENT_HELP_CATEGORIES = ['Medical support', 'Blood donation', 'Travel / stranded', 'Shelter / essentials', 'Other urgent help'] as const;
 export type UrgentHelpCategory = typeof URGENT_HELP_CATEGORIES[number];
@@ -40,15 +41,13 @@ export const urgentHelpService = {
   getAllRequests: () => readRequests(),
   async createRequest(data: Omit<UrgentHelpRequest, 'id' | 'status' | 'rejectionReason' | 'media' | 'createdAt' | 'updatedAt'>, files: File[]) {
     if (files.length > 3) throw new Error('You can upload up to 3 photos or videos.');
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
-    for (const file of files) {
-      if (!validTypes.includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Use JPG, PNG, WebP, MP4 or WebM files up to 5 MB each.');
-    }
+    const mediaTypes = files.map(validateUrgentHelpMedia);
     const reference = await addDoc(collection(db, 'urgentHelpRequests'), { ...data, status: 'pending', media: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     const media = await Promise.all(files.map(async (file, index) => {
       const fileRef = ref(storage, `urgent-help/${reference.id}/${Date.now()}-${index}-${file.name}`);
-      await uploadBytes(fileRef, file, { contentType: file.type });
-      return { name: file.name, url: await getDownloadURL(fileRef), type: file.type };
+      const type = mediaTypes[index];
+      await uploadBytes(fileRef, file, { contentType: type });
+      return { name: file.name, url: await getDownloadURL(fileRef), type };
     }));
     await updateDoc(reference, { media, updatedAt: new Date().toISOString() });
     return reference.id;
