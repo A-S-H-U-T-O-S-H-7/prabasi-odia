@@ -28,7 +28,7 @@ export const AVAILABLE_PERMISSIONS = [
   { id: 'create_events', name: 'Create Events', category: 'Events' },
   { id: 'edit_events', name: 'Edit Events', category: 'Events' },
   { id: 'delete_events', name: 'Delete Events', category: 'Events' },
-  { id: 'jobs', name: 'Manage Jobs & Startups', category: 'Jobs & Startups' },
+  { id: 'jobs', name: 'Manage Jobs', category: 'Jobs' },
   { id: 'urgent_help', name: 'Manage Urgent Help', category: 'Urgent Help' },
   { id: 'view_notices', name: 'View Notices', category: 'Notices' },
   { id: 'create_notices', name: 'Create Notices', category: 'Notices' },

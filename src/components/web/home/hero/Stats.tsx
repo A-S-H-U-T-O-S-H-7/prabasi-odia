@@ -45,7 +45,7 @@ export default function Stats() {
       initial={{ opacity: 0, y: 25 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.7 }}
-      className="w-full py-3 sm:py-5"
+      className="w-full py-3 "
     >
       <div className="rounded-[16px] sm:rounded-[20px] border border-white/60 bg-white/80 backdrop-blur-xl shadow-[0_15px_40px_rgba(0,0,0,.06)] p-3 sm:p-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">

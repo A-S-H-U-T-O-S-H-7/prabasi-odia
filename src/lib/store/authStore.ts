@@ -24,7 +24,7 @@ interface AuthState {
   initialize: () => () => void;
   signUp: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  googleLogin: () => Promise<{ success: boolean; error?: string }>;
+  googleLogin: (options?: { createUserDocument?: boolean }) => Promise<{ success: boolean; error?: string; registrationRequired?: boolean }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   clearError: () => void;
@@ -250,7 +250,7 @@ const useAuthStore = create<AuthState>()(
     },
 
     // Google Sign In
-    googleLogin: async () => {
+    googleLogin: async ({ createUserDocument = true } = {}) => {
       set({ loading: true, error: null });
       
       try {
@@ -264,6 +264,18 @@ const useAuthStore = create<AuthState>()(
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         const isNewUser = !userDoc.exists();
         
+        if (isNewUser && !createUserDocument) {
+          // Firebase creates an authentication identity during Google sign-in.
+          // Do not leave that identity signed in when it has no community account.
+          await signOut(auth);
+          set({ user: null, isAuthenticated: false, isAdmin: false, loading: false, error: null });
+          return {
+            success: false,
+            registrationRequired: true,
+            error: 'No community account was found for this Google account.',
+          };
+        }
+
         if (isNewUser) {
           // Create user document for new Google users
           const userData = {

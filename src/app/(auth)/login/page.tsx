@@ -29,6 +29,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isRedirectingToCommunity, setIsRedirectingToCommunity] = useState(false);
+  const [registrationRequired, setRegistrationRequired] = useState(false);
 
   const redirectAfterAuthentication = async () => {
     const hasJoinedCommunity = useAuthStore.getState().user?.hasJoinedCommunity === true;
@@ -80,11 +81,14 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
+    setRegistrationRequired(false);
     try {
-      const result = await googleLogin();
+      const result = await googleLogin({ createUserDocument: false });
       if (result.success) {
         toast.success("Signed in with Google successfully!");
         redirectAfterAuthentication();
+      } else if (result.registrationRequired) {
+        setRegistrationRequired(true);
       } else {
         toast.error(result.error || "Google login failed. Please try again.");
       }
@@ -191,6 +195,7 @@ export default function LoginPage() {
             isGoogleLoading={isGoogleLoading}
             onSubmit={onSubmit}
             onGoogleLogin={handleGoogleLogin}
+            registrationRequired={registrationRequired}
           />
         </motion.div>
       </section>

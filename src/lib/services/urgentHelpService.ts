@@ -1,6 +1,6 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase/config';
+import { auth, db, storage } from '@/lib/firebase/config';
 import { validateUrgentHelpMedia } from '@/lib/urgentHelpMedia';
 
 export const URGENT_HELP_CATEGORIES = ['Medical support', 'Blood donation', 'Travel / stranded', 'Shelter / essentials', 'Other urgent help'] as const;
@@ -40,6 +40,14 @@ export const urgentHelpService = {
   getApprovedRequests: () => readRequests('approved'),
   getAllRequests: () => readRequests(),
   async createRequest(data: Omit<UrgentHelpRequest, 'id' | 'status' | 'rejectionReason' | 'media' | 'createdAt' | 'updatedAt'>, files: File[]) {
+    const signedInUser = auth.currentUser;
+    if (!signedInUser || signedInUser.uid !== data.ownerId) {
+      throw new Error('Please sign in before submitting an urgent-help request.');
+    }
+    const member = await getDoc(doc(db, 'users', signedInUser.uid));
+    if (!member.exists() || member.data().isVerified !== true) {
+      throw new Error('Only verified members can submit an urgent-help request.');
+    }
     if (files.length > 3) throw new Error('You can upload up to 3 photos or videos.');
     const mediaTypes = files.map(validateUrgentHelpMedia);
     const reference = await addDoc(collection(db, 'urgentHelpRequests'), { ...data, status: 'pending', media: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });

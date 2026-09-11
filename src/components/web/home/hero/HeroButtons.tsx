@@ -1,6 +1,6 @@
 "use client";
 
-import { FaArrowRight, FaGlobeAsia, FaUserPlus } from "react-icons/fa";
+import { FaArrowRight, FaBriefcase, FaGlobeAsia, FaHandHoldingHeart, FaUserPlus, FaUsers } from "react-icons/fa";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuthStore, useUserStore } from "@/lib/store";
@@ -24,9 +24,9 @@ export default function HeroButtons() {
   const showNewBadge = !isAuthenticated;
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-      {/* Primary Button with optional badge */}
-      <div className="relative">
+    <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+        {/* Primary Button with optional badge */}
+        <div className="relative">
         {showNewBadge && (
           <span className="absolute -top-2 -right-2 z-10 px-2 py-0.5 text-[9px] font-bold text-white bg-gradient-to-r from-[#D9772B] to-[#E6A11C] rounded-full shadow-lg animate-pulse">
             NEW
@@ -65,11 +65,11 @@ export default function HeroButtons() {
             </span>
           </motion.button>
         </Link>
-      </div>
+        </div>
 
-      {/* Secondary Button */}
-      <Link href="/communities">
-        <motion.button
+        {/* Secondary Button */}
+        <Link href="/communities">
+          <motion.button
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
           className="
@@ -97,8 +97,24 @@ export default function HeroButtons() {
             <FaGlobeAsia className="text-sm sm:text-base" />
             Explore Communities
           </span>
-        </motion.button>
-      </Link>
+          </motion.button>
+        </Link>
     </div>
+  );
+}
+
+export function HeroQuickLinks() {
+  return (
+    <nav aria-label="Explore Prabasi Odia" className="mt-6 flex flex-wrap gap-2.5 md:mt-10">
+      <Link href="/jobs" className="inline-flex items-center gap-2 rounded-full border border-[#6B1E5B]/20 bg-white/80 px-4 py-2 text-sm font-semibold text-[#6B1E5B] shadow-sm transition hover:border-[#6B1E5B] hover:bg-white">
+        <FaBriefcase aria-hidden="true" className="text-base" /> Jobs
+      </Link>
+      <Link href="/urgent-help" className="inline-flex items-center gap-2 rounded-full border border-[#B45337]/25 bg-white/80 px-4 py-2 text-sm font-semibold text-[#9A432B] shadow-sm transition hover:border-[#B45337] hover:bg-white">
+        <FaHandHoldingHeart aria-hidden="true" className="text-base" /> Urgent Help
+      </Link>
+      <Link href="/advisory-board" className="inline-flex items-center gap-2 rounded-full border border-[#6B1E5B]/20 bg-white/80 px-4 py-2 text-sm font-semibold text-[#6B1E5B] shadow-sm transition hover:border-[#6B1E5B] hover:bg-white">
+        <FaUsers aria-hidden="true" className="text-base" /> Advisory Board
+      </Link>
+    </nav>
   );
 }

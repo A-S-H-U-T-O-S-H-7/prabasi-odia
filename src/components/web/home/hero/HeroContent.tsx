@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import HeroButtons from "./HeroButtons";
+import HeroButtons, { HeroQuickLinks } from "./HeroButtons";
 import AvatarGroup from "./AvatarGroup";
 import Stats from "./Stats";
 
@@ -88,6 +88,15 @@ export default function HeroContent() {
         transition={{ delay: 0.6 }}
       >
         <AvatarGroup />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="mt-4"
+      >
+        <HeroQuickLinks />
       </motion.div>
 
       {/* Stats */}

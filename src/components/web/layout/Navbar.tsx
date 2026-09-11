@@ -71,7 +71,7 @@ export default function Navbar() {
     { href: '/about', label: 'About' },
   ];
   const moreLinks = [
-    { href: '/jobs', label: 'Jobs & Startups' },
+    { href: '/jobs', label: 'Jobs' },
     { href: '/urgent-help', label: 'Urgent Help' },
     { href: '/advisory-board', label: 'Advisory Board' },
   ];

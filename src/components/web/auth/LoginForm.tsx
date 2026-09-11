@@ -172,6 +172,7 @@ interface LoginFormProps {
   isGoogleLoading: boolean;
   onSubmit: (data: any) => void;
   onGoogleLogin: () => void;
+  registrationRequired?: boolean;
 }
 
 export default function LoginForm({
@@ -183,6 +184,7 @@ export default function LoginForm({
   isGoogleLoading,
   onSubmit,
   onGoogleLogin,
+  registrationRequired = false,
 }: LoginFormProps) {
   return (
     <LoginCard>
@@ -201,6 +203,15 @@ export default function LoginForm({
 
         {/* ✅ Google Login FIRST */}
         <GoogleButton onClick={onGoogleLogin} isLoading={isGoogleLoading} />
+
+        {registrationRequired && (
+          <div role="alert" className="rounded-xl border border-[#D9772B]/30 bg-[#FFF7E8] p-4 text-center">
+            <p className="text-sm font-medium text-[#4A2E42]">This Google account is not registered with Prabasi Odia yet.</p>
+            <Link href="/join-community" className="mt-3 inline-flex rounded-lg bg-[#6B1E5B] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#81256d]">
+              Create an account
+            </Link>
+          </div>
+        )}
 
         {/* Divider */}
         <Divider text="or continue with email" />

@@ -51,6 +51,10 @@ export default function UrgentHelp() {
       router.push('/login');
       return;
     }
+    if (!user?.isVerified) {
+      toast.error('Only verified members can submit an urgent-help request.');
+      return;
+    }
     setFormError('');
     setShowForm(true);
   };
@@ -58,6 +62,10 @@ export default function UrgentHelp() {
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user?.uid || submitting) return;
+    if (!user.isVerified) {
+      setFormError('Only verified members can submit an urgent-help request.');
+      return;
+    }
     const form = new FormData(event.currentTarget);
     const media = form.getAll('media').filter((item): item is File => item instanceof File && item.size > 0);
     setSubmitting(true);

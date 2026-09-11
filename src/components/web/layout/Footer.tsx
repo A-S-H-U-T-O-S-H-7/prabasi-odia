@@ -20,6 +20,8 @@ const footerLinks = {
   Community: [
     { label: "Communities", href: "/communities" },
     { label: "Events", href: "/events" },
+    { label: "Jobs", href: "/jobs" },
+    { label: "Urgent Help", href: "/urgent-help" },
     { label: "Advisory Board", href: "/advisory-board" },
     { label: "About Us", href: "/about" },
     { label: "Associates", href: "/associates" },

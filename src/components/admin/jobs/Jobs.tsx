@@ -128,7 +128,7 @@ export default function AdminJobsPage() {
   if (!isAuthenticated || !canManage) return <p className="p-6 text-sm text-[#6B5E5A]">Checking access...</p>;
   return <div className="mx-auto max-w-7xl">
     <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-      <div><h1 className="text-2xl font-bold text-[#2A1636] sm:text-3xl">Jobs & Startups</h1><p className="mt-2 text-sm text-[#6B5E5A]">Review opportunities and manage applications from the community.</p></div>
+      <div><h1 className="text-2xl font-bold text-[#2A1636] sm:text-3xl">Jobs</h1><p className="mt-2 text-sm text-[#6B5E5A]">Review opportunities and manage applications from the community.</p></div>
       <button type="button" disabled={loading || busy} onClick={() => void load()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E7D7E8] bg-white px-4 py-2.5 text-sm font-semibold text-[#6B1E5B] disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh</button>
     </div>
     <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
