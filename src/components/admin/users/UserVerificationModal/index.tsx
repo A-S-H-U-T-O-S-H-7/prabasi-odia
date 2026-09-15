@@ -150,6 +150,10 @@ export default function UserVerificationModal({
   // HANDLERS
   // ============================================
   const handleVerify = async () => {
+    if (user?.applicationStatus === 'rejected') {
+      toast.error("This application has been rejected and cannot be verified.");
+      return;
+    }
     if (user?.isVerified) {
       toast.error("This member is already verified");
       return;
@@ -247,6 +251,10 @@ export default function UserVerificationModal({
   };
 
   const handleReject = async () => {
+    if (user?.applicationStatus === 'rejected') {
+      toast.error("This application has already been rejected.");
+      return;
+    }
     const reason = rejectReason || "No reason provided";
     await log({
       action: ActivityActions.REJECT,
@@ -318,6 +326,7 @@ export default function UserVerificationModal({
   // EARLY RETURN
   // ============================================
   if (!user) return null;
+  const isRejected = user.applicationStatus === 'rejected';
 
   // ============================================
   // RENDER
@@ -430,7 +439,8 @@ export default function UserVerificationModal({
                       </div>
                       <button
                         onClick={() => setShowRejectForm(true)}
-                        className="w-full py-3 rounded-xl border border-red-300 text-red-600 font-medium hover:bg-red-50 transition-colors cursor-pointer"
+                        disabled={isRejected}
+                        className="w-full py-3 rounded-xl border border-red-300 text-red-600 font-medium hover:bg-red-50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <XCircle className="w-4 h-4 inline mr-1" />
                         Reject
@@ -497,9 +507,9 @@ export default function UserVerificationModal({
                       <div className="flex gap-3">
                         <button
                           onClick={handleVerify}
-                          disabled={isVerifying || isLoadingCount || !memberId}
+                          disabled={isRejected || isVerifying || isLoadingCount || !memberId}
                           className={`flex-1 py-3 rounded-xl text-white font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                            isVerifying || isLoadingCount || !memberId
+                            isRejected || isVerifying || isLoadingCount || !memberId
                               ? 'bg-gray-400 cursor-not-allowed opacity-50'
                               : 'bg-gradient-to-r from-green-600 to-green-700 hover:shadow-lg hover:scale-[1.02]'
                           }`}
@@ -513,7 +523,8 @@ export default function UserVerificationModal({
                         </button>
                         <button
                           onClick={() => setShowRejectForm(true)}
-                          className="flex-1 py-3 rounded-xl border border-red-300 text-red-600 font-medium hover:bg-red-50 transition-colors cursor-pointer"
+                          disabled={isRejected || isVerifying}
+                          className="flex-1 py-3 rounded-xl border border-red-300 text-red-600 font-medium hover:bg-red-50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <XCircle className="w-4 h-4 inline mr-1" />
                           Reject
