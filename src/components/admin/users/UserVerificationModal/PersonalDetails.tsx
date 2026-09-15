@@ -59,10 +59,22 @@ export function PersonalDetails({ user, formatDate, calculateAge }: PersonalDeta
         </div>
         <div className="flex justify-between items-center">
           <span className="text-[#6B5E5A] flex items-center gap-1.5">
-            <Briefcase className="w-3.5 h-3.5" /> Occupation
+            <Briefcase className="w-3.5 h-3.5" /> Profession
           </span>
-          <span className="font-medium text-[#2A1636]">{user.occupation || "—"}</span>
+          <span className="font-medium text-[#2A1636]">{user.profession || user.occupation || "—"}</span>
         </div>
+        {user.profession === "Doctor" && (
+          <div className="flex justify-between items-center gap-3">
+            <span className="text-[#6B5E5A] flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> Specialization</span>
+            <span className="font-medium text-[#2A1636] text-right">{user.doctorSpecialization || "—"}</span>
+          </div>
+        )}
+        {user.profession === "Others" && (
+          <div className="flex justify-between items-center gap-3">
+            <span className="text-[#6B5E5A] flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> Profession details</span>
+            <span className="font-medium text-[#2A1636] text-right">{user.otherProfession || "—"}</span>
+          </div>
+        )}
       </div>
     </div>
   );

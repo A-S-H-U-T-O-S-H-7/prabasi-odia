@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, X } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { adminUserService, UserData, VerifyUserCommunityOptions } from "@/lib/services/adminUserService";
+import { emailService } from "@/lib/services/emailService";
 import UserStats from "@/components/admin/users/UserStats";
 import UserFilters from "@/components/admin/users/UserFilters";
 import UserTable from "@/components/admin/users/UserTable";
@@ -131,6 +132,19 @@ export default function AdminUsersPage() {
     try {
       const result = await adminUserService.rejectUser(uid, reason);
       if (result.success) {
+        const user = users.find((entry) => entry.uid === uid) || selectedUser;
+        if (user?.email) {
+          const emailResult = await emailService.sendRejectionEmail({
+            name: user.displayName || "Member",
+            email: user.email,
+            // Pending applications do not yet have a member ID, so their UID
+            // is the stable application identifier sent to the mail endpoint.
+            applicationId: user.memberId || user.uid,
+            rejectionReason: reason,
+            communityName: user.nearbyCommunityName || user.requestedCommunityName || user.currentCity || "Prabasi Odia Community",
+          });
+          if (!emailResult.success) toast.error(`User rejected, but email was not sent: ${emailResult.message}`);
+        }
         toast.success("User rejected");
         setIsModalOpen(false);
         fetchUsers(true);

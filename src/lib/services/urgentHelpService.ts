@@ -58,7 +58,7 @@ export const urgentHelpService = {
       return { name: file.name, url: await getDownloadURL(fileRef), type };
     }));
     await updateDoc(reference, { media, updatedAt: new Date().toISOString() });
-    return reference.id;
+    return { id: reference.id, media };
   },
   updateStatus: (id: string, status: UrgentHelpStatus, rejectionReason = '') => updateDoc(doc(db, 'urgentHelpRequests', id), { status, rejectionReason, updatedAt: new Date().toISOString() }),
   updateRequest: (id: string, data: Pick<UrgentHelpRequest, 'title' | 'category' | 'location' | 'message' | 'contactName' | 'email' | 'phone'>) => updateDoc(doc(db, 'urgentHelpRequests', id), { ...data, updatedAt: new Date().toISOString() }),

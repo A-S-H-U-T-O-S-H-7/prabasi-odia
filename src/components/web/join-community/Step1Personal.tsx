@@ -62,7 +62,7 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
       }
     }
 
-    const fieldsToValidate = ["residencyStatus", "email", "fullName", "dob", "gender", "bloodGroup", "mobileNumber", "mobileCountryCode", "photo", "occupation"];
+    const fieldsToValidate = ["residencyStatus", "email", "fullName", "dob", "gender", "bloodGroup", "mobileNumber", "mobileCountryCode", "photo", "profession", "doctorSpecialization", "otherProfession"];
     const isValid = await trigger(fieldsToValidate);
 
     if (!isValid) {

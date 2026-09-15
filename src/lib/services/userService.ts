@@ -39,6 +39,9 @@ export interface UserProfileData {
   requestedCommunityName?: string | null;
   communityRequestStatus?: 'pending' | 'joined' | 'created' | null;
   occupation?: string;
+  profession?: 'Teacher' | 'Doctor' | 'Student' | 'Engineer' | 'Business' | 'Others';
+  doctorSpecialization?: string;
+  otherProfession?: string;
   organization?: string;
   interests: string[];
   idType?: 'aadhar' | 'passport';

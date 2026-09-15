@@ -6,6 +6,7 @@ import { ArrowLeft, BriefcaseBusiness, Loader2, LockKeyhole, Plus, RefreshCw } f
 import { toast } from 'react-hot-toast';
 import { useAuthStore, useUserStore } from '@/lib/store';
 import { jobsService, type Job } from '@/lib/services/jobsService';
+import { emailService } from '@/lib/services/emailService';
 import JobApplicationModal from './JobApplicationModal';
 import JobCard from './JobCard';
 import JobFilters from './JobFilters';
@@ -69,8 +70,27 @@ export default function Jobs() {
     setSubmitting(true); setFormError('');
     try {
       if (resume instanceof File && resume.size && (resume.size > 5 * 1024 * 1024 || !/\.(pdf|doc|docx)$/i.test(resume.name))) throw new Error('Choose a PDF, DOC or DOCX resume up to 5 MB.');
-      await jobsService.applyToJob(selectedJob.id, { applicantId: user.uid, name: String(form.get('name') || '').trim(), email: String(form.get('email') || '').trim(), phone: String(form.get('phone') || '').trim(), note: String(form.get('note') || '').trim() }, resume instanceof File && resume.size ? resume : undefined);
+      const applicantName = String(form.get('name') || '').trim();
+      const applicantEmail = String(form.get('email') || '').trim();
+      const applicantPhone = String(form.get('phone') || '').trim();
+      const applicantNote = String(form.get('note') || '').trim();
+      const application = await jobsService.applyToJob(selectedJob.id, { applicantId: user.uid, name: applicantName, email: applicantEmail, phone: applicantPhone, note: applicantNote }, resume instanceof File && resume.size ? resume : undefined);
+      const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] || character);
+      const resumeHtml = application.resumeUrl ? `<a href="${escapeHtml(application.resumeUrl)}">${escapeHtml(application.resumeName || 'View resume')}</a>` : 'No resume attached';
+      const emailResult = await emailService.sendJobApplicationNotification({
+        posterEmail: selectedJob.contactEmail,
+        posterName: selectedJob.contactName || selectedJob.ownerName || 'Job poster',
+        jobTitle: selectedJob.title,
+        companyName: selectedJob.company,
+        jobLocation: selectedJob.location,
+        applicantName,
+        applicantEmail,
+        applicantPhone,
+        applicantNote,
+        resumeHtml,
+      });
       setSelectedJob(null); toast.success('Your application has been saved successfully.');
+      if (!emailResult.success) toast.error('Application was saved, but the job poster could not be notified by email.');
     } catch (error) { setFormError(error instanceof Error ? error.message : 'Could not send your interest.'); }
     finally { setSubmitting(false); }
   };

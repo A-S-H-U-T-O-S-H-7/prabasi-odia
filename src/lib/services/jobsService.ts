@@ -131,6 +131,7 @@ export const jobsService = {
       status: 'new',
       createdAt: serverTimestamp(),
     });
+    return { resumeUrl, resumeName };
   },
 
   async getApplications(jobId: string) {

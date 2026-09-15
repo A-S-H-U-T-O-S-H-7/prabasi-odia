@@ -31,6 +31,7 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
   const [ageError, setAgeError] = useState<string | null>(null);
 
   const watchDob = watch("dob");
+  const profession = watch("profession");
   const [savedYear = '', savedMonth = '', savedDay = ''] = String(watchDob || '').split('-');
   const dobYear = String(watch('dobYear') ?? savedYear);
   const dobMonth = String(watch('dobMonth') ?? savedMonth);
@@ -162,7 +163,7 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
 
       </div>
 
-      {/* Blood Group + Occupation */}
+      {/* Blood Group + Profession */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
@@ -190,21 +191,45 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
 
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
-            Occupation <span className="text-red-400">*</span>
+            Profession <span className="text-red-400">*</span>
           </label>
           <div className="relative">
             <Briefcase className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
-            <input {...register("occupation")} className={`${inputClass("occupation")} sm:pl-12`} placeholder="Your profession / job title" />
+            <select {...register("profession")} className={`${inputClass("profession")} appearance-none cursor-pointer sm:pl-12`}>
+              <option value="">Select profession</option>
+              <option value="Teacher">Teacher</option>
+              <option value="Doctor">Doctor</option>
+              <option value="Student">Student</option>
+              <option value="Engineer">Engineer</option>
+              <option value="Business">Business</option>
+              <option value="Others">Others</option>
+            </select>
           </div>
           <FieldHint>
-            {shouldShowError("occupation") && (
+            {shouldShowError("profession") && (
               <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">
-                {errors.occupation?.message as string}
+                {errors.profession?.message as string}
               </motion.p>
             )}
           </FieldHint>
         </div>
       </div>
+
+      {profession === "Doctor" && (
+        <div>
+          <label className="block text-sm font-medium text-[#2A1636] mb-2">Specialization <span className="text-red-400">*</span></label>
+          <input {...register("doctorSpecialization")} className={inputClass("doctorSpecialization")} placeholder="e.g. Cardiology" />
+          <FieldHint>{shouldShowError("doctorSpecialization") && <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">{errors.doctorSpecialization?.message as string}</motion.p>}</FieldHint>
+        </div>
+      )}
+
+      {profession === "Others" && (
+        <div>
+          <label className="block text-sm font-medium text-[#2A1636] mb-2">Profession <span className="text-red-400">*</span></label>
+          <input {...register("otherProfession")} className={inputClass("otherProfession")} placeholder="Enter your profession" />
+          <FieldHint>{shouldShowError("otherProfession") && <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">{errors.otherProfession?.message as string}</motion.p>}</FieldHint>
+        </div>
+      )}
     </div>
   );
 }

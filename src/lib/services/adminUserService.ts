@@ -54,6 +54,9 @@ export interface UserData {
   requestedCommunityName?: string | null;
   communityRequestStatus?: 'pending' | 'joined' | 'created' | null;
   occupation?: string;
+  profession?: 'Teacher' | 'Doctor' | 'Student' | 'Engineer' | 'Business' | 'Others';
+  doctorSpecialization?: string;
+  otherProfession?: string;
   organization?: string;
   interests?: string[];
   familyMembers?: any[];
@@ -78,7 +81,7 @@ export type MemberUpdateData = Partial<Pick<UserData,
   | 'age' | 'gender' | 'bloodGroup' | 'dob'
   | 'odishaHomeAddress' | 'odishaDistrict' | 'odishaCity' | 'odishaPinCode'
   | 'currentAddress' | 'currentCity' | 'currentState' | 'currentCountry'
-  | 'currentPinCode' | 'occupation' | 'organization' | 'interests'
+  | 'currentPinCode' | 'occupation' | 'profession' | 'doctorSpecialization' | 'otherProfession' | 'organization' | 'interests'
   | 'familyMembers' | 'idType' | 'aadharNumber' | 'passportNumber'
 >>;
 

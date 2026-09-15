@@ -139,7 +139,9 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
                 : formData.emailVerified ? "Email OTP verified" : "Pending"
             }
           />
-          <ReviewItem label="Occupation" value={formData.occupation || "—"} />
+          <ReviewItem label="Profession" value={formData.profession || "—"} />
+          {formData.profession === "Doctor" && <ReviewItem label="Specialization" value={formData.doctorSpecialization || "—"} />}
+          {formData.profession === "Others" && <ReviewItem label="Profession details" value={formData.otherProfession || "—"} />}
           {formData.photo && <ReviewItem label="Photo" value="✅ Uploaded" />}
           <ReviewItem label="Family Members" value={familyDisplay} />
         </>
@@ -242,7 +244,9 @@ export default function Step4Review({ onSubmit, onBack, onGoToStep, isSubmitting
     formData.bloodGroup && 
     formData.mobileNumber && 
     formData.mobileCountryCode &&
-    formData.occupation &&
+    formData.profession &&
+    (formData.profession !== "Doctor" || formData.doctorSpecialization?.trim()) &&
+    (formData.profession !== "Others" || formData.otherProfession?.trim()) &&
     formData.odishaHomeAddress && 
     formData.odishaDistrict &&
     formData.odishaCity && 

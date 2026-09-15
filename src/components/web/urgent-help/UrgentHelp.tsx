@@ -6,6 +6,7 @@ import { Filter, HeartHandshake, Loader2, Plus, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/lib/store';
 import { URGENT_HELP_CATEGORIES, urgentHelpService, type UrgentHelpRequest } from '@/lib/services/urgentHelpService';
+import { emailService } from '@/lib/services/emailService';
 import UrgentHelpCard from './UrgentHelpCard';
 import UrgentHelpDetails from './UrgentHelpDetails';
 import UrgentHelpForm from './UrgentHelpForm';
@@ -71,7 +72,7 @@ export default function UrgentHelp() {
     setSubmitting(true);
     setFormError('');
     try {
-      await urgentHelpService.createRequest({
+      const createdRequest = await urgentHelpService.createRequest({
         title: String(form.get('title') || '').trim(),
         category: String(form.get('category')) as UrgentHelpRequest['category'],
         location: String(form.get('location') || '').trim(),
@@ -82,8 +83,25 @@ export default function UrgentHelp() {
         ownerId: user.uid,
         ownerName: user.displayName || user.email || '',
       }, media);
+      const origin = window.location.origin;
+      const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] || character);
+      const attachmentsHtml = createdRequest.media.length
+        ? createdRequest.media.map((item) => `<a href="${escapeHtml(item.url)}">${escapeHtml(item.name)}</a>`).join('<br>')
+        : 'No attachments';
+      const emailResult = await emailService.sendUrgentHelpNotification({
+        requestTitle: String(form.get('title') || '').trim(),
+        helpType: String(form.get('category') || '').trim(),
+        location: String(form.get('location') || '').trim(),
+        situationMessage: String(form.get('message') || '').trim(),
+        contactName: String(form.get('contactName') || '').trim(),
+        contactPhone: String(form.get('phone') || '').trim(),
+        accountEmail: user.email || '',
+        attachmentsHtml,
+        adminPanelLink: `${origin}/admin/urgent-help?request=${encodeURIComponent(createdRequest.id)}`,
+      });
       setShowForm(false);
       toast.success('Your request was submitted for admin review.');
+      if (!emailResult.success) toast.error('Request was submitted, but admins could not be notified by email.');
     } catch (reason) {
       setFormError(reason instanceof Error ? reason.message : 'Could not submit your request.');
     } finally {

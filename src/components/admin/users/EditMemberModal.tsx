@@ -18,7 +18,7 @@ type FormData = Record<string, string>;
 const fieldGroups = [
   ["displayName", "Full name", "text"], ["mobileNumber", "Mobile number", "tel"],
   ["dob", "Date of birth", "date"], ["gender", "Gender", "text"],
-  ["bloodGroup", "Blood group", "text"], ["occupation", "Occupation", "text"],
+  ["bloodGroup", "Blood group", "text"], ["profession", "Profession", "text"], ["doctorSpecialization", "Doctor specialization", "text"], ["otherProfession", "Other profession", "text"], ["occupation", "Occupation", "text"],
   ["organization", "Organization", "text"], ["currentAddress", "Current address", "text"],
   ["currentCity", "Current city", "text"], ["currentState", "Current state", "text"],
   ["currentCountry", "Current country", "text"], ["currentPinCode", "Current PIN code", "text"],

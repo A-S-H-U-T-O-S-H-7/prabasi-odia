@@ -59,7 +59,11 @@ const schema = z.object({
       const cleanNumber = val.replace(/[\s\-()]/g, '');
       return cleanNumber.length >= 4 && cleanNumber.length <= 15;
     }, "Mobile number must be 4-15 digits"),
-  occupation: z.string().min(2, "Occupation is required"),
+  profession: z.enum(["Teacher", "Doctor", "Student", "Engineer", "Business", "Others"], {
+    message: "Please select your profession",
+  }),
+  doctorSpecialization: z.string().optional(),
+  otherProfession: z.string().optional(),
   email: z.string().optional(),
   mobileVerified: z.boolean().optional(),
   verifiedMobileNumber: z.string().optional(),
@@ -111,6 +115,12 @@ const schema = z.object({
   passportFile: z.any().optional(),
 
 }).superRefine((data, ctx) => {
+  if (data.profession === "Doctor" && !data.doctorSpecialization?.trim()) {
+    ctx.addIssue({ code: "custom", message: "Specialization is required", path: ["doctorSpecialization"] });
+  }
+  if (data.profession === "Others" && !data.otherProfession?.trim()) {
+    ctx.addIssue({ code: "custom", message: "Please enter your profession", path: ["otherProfession"] });
+  }
   if (data.residencyStatus === "RI" && data.mobileCountryCode !== "+91") {
     ctx.addIssue({ code: "custom", message: "Resident Indians must use a +91 mobile number for SMS verification", path: ["mobileCountryCode"] });
   }
@@ -195,7 +205,9 @@ export default function JoinCommunityPage() {
       gender: "",
       bloodGroup: "",
       mobileNumber: "",
-      occupation: "",
+      profession: undefined,
+      doctorSpecialization: "",
+      otherProfession: "",
       email: "",
       mobileVerified: false,
       verifiedMobileNumber: "",
@@ -319,7 +331,12 @@ export default function JoinCommunityPage() {
         dob: data.dob,
         gender: data.gender,
         bloodGroup: data.bloodGroup,
-        occupation: data.occupation,
+        profession: data.profession,
+        doctorSpecialization: data.profession === "Doctor" ? data.doctorSpecialization?.trim() || "" : "",
+        otherProfession: data.profession === "Others" ? data.otherProfession?.trim() || "" : "",
+        occupation: data.profession === "Doctor"
+          ? `Doctor${data.doctorSpecialization?.trim() ? ` - ${data.doctorSpecialization.trim()}` : ""}`
+          : data.profession === "Others" ? data.otherProfession?.trim() || "Others" : data.profession,
         odishaHomeAddress: data.odishaHomeAddress,
         odishaDistrict: data.odishaDistrict,
         odishaCity: data.odishaCity,
