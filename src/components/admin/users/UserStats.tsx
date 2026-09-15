@@ -1,12 +1,13 @@
 "use client";
 
-import { Users, Clock, CheckCircle, TrendingUp } from "lucide-react";
+import { Users, Clock, CheckCircle, XCircle } from "lucide-react";
 
 interface UserStatsProps {
   stats: {
     total: number;
     pending: number;
     verified: number;
+    rejected: number;
   };
 }
 
@@ -33,10 +34,17 @@ export default function UserStats({ stats }: UserStatsProps) {
       color: "text-green-600",
       bg: "bg-green-50",
     },
+    {
+      label: "Rejected Applications",
+      value: stats.rejected,
+      icon: XCircle,
+      color: "text-red-600",
+      bg: "bg-red-50",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       {statCards.map((stat, index) => {
         const Icon = stat.icon;
         return (

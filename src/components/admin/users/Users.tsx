@@ -21,12 +21,12 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [stats, setStats] = useState({ total: 0, pending: 0, verified: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, verified: 0, rejected: 0 });
   const [searchResults, setSearchResults] = useState<UserData[] | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -178,7 +178,7 @@ export default function AdminUsersPage() {
   const displayUsers = searchResults
     ? searchResults.filter((user) =>
         statusFilter === 'all' ||
-        (statusFilter === 'verified' ? user.isVerified : !user.isVerified)
+        (statusFilter === 'verified' ? user.isVerified : statusFilter === 'rejected' ? user.applicationStatus === 'rejected' : !user.isVerified && user.applicationStatus !== 'rejected')
       )
     : users;
   const totalPages = Math.max(1, Math.ceil(displayUsers.length / pageSize));

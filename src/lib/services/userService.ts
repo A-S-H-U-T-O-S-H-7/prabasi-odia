@@ -58,7 +58,7 @@ export interface UserProfileData {
   hasJoinedCommunity: boolean;
   isVerified: boolean;
   /** Lifecycle: draft account -> submitted application -> approved membership. */
-  applicationStatus?: 'draft' | 'pending_review' | 'approved';
+  applicationStatus?: 'draft' | 'pending_review' | 'approved' | 'rejected';
   memberId?: string;
   createdAt?: string;
   updatedAt?: string;

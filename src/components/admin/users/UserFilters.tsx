@@ -5,8 +5,8 @@ import { Search, Filter } from "lucide-react";
 interface UserFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  statusFilter: 'all' | 'pending' | 'verified';
-  setStatusFilter: (status: 'all' | 'pending' | 'verified') => void;
+  statusFilter: 'all' | 'pending' | 'verified' | 'rejected';
+  setStatusFilter: (status: 'all' | 'pending' | 'verified' | 'rejected') => void;
 }
 
 export default function UserFilters({
@@ -60,6 +60,16 @@ export default function UserFilters({
           }`}
         >
           Verified
+        </button>
+        <button
+          onClick={() => setStatusFilter('rejected')}
+          className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 cursor-pointer ${
+            statusFilter === 'rejected'
+              ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
+              : 'bg-white/50 text-[#6B5E5A] border border-[#D4C8C0]/30 hover:bg-white/80'
+          }`}
+        >
+          Rejected
         </button>
       </div>
     </div>

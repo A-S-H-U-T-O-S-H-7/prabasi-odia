@@ -68,6 +68,7 @@ export interface UserData {
   };
   hasJoinedCommunity: boolean;
   isVerified: boolean;
+  applicationStatus?: 'draft' | 'pending_review' | 'approved' | 'rejected';
   memberId?: string;
   createdAt: string;
   updatedAt: string;
@@ -110,7 +111,7 @@ export const adminUserService = {
     _lastDoc?: any,
     filters?: {
       search?: string;
-      status?: 'all' | 'pending' | 'verified';
+      status?: 'all' | 'pending' | 'verified' | 'rejected';
       city?: string;
     }
   ) {
@@ -121,9 +122,11 @@ export const adminUserService = {
         .filter((u) => u.hasJoinedCommunity);
 
       if (filters?.status === 'pending') {
-        users = users.filter((u) => !u.isVerified);
+        users = users.filter((u) => !u.isVerified && u.applicationStatus !== 'rejected');
       } else if (filters?.status === 'verified') {
         users = users.filter((u) => u.isVerified);
+      } else if (filters?.status === 'rejected') {
+        users = users.filter((u) => u.applicationStatus === 'rejected');
       }
 
       users = this._sortByCreatedAtDesc(users).slice(0, limitCount);
@@ -389,6 +392,7 @@ export const adminUserService = {
       const userDoc = await getDoc(docRef);
       const updates: Record<string, any> = {
         isVerified: false,
+        applicationStatus: 'rejected',
         rejectionReason: reason,
         rejectedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -415,19 +419,21 @@ export const adminUserService = {
       let total = 0;
       let pending = 0;
       let verified = 0;
+      let rejected = 0;
       
       snapshot.docs.forEach(doc => {
         const data = doc.data();
         if (!data.hasJoinedCommunity) return;
         total++;
-        if (!data.isVerified) pending++;
+        if (data.applicationStatus === 'rejected') rejected++;
+        else if (!data.isVerified) pending++;
         if (data.isVerified) verified++;
       });
 
-      return { total, pending, verified };
+      return { total, pending, verified, rejected };
     } catch (error) {
       console.error('Error fetching user stats:', error);
-      return { total: 0, pending: 0, verified: 0 };
+      return { total: 0, pending: 0, verified: 0, rejected: 0 };
     }
   },
 

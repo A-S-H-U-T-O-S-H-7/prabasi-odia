@@ -83,7 +83,11 @@ export default function UserTable({ users, onViewUser, onEditUser, loading = fal
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">
-                  {user.isVerified ? (
+                  {user.applicationStatus === 'rejected' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-xs font-medium rounded-full border border-red-200">
+                      <XCircle className="w-3 h-3" /> Rejected
+                    </span>
+                  ) : user.isVerified ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
                       <CheckCircle className="w-3 h-3" /> Verified
                     </span>
