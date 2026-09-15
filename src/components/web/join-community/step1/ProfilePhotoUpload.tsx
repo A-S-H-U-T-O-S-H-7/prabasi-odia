@@ -200,7 +200,15 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
               <h3 className="text-sm font-semibold sm:text-base">Adjust profile photo</h3>
               <p className="mt-0.5 text-[11px] text-white/60">Move and zoom to keep your face inside the frame</p>
             </div>
-            <div className="w-[4.75rem]" aria-hidden="true" />
+            <button
+              type="button"
+              disabled={!imageSize}
+              onClick={confirmCrop}
+              className="inline-flex items-center gap-1 rounded-lg bg-[#34C759] px-3 py-1.5 text-sm font-semibold text-[#06240E] disabled:opacity-50 sm:hidden"
+            >
+              <CheckCircle2 className="h-4 w-4" /> Save
+            </button>
+            <div className="hidden w-[4.75rem] sm:block" aria-hidden="true" />
           </header>
 
           <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-4 py-2">
@@ -266,7 +274,7 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
               <button type="button" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }} className="rounded-lg p-1.5 text-white/75 hover:bg-white/10 hover:text-white" aria-label="Reset photo position"><RotateCcw className="h-4 w-4" /></button>
             </div>
 
-            <div className="mx-auto mt-4 flex max-w-md gap-3">
+            <div className="mx-auto mt-4 hidden max-w-md gap-3 sm:flex">
               <button type="button" onClick={() => { setCropSource(null); setCropFile(null); }} className="flex-1 rounded-xl border border-white/25 px-4 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10">Cancel</button>
               <button type="button" disabled={!imageSize} onClick={confirmCrop} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#34C759] px-4 py-2.5 text-sm font-semibold text-[#06240E] hover:bg-[#47D66C] disabled:opacity-50"><CheckCircle2 className="h-4 w-4" />Done</button>
             </div>
