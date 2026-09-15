@@ -439,7 +439,6 @@ export default function JoinCommunityPage() {
         title={isSuccess ? 'Application submitted' : STEPS[currentStep - 1]?.title || 'Join Community'}
         subtitle={isSuccess ? 'Thank you for joining Prabasi Odia' : STEPS[currentStep - 1]?.subtitle || ''}
       >
-        {!isSuccess && <p role="status" className="mb-3 text-xs text-[#6B5E5A]">{draft.ready ? draft.status : 'Restoring your progress…'}</p>}
         {!isSuccess && submissionError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{submissionError}</p>}
         {!isSuccess && isSubmitting && <p role="status" className="mb-4 text-sm font-medium text-[#6B1E5B]">{submissionStatus}</p>}
         {draft.ready && renderStep()}

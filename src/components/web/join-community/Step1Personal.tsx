@@ -104,7 +104,6 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
         </div>
         <div>
           <h2 className="text-lg font-bold text-[#2A1636]">Personal & Identity Details</h2>
-          <p className="text-sm text-[#6B5E5A]">Tell us about yourself and verify your identity</p>
         </div>
       </div>
 
