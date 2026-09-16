@@ -14,6 +14,12 @@ export interface UrgentHelpRequest {
   rejectionReason?: string; media: UrgentHelpMedia[]; createdAt: string; updatedAt: string;
 }
 
+export type UrgentHelpOfferStatus = 'new' | 'contacted' | 'coordinated' | 'closed';
+export interface UrgentHelpOffer {
+  id: string; requestId: string; requestTitle: string; helperName: string; email: string; phone: string;
+  address: string; message?: string; userId?: string; status: UrgentHelpOfferStatus; createdAt: string; updatedAt: string;
+}
+
 const asDate = (value: unknown) => value && typeof value === 'object' && 'toDate' in value && typeof (value as { toDate: unknown }).toDate === 'function'
   ? (value as { toDate: () => Date }).toDate().toISOString() : typeof value === 'string' ? value : new Date().toISOString();
 
@@ -23,6 +29,14 @@ const mapRequest = (id: string, data: Record<string, unknown>): UrgentHelpReques
   phone: String(data.phone || ''), email: String(data.email || ''), ownerId: String(data.ownerId || ''), ownerName: String(data.ownerName || ''),
   status: (data.status || 'pending') as UrgentHelpStatus, rejectionReason: data.rejectionReason ? String(data.rejectionReason) : undefined,
   media: Array.isArray(data.media) ? data.media as UrgentHelpMedia[] : [], createdAt: asDate(data.createdAt), updatedAt: asDate(data.updatedAt),
+});
+
+const mapOffer = (id: string, data: Record<string, unknown>): UrgentHelpOffer => ({
+  id, requestId: String(data.requestId || ''), requestTitle: String(data.requestTitle || ''),
+  helperName: String(data.helperName || ''), email: String(data.email || ''), phone: String(data.phone || ''),
+  address: String(data.address || ''), message: data.message ? String(data.message) : undefined,
+  userId: data.userId ? String(data.userId) : undefined,
+  status: (data.status || 'new') as UrgentHelpOfferStatus, createdAt: asDate(data.createdAt), updatedAt: asDate(data.updatedAt),
 });
 
 async function readRequests(status?: UrgentHelpStatus) {
@@ -39,6 +53,23 @@ async function readRequests(status?: UrgentHelpStatus) {
 export const urgentHelpService = {
   getApprovedRequests: () => readRequests('approved'),
   getAllRequests: () => readRequests(),
+  async createOffer(data: Omit<UrgentHelpOffer, 'id' | 'status' | 'createdAt' | 'updatedAt'>) {
+    const now = new Date().toISOString();
+    const reference = await addDoc(collection(db, 'urgentHelpOffers'), { ...data, status: 'new', createdAt: now, updatedAt: now });
+    return reference.id;
+  },
+  async getOffers(requestId?: string) {
+    const offers = collection(db, 'urgentHelpOffers');
+    try {
+      const constraints = requestId ? [where('requestId', '==', requestId), orderBy('createdAt', 'desc')] : [orderBy('createdAt', 'desc')];
+      const snapshot = await getDocs(query(offers, ...constraints));
+      return snapshot.docs.map(item => mapOffer(item.id, item.data()));
+    } catch {
+      const snapshot = await getDocs(query(offers));
+      return snapshot.docs.map(item => mapOffer(item.id, item.data())).filter(item => !requestId || item.requestId === requestId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+  },
+  updateOfferStatus: (id: string, status: UrgentHelpOfferStatus) => updateDoc(doc(db, 'urgentHelpOffers', id), { status, updatedAt: new Date().toISOString() }),
   async createRequest(data: Omit<UrgentHelpRequest, 'id' | 'status' | 'rejectionReason' | 'media' | 'createdAt' | 'updatedAt'>, files: File[]) {
     const signedInUser = auth.currentUser;
     if (!signedInUser || signedInUser.uid !== data.ownerId) {
