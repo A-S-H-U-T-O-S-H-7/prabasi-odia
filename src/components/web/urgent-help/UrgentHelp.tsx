@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Filter, HeartHandshake, Loader2, Plus, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUserStore } from '@/lib/store';
 import { URGENT_HELP_CATEGORIES, urgentHelpService, type UrgentHelpRequest } from '@/lib/services/urgentHelpService';
 import { emailService } from '@/lib/services/emailService';
 import UrgentHelpCard from './UrgentHelpCard';
@@ -16,6 +16,7 @@ import UrgentHelpOfferForm from './UrgentHelpOfferForm';
 export default function UrgentHelp() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
+  const { profile, fetchUserProfile } = useUserStore();
   const [requests, setRequests] = useState<UrgentHelpRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,6 +43,9 @@ export default function UrgentHelp() {
   };
 
   useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    if (offerRequest && user?.uid) void fetchUserProfile(user.uid);
+  }, [offerRequest, user?.uid, fetchUserProfile]);
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -145,7 +149,7 @@ export default function UrgentHelp() {
       </div>
       {showForm && <UrgentHelpForm onClose={() => !submitting && setShowForm(false)} onSubmit={submit} submitting={submitting} error={formError} name={user?.displayName || ''} email={user?.email || ''} />}
       {selected && <UrgentHelpDetails request={selected} onClose={() => setSelected(null)} onOfferHelp={(request) => { setOfferError(''); setOfferRequest(request); }} />}
-      {offerRequest && <UrgentHelpOfferForm request={offerRequest} values={{ name: user?.displayName || '', email: user?.email || '', phone: user?.phoneNumber || '', address: user?.currentAddress || [user?.currentCity, user?.currentState, user?.currentCountry].filter(Boolean).join(', ') }} submitting={offering} error={offerError} onClose={() => !offering && setOfferRequest(null)} onSubmit={submitOffer} />}
+      {offerRequest && <UrgentHelpOfferForm request={offerRequest} values={{ name: profile?.displayName || user?.displayName || '', email: profile?.email || user?.email || '', phone: profile?.phoneNumber || user?.phoneNumber || '', address: [profile?.currentAddress, profile?.currentCity, profile?.currentState, profile?.currentCountry, profile?.currentPinCode].filter(Boolean).join(', ') || user?.currentAddress || [user?.currentCity, user?.currentState, user?.currentCountry].filter(Boolean).join(', ') }} submitting={offering} error={offerError} onClose={() => !offering && setOfferRequest(null)} onSubmit={submitOffer} />}
     </div>
   );
 }
