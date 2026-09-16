@@ -26,6 +26,7 @@ export default function Jobs() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const currentProfile = profile?.uid === user?.uid ? profile : null;
   const verifiedMember = Boolean((currentProfile?.hasJoinedCommunity ?? user?.hasJoinedCommunity) && (currentProfile?.isVerified ?? user?.isVerified));
 
@@ -89,7 +90,7 @@ export default function Jobs() {
         applicantNote,
         resumeHtml,
       });
-      setSelectedJob(null); toast.success('Your application has been saved successfully.');
+      setAppliedJobIds(ids => ids.includes(selectedJob.id) ? ids : [...ids, selectedJob.id]); setSelectedJob(null); toast.success('Your application has been saved successfully.');
       if (!emailResult.success) toast.error('Application was saved, but the job poster could not be notified by email.');
     } catch (error) { setFormError(error instanceof Error ? error.message : 'Could not send your interest.'); }
     finally { setSubmitting(false); }
@@ -109,7 +110,7 @@ export default function Jobs() {
         if (!isAuthenticated) { router.push('/login'); return; }
         if (job.ownerId === user?.uid) { toast.error('You cannot apply to your own opportunity.'); return; }
         setFormError(''); setSelectedJob(job);
-      }} />)}</div></>}
+      }} hasApplied={appliedJobIds.includes(job.id)} />)}</div></>}
     </div>
     {showJobForm && <JobForm onClose={() => { if (!submitting) setShowJobForm(false); }} onSubmit={submitJob} submitting={submitting} error={formError} name={user?.displayName || ''} email={user?.email || ''} />}
     {selectedJob && <JobApplicationModal job={selectedJob} onClose={() => { if (!submitting) setSelectedJob(null); }} onSubmit={submitApplication} submitting={submitting} error={formError} name={user?.displayName || ''} email={user?.email || ''} />}

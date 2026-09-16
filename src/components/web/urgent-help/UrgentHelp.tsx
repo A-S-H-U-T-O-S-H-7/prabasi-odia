@@ -29,6 +29,7 @@ export default function UrgentHelp() {
   const [offerRequest, setOfferRequest] = useState<UrgentHelpRequest | null>(null);
   const [offerError, setOfferError] = useState('');
   const [offering, setOffering] = useState(false);
+  const [offeredRequestIds, setOfferedRequestIds] = useState<string[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -124,7 +125,7 @@ export default function UrgentHelp() {
     setOffering(true); setOfferError('');
     try {
       await urgentHelpService.createOffer({ requestId: offerRequest.id, requestTitle: offerRequest.title, helperName: String(form.get('name') || '').trim(), email: String(form.get('email') || '').trim(), phone: String(form.get('phone') || '').trim(), address: String(form.get('address') || '').trim(), message: String(form.get('message') || '').trim(), ...(user?.uid ? { userId: user.uid } : {}) });
-      setOfferRequest(null); setSelected(null); toast.success('Thank you. Your details were sent to the coordination team.');
+      setOfferedRequestIds(ids => ids.includes(offerRequest.id) ? ids : [...ids, offerRequest.id]); setOfferRequest(null); toast.success('Thank you. Your details were sent to the coordination team.');
     } catch { setOfferError('Could not send your details. Please try again.'); }
     finally { setOffering(false); }
   };
@@ -148,7 +149,7 @@ export default function UrgentHelp() {
               : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{visible.map(item => <UrgentHelpCard key={item.id} request={item} onView={setSelected} />)}</div>}
       </div>
       {showForm && <UrgentHelpForm onClose={() => !submitting && setShowForm(false)} onSubmit={submit} submitting={submitting} error={formError} name={user?.displayName || ''} email={user?.email || ''} />}
-      {selected && <UrgentHelpDetails request={selected} onClose={() => setSelected(null)} onOfferHelp={(request) => { setOfferError(''); setOfferRequest(request); }} />}
+      {selected && <UrgentHelpDetails request={selected} onClose={() => setSelected(null)} onOfferHelp={(request) => { setOfferError(''); setOfferRequest(request); }} hasOfferedHelp={offeredRequestIds.includes(selected.id)} />}
       {offerRequest && <UrgentHelpOfferForm request={offerRequest} values={{ name: profile?.displayName || user?.displayName || '', email: profile?.email || user?.email || '', phone: profile?.phoneNumber || user?.phoneNumber || '', address: [profile?.currentAddress, profile?.currentCity, profile?.currentState, profile?.currentCountry, profile?.currentPinCode].filter(Boolean).join(', ') || user?.currentAddress || [user?.currentCity, user?.currentState, user?.currentCountry].filter(Boolean).join(', ') }} submitting={offering} error={offerError} onClose={() => !offering && setOfferRequest(null)} onSubmit={submitOffer} />}
     </div>
   );

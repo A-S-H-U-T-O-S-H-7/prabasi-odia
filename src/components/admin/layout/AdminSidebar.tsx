@@ -36,6 +36,7 @@ const navigationItems = [
   { name: "Events", href: "/admin/events", icon: CalendarDays },
   { name: "Jobs", href: "/admin/jobs", icon: BriefcaseBusiness },
   { name: "Urgent Help", href: "/admin/urgent-help", icon: HeartHandshake },
+  { name: "Helper Offers", href: "/admin/urgent-help/offers", icon: HeartHandshake },
   { name: "Notices", href: "/admin/notices", icon: Megaphone },
   { name: "Donations", href: "/admin/donations", icon: Heart },
   { name: "Contacts", href: "/admin/contact", icon: Mail },
@@ -74,6 +75,7 @@ export default function AdminSidebar() {
     if (item.name === "Events" && permissions.includes("events")) return true;
     if (item.name === "Jobs" && permissions.includes("jobs")) return true;
     if (item.name === "Urgent Help" && permissions.includes("urgent_help")) return true;
+    if (item.name === "Helper Offers" && permissions.includes("urgent_help")) return true;
     if (item.name === "Notices" && permissions.includes("notices")) return true;
     if (item.name === "Donations" && permissions.includes("donations")) return true;
     if (item.name === "Contacts" && (permissions.includes("contacts") || permissions.includes("contact"))) return true;

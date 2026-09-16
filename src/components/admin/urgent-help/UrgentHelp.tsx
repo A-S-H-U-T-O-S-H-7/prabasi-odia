@@ -5,7 +5,7 @@ import { Check, Edit3, Eye, Loader2, RefreshCw, Search, Trash2, X } from 'lucide
 import { toast } from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import useAdminAuthStore from '@/lib/store/useAdminAuthStore';
-import { urgentHelpService, type UrgentHelpRequest, type UrgentHelpStatus } from '@/lib/services/urgentHelpService';
+import { urgentHelpService, type UrgentHelpOffer, type UrgentHelpOfferStatus, type UrgentHelpRequest, type UrgentHelpStatus } from '@/lib/services/urgentHelpService';
 import EditUrgentHelpModal from './EditUrgentHelpModal';
 
 const date = (value: string) => new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
