@@ -15,38 +15,15 @@ export async function geocodeLocation(location: {
     return null;
   }
 
-  const googleKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  // Try Google Maps Geocoding API first
-  if (googleKey) {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${googleKey}`,
-        { signal: AbortSignal.timeout(8_000) }
-      );
-      const data = await response.json();
-      const result = data?.results?.[0]?.geometry?.location;
-      if (result?.lat != null && result?.lng != null) {
-        return { lat: Number(result.lat), lng: Number(result.lng) };
-      }
-    } catch (error) {
-      console.warn("Google geocoding failed, falling back to Nominatim", error);
-    }
-  }
-
-  // Fallback to Nominatim (OpenStreetMap)
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
-      { signal: AbortSignal.timeout(8_000) }
-    );
+    const response = await fetch("/api/geocode", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ city, state, country }),
+      signal: AbortSignal.timeout(8_000),
+    });
     const data = await response.json();
-    if (Array.isArray(data) && data[0]) {
-      return {
-        lat: Number(data[0].lat),
-        lng: Number(data[0].lon),
-      };
-    }
+    if (data.success && data.lat != null && data.lng != null) return { lat: Number(data.lat), lng: Number(data.lng) };
   } catch (error) {
     console.error("Geocoding failed", error);
   }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isRateLimited } from "@/lib/security/rateLimit";
 
 const SUPPORTED_LANGUAGES = new Set(["hi", "or"]);
 const MAX_TEXTS_PER_REQUEST = 75;
@@ -6,7 +7,10 @@ const MAX_TEXT_LENGTH = 4_500;
 const MAX_TOTAL_TEXT_LENGTH = 20_000;
 
 export async function POST(request: Request) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
+  if (isRateLimited(request, "translate", 15)) {
+    return NextResponse.json({ error: "Too many translation requests. Please try again shortly." }, { status: 429 });
+  }
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "Google Translate API key is not configured." }, { status: 500 });
   } 

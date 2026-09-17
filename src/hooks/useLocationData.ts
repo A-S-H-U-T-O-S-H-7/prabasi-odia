@@ -10,8 +10,6 @@ export const useLocationData = (formData: { country: string; state: string }) =>
     cities: false
   });
 
-  const API_KEY = process.env.NEXT_PUBLIC_LOCATION_API_KEY || '';
-
   // Fetch states when country changes
   useEffect(() => {
     let cancelled = false;
@@ -24,9 +22,7 @@ export const useLocationData = (formData: { country: string; state: string }) =>
     if (!selectedCountry) return;
 
     setLoading(prev => ({ ...prev, states: true }));
-    fetch(`https://api.countrystatecity.in/v1/countries/${selectedCountry.iso2}/states`, {
-      headers: { "X-CSCAPI-KEY": API_KEY },
-    })
+    fetch(`/api/location?country=${encodeURIComponent(selectedCountry.iso2)}`)
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
@@ -41,7 +37,7 @@ export const useLocationData = (formData: { country: string; state: string }) =>
       });
     
     return () => { cancelled = true; };
-  }, [formData.country, countries, API_KEY]);
+  }, [formData.country, countries]);
 
   // Fetch cities when state changes
   useEffect(() => {
@@ -55,9 +51,7 @@ export const useLocationData = (formData: { country: string; state: string }) =>
     if (!selectedCountry || !selectedState) return;
 
     setLoading(prev => ({ ...prev, cities: true }));
-    fetch(`https://api.countrystatecity.in/v1/countries/${selectedCountry.iso2}/states/${selectedState.iso2}/cities`, {
-      headers: { "X-CSCAPI-KEY": API_KEY },
-    })
+    fetch(`/api/location?country=${encodeURIComponent(selectedCountry.iso2)}&state=${encodeURIComponent(selectedState.iso2)}`)
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
@@ -71,7 +65,7 @@ export const useLocationData = (formData: { country: string; state: string }) =>
         setLoading(prev => ({ ...prev, cities: false }));
       });
     return () => { cancelled = true; };
-  }, [formData.state, formData.country, countries, states, API_KEY]);
+  }, [formData.state, formData.country, countries, states]);
 
   return {
     countries,

@@ -14,12 +14,7 @@ function fetchCountries(): Promise<Country[]> {
   if (cachedCountries) return Promise.resolve(cachedCountries);
   if (countriesRequest) return countriesRequest;
 
-  const apiKey = process.env.NEXT_PUBLIC_LOCATION_API_KEY;
-  if (!apiKey) return Promise.reject(new Error('Country data is unavailable. Please try again later.'));
-
-  countriesRequest = fetch('https://api.countrystatecity.in/v1/countries', {
-    headers: { 'X-CSCAPI-KEY': apiKey },
-  })
+  countriesRequest = fetch('/api/location')
     .then(async (response) => {
       if (!response.ok) throw new Error('Unable to load countries. Please try again.');
       const data = await response.json();

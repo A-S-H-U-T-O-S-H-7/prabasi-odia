@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isRateLimited } from '@/lib/security/rateLimit';
+
+const allowedLibraries = new Set(['places', 'marker', 'maps', 'geometry']);
 
 export async function GET(request: NextRequest) {
+  if (isRateLimited(request, 'maps-script', 10)) {
+    return new NextResponse('Too many map requests. Please try again shortly.', { status: 429 });
+  }
   const { searchParams } = new URL(request.url);
-  const libraries = searchParams.get('libraries') || 'places';
+  const libraries = (searchParams.get('libraries') || 'places').split(',').filter((library) => allowedLibraries.has(library)).join(',') || 'places';
   
-  const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+  // The Maps JavaScript API requires its key in the browser-delivered script.
+  // Use a separate key restricted by HTTP referrer and Maps JavaScript API only.
+  const API_KEY = process.env.GOOGLE_MAPS_BROWSER_API_KEY;
   
   if (!API_KEY) {
     return new NextResponse('API key missing', { status: 500 });

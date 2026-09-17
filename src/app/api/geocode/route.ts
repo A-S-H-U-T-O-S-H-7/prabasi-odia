@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isRateLimited } from '@/lib/security/rateLimit';
 
 export async function POST(request: NextRequest) {
+  if (isRateLimited(request, 'geocode', 15)) {
+    return NextResponse.json({ error: 'Too many geocoding requests. Please try again shortly.' }, { status: 429 });
+  }
   try {
     const { city, state, country } = await request.json();
+    if (![city, state, country].every((value) => typeof value === 'string' && value.length <= 100)) {
+      return NextResponse.json({ error: 'Invalid address.' }, { status: 400 });
+    }
     
     const query = [city, state, country].filter(Boolean).join(", ");
     if (!query) {
       return NextResponse.json({ error: "Address is required" }, { status: 400 });
     }
 
-    const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+    // Server-only key: restrict this key to the Geocoding API and do not add
+    // the NEXT_PUBLIC_ prefix.
+    const API_KEY = process.env.GOOGLE_MAPS_SERVER_API_KEY;
     
     if (API_KEY) {
       try {
