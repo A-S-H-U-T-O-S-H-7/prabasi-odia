@@ -69,10 +69,10 @@ export default function JoinFormSupport({ children, step }: { children: ReactNod
       resetNextFailures: () => tracker.current.resetNext(step),
     }}>
       {children}
-      <div className="fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-full border border-green-200 bg-white px-3 py-2 shadow-lg sm:bottom-6 sm:right-6">
-        <span className="text-sm font-medium text-[#2A1636]">Any issue?</span>
-        <a href={JOIN_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="Get help on WhatsApp" className="rounded-full bg-[#15803D] p-2.5 text-white hover:bg-green-800"><FaWhatsapp className="h-6 w-6" /></a>
-        <button type="button" onClick={() => show(true)} className="border-l border-green-200 pl-2 text-xs font-medium text-[#6B1E5B] underline">Report issue</button>
+      <div className="fixed bottom-3 right-2 z-40 flex items-center gap-1 rounded-full border border-green-200 bg-white px-2 py-1.5 shadow-lg sm:bottom-6 sm:right-6 sm:gap-2 sm:px-3 sm:py-2">
+        <span className="text-xs font-medium text-[#2A1636] sm:text-sm">Any issue?</span>
+        <a href={JOIN_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="Get help on WhatsApp" className="rounded-full bg-[#15803D] p-2 text-white hover:bg-green-800 sm:p-2.5"><FaWhatsapp className="h-5 w-5 sm:h-6 sm:w-6" /></a>
+        <button type="button" onClick={() => show(true)} className="border-l border-green-200 pl-1 text-[11px] font-medium text-[#6B1E5B] underline sm:pl-2 sm:text-xs">Report issue</button>
       </div>
       <dialog ref={dialog} onCancel={(event) => { if (sending) event.preventDefault(); else setOpen(false); }} onClose={() => setOpen(false)} aria-labelledby="join-support-title" className="fixed inset-0 m-auto max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border border-[#E7D7E8] bg-white p-5 text-[#2A1636] shadow-2xl backdrop:bg-black/50 sm:p-6">
         <div className="flex items-start justify-between gap-3">
