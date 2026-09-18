@@ -3,6 +3,8 @@ import { isRateLimited } from "@/lib/security/rateLimit";
 
 const CSC_BASE_URL = "https://api.countrystatecity.in/v1";
 const codePattern = /^[A-Z]{2,3}$/i;
+// CSC uses numeric identifiers for some states (for example Sarawak = "13").
+const stateIdentifierPattern = /^[A-Z0-9_-]{1,20}$/i;
 
 type RestCountry = {
   name?: { common?: string };
@@ -70,7 +72,7 @@ export async function GET(request: NextRequest) {
     path = `/countries/${encodeURIComponent(country.toUpperCase())}/states`;
   }
   if (state) {
-    if (!country || !codePattern.test(state)) return NextResponse.json({ error: "Invalid state." }, { status: 400 });
+    if (!country || !stateIdentifierPattern.test(state)) return NextResponse.json({ error: "Invalid state." }, { status: 400 });
     path += `/${encodeURIComponent(state.toUpperCase())}/cities`;
   }
 
