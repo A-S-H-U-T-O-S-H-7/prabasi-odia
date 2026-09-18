@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   
   // The Maps JavaScript API requires its key in the browser-delivered script.
   // Use a separate key restricted by HTTP referrer and Maps JavaScript API only.
-  const API_KEY = process.env.GOOGLE_MAPS_BROWSER_API_KEY;
+  const API_KEY = process.env.GOOGLE_MAPS_BROWSER_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   if (!API_KEY) {
     return new NextResponse('API key missing', { status: 500 });

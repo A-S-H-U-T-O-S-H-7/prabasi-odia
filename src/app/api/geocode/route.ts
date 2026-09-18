@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Server-only key: restrict this key to the Geocoding API and do not add
     // the NEXT_PUBLIC_ prefix.
-    const API_KEY = process.env.GOOGLE_MAPS_SERVER_API_KEY;
+    const API_KEY = process.env.GOOGLE_MAPS_SERVER_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
     
     if (API_KEY) {
       try {

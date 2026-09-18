@@ -10,7 +10,8 @@ export async function POST(request: Request) {
   if (isRateLimited(request, "translate", 15)) {
     return NextResponse.json({ error: "Too many translation requests. Please try again shortly." }, { status: 429 });
   }
-  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+  // Legacy value is read only inside this server route while keys are migrated.
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "Google Translate API key is not configured." }, { status: 500 });
   } 
