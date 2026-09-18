@@ -255,7 +255,11 @@ export default function UserVerificationModal({
       toast.error("This application has already been rejected.");
       return;
     }
-    const reason = rejectReason || "No reason provided";
+    const reason = rejectReason.trim();
+    if (!reason) {
+      toast.error("A rejection reason is required.");
+      return;
+    }
     await log({
       action: ActivityActions.REJECT,
       entityType: ActivityEntityTypes.USER,

@@ -83,7 +83,9 @@ export function RejectConfirmation({
                   <textarea
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Reason for rejection..."
+                    placeholder="Reason for rejection (required)..."
+                    required
+                    maxLength={1000}
                     autoFocus
                     className="w-full px-3 py-2.5 rounded-xl border border-[#D4C8C0]/50 bg-white/70 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 outline-none text-sm resize-none h-28"
                   />
@@ -106,7 +108,7 @@ export function RejectConfirmation({
                   <button
                     type="button"
                     onClick={handleReject}
-                    disabled={isVerifying}
+                    disabled={isVerifying || !rejectReason.trim()}
                     className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {isVerifying ? (

@@ -387,13 +387,17 @@ export const adminUserService = {
 
   // Reject user
   async rejectUser(uid: string, reason: string) {
+    const rejectionReason = reason.trim();
+    if (!rejectionReason) {
+      return { success: false, error: 'A rejection reason is required' };
+    }
     try {
       const docRef = doc(db, 'users', uid);
       const userDoc = await getDoc(docRef);
       const updates: Record<string, any> = {
         isVerified: false,
         applicationStatus: 'rejected',
-        rejectionReason: reason,
+        rejectionReason,
         rejectedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
