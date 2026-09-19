@@ -112,7 +112,9 @@ export const emailService = {
           photoURL: data.photoURL,
           residencyStatus: data.residencyStatus,
         },
-        timeout: 90_000,
+        // Keep this below the API route's 60-second execution limit so the
+        // admin receives a useful error instead of a terminated request.
+        timeout: 55_000,
         maxBodyLength: Infinity,
         maxContentLength: Infinity,
       });
@@ -129,7 +131,7 @@ export const emailService = {
       console.error("Verification email error:", error);
       return {
         success: false,
-        message: error?.message || "Email service error",
+        message: error?.response?.data?.message || error?.message || "Email service error",
       };
     }
   },

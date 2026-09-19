@@ -70,6 +70,10 @@ export interface UserData {
   isVerified: boolean;
   applicationStatus?: 'draft' | 'pending_review' | 'approved' | 'rejected';
   memberId?: string;
+  verificationEmailStatus?: 'sent' | 'failed';
+  verificationEmailSentAt?: string;
+  verificationEmailLastAttemptAt?: string;
+  verificationEmailLastError?: string | null;
   createdAt: string;
   updatedAt: string;
   verifiedAt?: string;
@@ -381,6 +385,33 @@ export const adminUserService = {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error verifying user',
+      };
+    }
+  },
+
+  /**
+   * Keeps email delivery separate from membership approval, while leaving a
+   * durable audit trail and allowing a failed delivery to be resent later.
+   */
+  async recordVerificationEmail(
+    uid: string,
+    result: { success: boolean; message?: string }
+  ) {
+    try {
+      const now = new Date().toISOString();
+      await updateDoc(doc(db, 'users', uid), {
+        verificationEmailStatus: result.success ? 'sent' : 'failed',
+        verificationEmailLastAttemptAt: now,
+        verificationEmailSentAt: result.success ? now : null,
+        verificationEmailLastError: result.success ? null : (result.message || 'Email provider did not confirm delivery'),
+        updatedAt: now,
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Error recording verification email status:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unable to record verification email status',
       };
     }
   },

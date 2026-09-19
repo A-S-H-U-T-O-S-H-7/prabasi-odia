@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, UserCheck, Loader2, XCircle, AlertCircle, Shield, Check } from "lucide-react";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
-import { UserData, VerifyUserCommunityOptions } from "@/lib/services/adminUserService";
+import { adminUserService, UserData, VerifyUserCommunityOptions } from "@/lib/services/adminUserService";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { ActivityActions, ActivityEntityTypes } from "@/lib/services/activityLogService";
 import { emailService } from "@/lib/services/emailService";
@@ -27,7 +27,7 @@ interface UserVerificationModalProps {
     uid: string,
     memberId: string,
     communityOptions: VerifyUserCommunityOptions
-  ) => Promise<void>;
+  ) => Promise<{ success: boolean; error?: string }>;
   onReject: (uid: string, reason: string) => Promise<void>;
   isVerifying?: boolean;
 }
@@ -54,6 +54,7 @@ export default function UserVerificationModal({
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedCommunityName, setSelectedCommunityName] = useState("");
+  const [isSendingVerificationEmail, setIsSendingVerificationEmail] = useState(false);
 
   // ============================================
   // EFFECTS
@@ -149,6 +150,60 @@ export default function UserVerificationModal({
   // ============================================
   // HANDLERS
   // ============================================
+  const deliverVerificationEmail = async (finalMemberId: string, communityName: string) => {
+    if (!user) return false;
+
+    setIsSendingVerificationEmail(true);
+    try {
+      const emailResult = await emailService.sendVerificationEmail({
+        uid: user.uid,
+        name: user.displayName || "Member",
+        email: user.email || "",
+        memberId: finalMemberId,
+        memberSince: user.createdAt || new Date().toISOString(),
+        communityName,
+        bloodGroup: user.bloodGroup || "",
+        location: [user.currentCity, user.currentState, user.currentCountry].filter(Boolean).join(", "),
+        residencyStatus: user.residencyStatus,
+        photoURL: user.photoURL || user.documents?.profilePhoto || "",
+      });
+
+      const auditResult = await adminUserService.recordVerificationEmail(user.uid, emailResult);
+      if (!auditResult.success) {
+        console.error("Verification email status could not be recorded:", auditResult.error);
+      }
+
+      if (!emailResult.success) {
+        console.error("Verification email was not sent:", emailResult.message);
+        toast.error(emailResult.message || "Member verified, but the confirmation email could not be sent.");
+        return false;
+      }
+
+      toast.success("Verification email sent successfully.");
+      return true;
+    } catch (emailError) {
+      const message = emailError instanceof Error ? emailError.message : "Email service error";
+      console.error("Verification email error:", emailError);
+      await adminUserService.recordVerificationEmail(user.uid, { success: false, message });
+      toast.error(message);
+      return false;
+    } finally {
+      setIsSendingVerificationEmail(false);
+    }
+  };
+
+  const handleResendVerificationEmail = async () => {
+    if (!user?.isVerified || !user.memberId) {
+      toast.error("This member must be verified and have a member ID before an email can be sent.");
+      return;
+    }
+
+    await deliverVerificationEmail(
+      user.memberId,
+      user.nearbyCommunityName || user.requestedCommunityName || user.currentCity || "Prabasi Odia Community"
+    );
+  };
+
   const handleVerify = async () => {
     if (user?.applicationStatus === 'rejected') {
       toast.error("This application has been rejected and cannot be verified.");
@@ -223,31 +278,12 @@ export default function UserVerificationModal({
       })`,
     });
 
-    await onVerify(user!.uid, finalMemberId, communityOptions);
+    const verificationResult = await onVerify(user!.uid, finalMemberId, communityOptions);
+    if (!verificationResult.success) return;
 
-    try {
-      const emailResult = await emailService.sendVerificationEmail({
-        uid: user!.uid,
-        name: user!.displayName || "Member",
-        email: user!.email || "",
-        memberId: finalMemberId,
-        memberSince: user!.createdAt || new Date().toISOString(),
-        communityName: emailCommunityName,
-        bloodGroup: user!.bloodGroup || "",
-        location: [user!.currentCity, user!.currentState, user!.currentCountry].filter(Boolean).join(", "),
-        residencyStatus: user!.residencyStatus,
-        photoURL: user!.photoURL || user!.documents?.profilePhoto || "",
-      });
-      if (!emailResult.success) {
-        console.error("Verification email was not sent:", emailResult.message);
-        toast.error(emailResult.message || "Member verified, but the confirmation email could not be sent.");
-      }
-      if (emailResult.success) {
-        console.log("Verification email sent successfully");
-      }
-    } catch (emailError) {
-      console.error("Verification email error:", emailError);
-    }
+    toast.success("User verified successfully. Sending verification email…");
+    await deliverVerificationEmail(finalMemberId, emailCommunityName);
+    onClose();
   };
 
   const handleReject = async () => {
@@ -510,30 +546,42 @@ export default function UserVerificationModal({
                       {/* Action Buttons */}
                       <div className="flex gap-3">
                         <button
-                          onClick={handleVerify}
-                          disabled={isRejected || isVerifying || isLoadingCount || !memberId}
+                          onClick={user?.isVerified ? handleResendVerificationEmail : handleVerify}
+                          disabled={user?.isVerified ? isSendingVerificationEmail : isRejected || isVerifying || isLoadingCount || !memberId}
                           className={`flex-1 py-3 rounded-xl text-white font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                            isRejected || isVerifying || isLoadingCount || !memberId
+                            (user?.isVerified ? isSendingVerificationEmail : isRejected || isVerifying || isLoadingCount || !memberId)
                               ? 'bg-gray-400 cursor-not-allowed opacity-50'
                               : 'bg-gradient-to-r from-green-600 to-green-700 hover:shadow-lg hover:scale-[1.02]'
                           }`}
                         >
-                          {isVerifying ? (
+                          {isVerifying || isSendingVerificationEmail ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <Check className="w-4 h-4" />
                           )}
-                          Verify Member
+                          {user?.isVerified ? 'Resend Verification Email' : 'Verify Member'}
                         </button>
                         <button
                           onClick={() => setShowRejectForm(true)}
-                          disabled={isRejected || isVerifying}
+                          disabled={isRejected || isVerifying || isSendingVerificationEmail}
                           className="flex-1 py-3 rounded-xl border border-red-300 text-red-600 font-medium hover:bg-red-50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <XCircle className="w-4 h-4 inline mr-1" />
                           Reject
                         </button>
                       </div>
+
+                      {user?.isVerified && (
+                        <p className={`mt-2 text-xs ${
+                          user.verificationEmailStatus === 'failed' ? 'text-amber-700' : 'text-[#6B5E5A]'
+                        }`}>
+                          {user.verificationEmailStatus === 'sent'
+                            ? 'Verification email was sent. You can resend it if needed.'
+                            : user.verificationEmailStatus === 'failed'
+                              ? `Last email attempt failed: ${user.verificationEmailLastError || 'Please resend it.'}`
+                              : 'No delivery record found. Send the verification email now.'}
+                        </p>
+                      )}
 
                       {!memberId && (
                         <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">

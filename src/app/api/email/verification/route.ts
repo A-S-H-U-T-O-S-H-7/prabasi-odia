@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     if (!name || !email || !memberId || memberId === 'Pending') {
       return NextResponse.json(
-        { success: false, message: 'Name, email, and member ID are required' },
+        { status: false, success: false, message: 'Name, email, and member ID are required' },
         { status: 400 }
       );
     }
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     if (!memberCardPdf) {
       return NextResponse.json(
-        { success: false, message: 'Failed to generate member card for verification email' },
+        { status: false, success: false, message: 'Failed to generate member card for verification email' },
         { status: 500 }
       );
     }
@@ -94,20 +94,20 @@ export async function POST(request: NextRequest) {
     } catch {
       console.error('Verification email provider returned a non-JSON response:', response.status);
       return NextResponse.json(
-        { success: false, message: 'The email provider returned an invalid response.' },
+        { status: false, success: false, message: 'The email provider returned an invalid response.' },
         { status: 502 }
       );
     }
 
     const sent = response.ok && (data.status === true || data.success === true);
     return NextResponse.json(
-      { status: sent, message: data.message || (sent ? 'Verification email sent' : 'Failed to send verification email') },
+      { status: sent, success: sent, message: data.message || (sent ? 'Verification email sent' : 'Failed to send verification email') },
       { status: sent ? 200 : 502 }
     );
   } catch (error) {
     console.error('Verification email error:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to send verification email' },
+      { status: false, success: false, message: 'Failed to send verification email' },
       { status: 500 }
     );
   }

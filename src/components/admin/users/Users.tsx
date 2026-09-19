@@ -113,15 +113,16 @@ export default function AdminUsersPage() {
     try {
       const result = await adminUserService.verifyUser(uid, memberId, communityOptions);
       if (result.success) {
-        toast.success("User verified successfully!");
-        setIsModalOpen(false);
         fetchUsers(true);
         fetchStats();
+        return { success: true };
       } else {
         toast.error(result.error || "Verification failed");
+        return { success: false, error: result.error || "Verification failed" };
       }
     } catch (error) {
       toast.error("Verification failed");
+      return { success: false, error: "Verification failed" };
     } finally {
       setIsVerifying(false);
     }
