@@ -12,22 +12,47 @@ export async function GET(request: NextRequest) {
   
   // The Maps JavaScript API requires its key in the browser-delivered script.
   // Use a separate key restricted by HTTP referrer and Maps JavaScript API only.
-  const API_KEY = process.env.GOOGLE_MAPS_BROWSER_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const API_KEY = (
+    process.env.GOOGLE_MAPS_BROWSER_API_KEY ||
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    ''
+  ).trim();
   
   if (!API_KEY) {
     return new NextResponse('API key missing', { status: 500 });
   }
 
-  const response = await fetch(
-    `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=${libraries}&loading=async`
-  );
+  try {
+    const mapsUrl = new URL('https://maps.googleapis.com/maps/api/js');
+    mapsUrl.searchParams.set('key', API_KEY);
+    mapsUrl.searchParams.set('libraries', libraries);
+    mapsUrl.searchParams.set('loading', 'async');
 
-  const scriptContent = await response.text();
+    const response = await fetch(mapsUrl);
+    const scriptContent = await response.text();
 
-  return new NextResponse(scriptContent, {
-    headers: {
-      'Content-Type': 'application/javascript',
-      'Cache-Control': 'public, max-age=3600',
-    },
-  });
+    if (!response.ok) {
+      console.error('Google Maps script request failed', {
+        status: response.status,
+        statusText: response.statusText,
+      });
+      return new NextResponse('Google Maps could not be loaded. Check the browser API key and its Google Cloud restrictions.', {
+        status: 502,
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    }
+
+    return new NextResponse(scriptContent, {
+      headers: {
+        'Content-Type': 'application/javascript',
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  } catch (error) {
+    console.error('Unable to fetch the Google Maps script', error);
+    return new NextResponse('Google Maps could not be loaded. Please try again shortly.', {
+      status: 502,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  }
 }
