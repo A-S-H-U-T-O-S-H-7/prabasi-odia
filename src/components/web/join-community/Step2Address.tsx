@@ -426,7 +426,11 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
               value={currentCity || ""}
               options={cities.map((city) => city.name)}
               className={inputClass("currentCity")}
-              disabled={!cities.length || loading.cities}
+              // Some countries (including Uganda) may have no city list from
+              // the location provider for a selected region. Keep this field
+              // editable after a state is chosen so the address form never
+              // traps the member behind an empty provider response.
+              disabled={!hasSelectedState || loading.cities}
               blockedMessage={!hasSelectedCountry
                 ? "Please select your country first, then your state, to see the available cities."
                 : !hasSelectedState
@@ -440,6 +444,11 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
               <AnimatePresence mode="wait">
                 {loading.cities && (
                   <motion.p key="loading" className="text-xs text-[#6B5E5A]">Loading cities...</motion.p>
+                )}
+                {!loading.cities && hasSelectedState && cities.length === 0 && (
+                  <motion.p key="manual-city" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-[#6B5E5A]">
+                    City suggestions are unavailable for this state. Please type your city name.
+                  </motion.p>
                 )}
                 {!loading.cities && isGeocoding && (
                   <motion.div key="geocoding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
