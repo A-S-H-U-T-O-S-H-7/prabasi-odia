@@ -142,7 +142,6 @@ export const adminAdvisoryBoardService = {
       const memberData = {
         category,
         name: data.name,
-        position: data.position,
         photoURL,
         organization: isAdvisor ? '' : data.organization || '',
         designation: isAdvisor ? '' : data.designation || '',
@@ -184,7 +183,6 @@ export const adminAdvisoryBoardService = {
       const updateData = {
         category,
         name: data.name,
-        position: data.position,
         photoURL,
         organization: isAdvisor ? '' : data.organization || '',
         designation: isAdvisor ? '' : data.designation || '',

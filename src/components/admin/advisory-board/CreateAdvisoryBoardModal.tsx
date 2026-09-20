@@ -27,7 +27,6 @@ const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 const emptyForm = {
   category: 'advisor' as AdvisoryCategory,
   name: "",
-  position: "",
   photoURL: "",
   photoFile: null as File | null,
   photoPreview: "",
@@ -62,7 +61,6 @@ export default function CreateAdvisoryBoardModal({
       setFormData({
         category: normalizeAdvisoryCategory(editingMember.category),
         name: editingMember.name || "",
-        position: editingMember.position || "",
         photoURL: editingMember.photoURL || "",
         photoFile: null,
         photoPreview: editingMember.photoURL || "",
@@ -138,7 +136,6 @@ export default function CreateAdvisoryBoardModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.position.trim()) newErrors.position = "Position is required";
     if (!formData.photoPreview && !formData.photoURL)
       newErrors.photo = "Photo is required";
     setErrors(newErrors);
@@ -245,51 +242,26 @@ export default function CreateAdvisoryBoardModal({
               </p>
             </div>
 
-            {/* Name + Position */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
-                  Full Name <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 border-2 ${
-                    errors.name
-                      ? "border-red-500 focus:ring-red-500/20"
-                      : "border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B]"
-                  } focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20`}
-                  placeholder="e.g. Dr. Priya Mohanty"
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-xs mt-1.5">{errors.name}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
-                  Board Position <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.position}
-                  onChange={(e) =>
-                    setFormData({ ...formData, position: e.target.value })
-                  }
-                  className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 border-2 ${
-                    errors.position
-                      ? "border-red-500 focus:ring-red-500/20"
-                      : "border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B]"
-                  } focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20`}
-                  placeholder="e.g. Chairperson, Member"
-                />
-                {errors.position && (
-                  <p className="text-red-500 text-xs mt-1.5">{errors.position}</p>
-                )}
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
+                Full Name <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className={`w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 border-2 ${
+                  errors.name
+                    ? "border-red-500 focus:ring-red-500/20"
+                    : "border-[#D4C8C0]/50 bg-white/50 text-[#2A1636] focus:border-[#6B1E5B]"
+                } focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20`}
+                placeholder="e.g. Dr. Priya Mohanty"
+              />
+              {errors.name && (
+                <p className="text-red-500 text-xs mt-1.5">{errors.name}</p>
+              )}
             </div>
 
             {!isAdvisor && <>

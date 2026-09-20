@@ -76,7 +76,7 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
 
   return (
     <div 
-      className="relative w-full"
+      className="relative h-full w-full"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => !isMobile && setIsHovered(false)}
     >
@@ -86,7 +86,7 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: index * 0.08 }}
         viewport={{ once: true }}
-        className={`relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-400 border border-[#6B1E5B]/10 cursor-pointer ${
+        className={`relative flex h-[374px] flex-col rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-400 border border-[#6B1E5B]/10 cursor-pointer ${
           isHovered && !isMobile ? 'ring-2 ring-[#6B1E5B]/30 ring-offset-2' : ''
         } ${isMobile ? 'active:scale-[0.98]' : ''}`}
         onClick={handleCardClick}
@@ -134,8 +134,8 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
         </div>
 
         {/* Content */}
-        <div className="p-5 text-center relative z-10">
-          <h3 className="text-lg font-serif font-bold text-[#2A1636] group-hover:text-[#6B1E5B] transition-colors">
+        <div className="relative z-10 flex flex-1 flex-col p-5 text-center">
+          <h3 className="flex min-h-14 items-center justify-center text-lg font-serif font-bold leading-7 text-[#2A1636] transition-colors line-clamp-2 group-hover:text-[#6B1E5B]">
             {member.name}
           </h3>
           
@@ -144,9 +144,16 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
           </p>
           
           {member.designation && (
-            <p className="text-xs text-[#5A4A4A] mt-1">
+            <p className="mt-1 min-h-8 text-xs leading-4 text-[#5A4A4A] line-clamp-2">
               {member.designation}
               {member.organization && ` at ${member.organization}`}
+            </p>
+          )}
+
+          {member.location && (
+            <p className="mt-1 flex items-center justify-center gap-1 text-xs text-[#5A4A4A] line-clamp-1">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-[#6B1E5B]" aria-hidden="true" />
+              <span>{member.location}</span>
             </p>
           )}
 
@@ -166,7 +173,7 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
           </div>
 
           {/* Social Icons */}
-          <div className="flex justify-center gap-2 mt-3 pt-3 border-t border-[#6B1E5B]/10">
+          <div className="mt-auto flex justify-center gap-2 border-t border-[#6B1E5B]/10 pt-3">
             {member.linkedin && (
               <a
                 href={member.linkedin}

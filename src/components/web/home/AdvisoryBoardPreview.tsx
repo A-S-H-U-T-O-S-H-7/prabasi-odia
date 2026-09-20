@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Star } from "lucide-react";
 import { adminAdvisoryBoardService, AdvisoryBoardMember } from "@/lib/services/adminAdvisoryBoardService";
+import { advisoryCategoryDetails } from "@/lib/advisoryCategories";
 
 interface AdvisoryBoardPreviewProps {
   limit?: number;
@@ -147,9 +148,9 @@ export default function AdvisoryBoardPreview({ limit = 6 }: AdvisoryBoardPreview
                       {member.name}
                     </h3>
 
-                    {/* Position */}
+                    {/* Member category */}
                     <p className="text-xs font-medium text-[#D9772B] mt-0.5 line-clamp-1">
-                      {member.position}
+                      {advisoryCategoryDetails(member.category).role}
                     </p>
 
                     {/* Organization */}
