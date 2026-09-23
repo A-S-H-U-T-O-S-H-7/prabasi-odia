@@ -1,9 +1,10 @@
 "use client";
 
+import AdminSearchFilters from "@/components/admin/common/AdminSearchFilters";
+
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, 
   Calendar, 
   User, 
   FileText, 
@@ -160,6 +161,7 @@ export default function ActivityLogsPage() {
   const router = useRouter();
   const { admin } = useAdminAuthStore();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -214,7 +216,7 @@ export default function ActivityLogsPage() {
   };
 
   const clearFilters = () => {
-    setFilters({ action: "all", entityType: "all", search: "" });
+    setFilters(prev => ({ ...prev, action: "all", entityType: "all" }));
     setCurrentPage(1);
   };
 
@@ -258,23 +260,18 @@ export default function ActivityLogsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#E7D7E8]/50 p-5 shadow-sm">
-        <div className="flex flex-wrap gap-4">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]/40" />
-            <input
-              type="text"
-              placeholder="Search by title or admin name..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border-2 border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-200 text-[#2A1636] placeholder:text-[#6B5E5A]/30"
-            />
-          </div>
-
+      <AdminSearchFilters
+        searchTerm={searchInput} setSearchTerm={setSearchInput}
+        onSearch={() => handleFilterChange("search", searchInput.trim())}
+        onClear={() => { setSearchInput(""); handleFilterChange("search", ""); }}
+        isSearching={loading || refreshing}
+        placeholder="Search by title or admin name..."
+      >
           <select
+            aria-label="Filter by action"
             value={filters.action}
             onChange={(e) => handleFilterChange("action", e.target.value)}
-            className="px-4 py-2.5 rounded-xl text-sm border-2 border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-200 text-[#2A1636] cursor-pointer"
+            className="px-3 py-2 rounded-lg text-sm border-2 border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-200 text-[#2A1636] cursor-pointer"
           >
             {actionOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -282,25 +279,25 @@ export default function ActivityLogsPage() {
           </select>
 
           <select
+            aria-label="Filter by entity type"
             value={filters.entityType}
             onChange={(e) => handleFilterChange("entityType", e.target.value)}
-            className="px-4 py-2.5 rounded-xl text-sm border-2 border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-200 text-[#2A1636] cursor-pointer"
+            className="px-3 py-2 rounded-lg text-sm border-2 border-[#D4C8C0]/50 bg-white/50 focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20 outline-none transition-all duration-200 text-[#2A1636] cursor-pointer"
           >
             {entityOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
 
-          {(filters.search || filters.action !== 'all' || filters.entityType !== 'all') && (
+          {(filters.action !== 'all' || filters.entityType !== 'all') && (
             <button
               onClick={clearFilters}
-              className="px-4 py-2.5 rounded-xl text-sm font-medium bg-[#6B1E5B]/5 text-[#6B1E5B] hover:bg-[#6B1E5B]/10 transition-all duration-200 cursor-pointer"
+              className="px-3 py-2 rounded-lg text-sm font-medium bg-[#6B1E5B]/5 text-[#6B1E5B] hover:bg-[#6B1E5B]/10 transition-all duration-200 cursor-pointer"
             >
               Clear Filters
             </button>
           )}
-        </div>
-      </div>
+      </AdminSearchFilters>
 
       {/* Total Records */}
       {!loading && logs.length > 0 && (

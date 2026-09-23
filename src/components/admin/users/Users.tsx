@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { adminUserService, UserData, VerifyUserCommunityOptions } from "@/lib/services/adminUserService";
 import { emailService } from "@/lib/services/emailService";
@@ -94,7 +94,6 @@ export default function AdminUsersPage() {
   const handleClearSearch = () => {
     setSearchTerm("");
     setSearchResults(null);
-    setStatusFilter('all');
     setCurrentPage(1);
   };
 
@@ -219,29 +218,14 @@ export default function AdminUsersPage() {
 
       {/* Filters */}
       <UserFilters
+        onSearch={handleSearch}
+        onClear={handleClearSearch}
+        isSearching={loading}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
       />
-
-      {/* Search Button */}
-      <div className="flex justify-end gap-2">
-        {(searchTerm || searchResults) && (
-          <button
-            onClick={handleClearSearch}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#D4C8C0] bg-white text-[#6B5E5A] font-medium hover:bg-[#FFF9F2] transition-colors cursor-pointer"
-          >
-            <X className="h-4 w-4" /> Clear
-          </button>
-        )}
-        <button
-          onClick={handleSearch}
-          className="px-4 py-2 rounded-xl bg-[#6B1E5B] text-white font-medium hover:bg-[#531547] transition-colors cursor-pointer"
-        >
-          Search
-        </button>
-      </div>
 
       {/* Table */}
       <UserTable

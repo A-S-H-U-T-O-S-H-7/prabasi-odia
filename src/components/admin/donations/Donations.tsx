@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, ArrowLeft, Search } from "lucide-react";
+import { RefreshCw, ArrowLeft } from "lucide-react";
+import AdminSearchFilters from "@/components/admin/common/AdminSearchFilters";
 import { toast } from "react-hot-toast";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 import { donationService, DonationData } from "@/lib/services/donationService";
@@ -20,6 +21,7 @@ export default function AdminDonationsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedDonation, setSelectedDonation] = useState<DonationData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -132,21 +134,18 @@ export default function AdminDonationsPage() {
 
       <DonationStats stats={stats} />
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B5E5A]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, mobile, ID..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E7D7E8] bg-white/70 text-sm text-[#2A1636] placeholder:text-[#6B5E5A]/60 focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20"
-          />
-        </div>
-        <select
+      <div className="mb-5">
+        <AdminSearchFilters
+          searchTerm={searchInput} setSearchTerm={setSearchInput}
+          onSearch={() => setSearch(searchInput.trim())}
+          onClear={() => { setSearchInput(""); setSearch(""); }}
+          isSearching={loading}
+          placeholder="Search by name, email, mobile, ID..."
+        >
+          <select aria-label="Filter by status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="px-4 py-2.5 rounded-xl border border-[#E7D7E8] bg-white/70 text-sm text-[#2A1636] focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20 cursor-pointer"
+          className="px-4 py-2 rounded-lg border border-[#E7D7E8] bg-white/70 text-sm text-[#2A1636] focus:outline-none focus:ring-2 focus:ring-[#6B1E5B]/20 cursor-pointer"
         >
           <option value="all">All Status</option>
           <option value="completed">Completed</option>
@@ -154,6 +153,7 @@ export default function AdminDonationsPage() {
           <option value="failed">Failed</option>
           <option value="cancelled">Cancelled</option>
         </select>
+        </AdminSearchFilters>
       </div>
 
       <DonationTable

@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Check, Edit3, Eye, FileText, Loader2, RefreshCw, Search, Trash2, X } from 'lucide-react';
+import { Check, Edit3, Eye, FileText, Loader2, RefreshCw, Trash2, X } from 'lucide-react';
+import AdminSearchFilters from "@/components/admin/common/AdminSearchFilters";
 import { toast } from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import useAdminAuthStore from '@/lib/store/useAdminAuthStore';
@@ -19,6 +20,7 @@ export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [status, setStatus] = useState<JobStatus | 'all'>('pending');
   const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selected, setSelected] = useState<Job | null>(null);
@@ -134,10 +136,17 @@ export default function AdminJobsPage() {
     <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
       {(['pending', 'approved', 'rejected', 'closed'] as const).map(value => <button key={value} type="button" aria-pressed={status === value} onClick={() => setStatus(value)} className={`rounded-2xl border bg-white p-5 text-left ${status === value ? 'border-[#6B1E5B]' : 'border-[#E7D7E8]'}`}><span className="text-xs capitalize text-[#6B5E5A]">{value === 'pending' ? 'Pending review' : value}</span><strong className="mt-2 block text-2xl font-bold text-[#2A1636]">{loading ? '—' : jobs.filter(job => job.status === value).length}</strong></button>)}
     </div>
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-      <label className="relative flex-1"><Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B5E5A]" /><input value={search} onChange={event => setSearch(event.target.value)} aria-label="Search job submissions" placeholder="Search jobs, companies or submitters" className="w-full rounded-xl border border-[#E7D7E8] bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-[#6B1E5B]" /></label>
-      <select aria-label="Filter by status" value={status} onChange={event => setStatus(event.target.value as JobStatus | 'all')} className="rounded-xl border border-[#E7D7E8] bg-white px-4 py-3 text-sm outline-none focus:border-[#6B1E5B]"><option value="all">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="closed">Closed</option></select>
-    </div>
+      <div className="mb-5">
+        <AdminSearchFilters
+          searchTerm={searchInput} setSearchTerm={setSearchInput}
+          onSearch={() => setSearch(searchInput.trim())}
+          onClear={() => { setSearchInput(""); setSearch(""); }}
+          isSearching={loading}
+          placeholder="Search jobs, companies or submitters"
+        >
+          <select aria-label="Filter by status" value={status} onChange={event => setStatus(event.target.value as JobStatus | 'all')} className="rounded-lg border border-[#E7D7E8] bg-white px-4 py-2 text-sm outline-none focus:border-[#6B1E5B]"><option value="all">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="closed">Closed</option></select>
+        </AdminSearchFilters>
+      </div>
     <div className="overflow-hidden rounded-2xl border border-[#E7D7E8] bg-white shadow-sm">
       {loadError ? <div role="alert" className="p-12 text-center"><p className="text-sm text-red-600">{loadError}</p><button onClick={() => void load()} className="mt-3 text-sm font-semibold text-[#6B1E5B]">Try again</button></div> : loading ? <div role="status" className="flex items-center justify-center gap-2 p-12 text-sm text-[#6B5E5A]"><Loader2 className="h-5 w-5 animate-spin" />Loading submissions...</div> : visible.length === 0 ? <div className="p-12 text-center text-sm text-[#6B5E5A]">No submissions match this view.</div> : <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left">
         <thead className="bg-[#F8F1F7] text-xs uppercase tracking-wider text-[#6B5E5A]"><tr>{['Opportunity', 'Submitted by', 'Category', 'Status', 'Actions'].map(label => <th key={label} className="px-5 py-4">{label}</th>)}</tr></thead>

@@ -306,6 +306,9 @@ export default function AdminNoticesPage() {
 
       {/* Filters */}
       <NoticeFilters
+        onSearch={handleSearch}
+        onClear={() => { setSearchTerm(""); setSearchResults(null); }}
+        isSearching={loading}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         statusFilter={statusFilter}
@@ -313,16 +316,6 @@ export default function AdminNoticesPage() {
         priorityFilter={priorityFilter}
         setPriorityFilter={setPriorityFilter}
       />
-
-      {/* Search Button */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleSearch}
-          className="px-4 py-2 rounded-xl bg-[#6B1E5B] text-white font-medium hover:bg-[#531547] transition-colors cursor-pointer"
-        >
-          Search
-        </button>
-      </div>
 
       {/* Table */}
       <NoticeTable
