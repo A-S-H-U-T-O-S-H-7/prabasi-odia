@@ -91,14 +91,13 @@ export const emailService = {
   },
 
   /**
-   * Generate the card server-side, then send directly from the browser to PHP.
+   * Generate the PDF and send to PHP through the server-side verification route.
    */
   async sendVerificationEmail(data: VerificationEmailData): Promise<{ success: boolean; message?: string }> {
-    let stage: 'card' | 'provider' = 'card';
     try {
-      const prepared = await axios({
+      const response = await axios({
         method: "POST",
-        url: "/api/email/verification?prepareOnly=1", // PDF preparation only; no email is sent here.
+        url: "/api/email/verification",
         headers: {
           "Content-Type": "application/json",
         },
@@ -121,35 +120,14 @@ export const emailService = {
         maxContentLength: Infinity,
       });
 
-      const fields = prepared.data?.fields;
-      const keys = ['name', 'email', 'member_id', 'member_since', 'community_name', 'member_card_path'] as const;
-      if (prepared.data?.success !== true || !fields ||
-          !keys.every(key => typeof fields[key] === 'string' && fields[key].trim()) ||
-          !/^JVBERi0[A-Za-z0-9+/]*={0,2}$/.test(fields.member_card_path)) {
-        return { success: false, message: prepared.data?.message || 'Could not prepare the member-card PDF. No email was sent.' };
-      }
-      const form = new FormData();
-      for (const key of keys) form.append(key, fields[key]);
-      stage = 'provider';
-      // The browser sets the multipart boundary. No credentials, custom
-      // headers, no-cors mode, or automatic retries/fallback sends.
-      const response = await axios.post('https://svsamiti.com/prabasiodia/verification.php', form, {
-        headers: { Accept: '*/*' },
-        timeout: 30_000,
-        responseType: 'text',
-        transformResponse: [(body: string) => body],
-        validateStatus: () => true,
-        withCredentials: false,
-      });
       return parseVerificationEmailResponse(response.status, response.data);
     } catch (error: any) {
       // Return the provider error to the admin without logging the full
       // Axios request (which includes member details and profile-photo URLs).
       return {
         success: false,
-        message: stage === 'provider'
-          ? 'The browser could not confirm the email response (network, timeout, or CORS). The application remains pending. Check the inbox before retrying to avoid duplicate emails.'
-          : error?.response?.data?.message || 'Could not prepare the member-card PDF. No email was sent.',
+        message: error?.response?.data?.message ||
+          'Email delivery could not be confirmed. Check the inbox before retrying to avoid duplicate emails.',
       };
     }
   },

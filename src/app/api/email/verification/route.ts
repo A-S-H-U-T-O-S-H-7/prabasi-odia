@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
     }, process.env.NEXT_PUBLIC_BASE_URL || 'https://prabasiodia.svsamiti.com'));
     const form = createVerificationForm({ name, email, memberId, communityName, memberSince }, card);
 
-    // Browser-direct delivery: prepare the six PHP fields, but do not send mail.
-    // This uses the same generator without weakening /api/member-card-pdf's
-    // verified-member restriction or exposing its API key to the browser.
+    // Compatibility for cached clients from the direct-send trial: a prepare
+    // request must remain preparation-only, never unexpectedly send an email.
+    // The current admin client uses the server-side sending path below.
     if (new URL(request.url).searchParams.get('prepareOnly') === '1') {
       return NextResponse.json({ success: true, fields: Object.fromEntries(form.entries()) }, {
         headers: { 'Cache-Control': 'no-store' },

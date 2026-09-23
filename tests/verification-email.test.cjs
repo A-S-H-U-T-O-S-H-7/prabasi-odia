@@ -132,63 +132,55 @@ test('preparation returns Base64 fields for pending members without contacting P
   assert.equal(sent, false);
 });
 
-function directClient({ status = 200, body = '{"status":true}', prepareError, invalidCard = false, networkError = false } = {}) {
+function proxyClient({ status = 200, body = { status: true }, requestError } = {}) {
   const calls = [];
-  const fields = { name: member.name, email: member.email, member_id: member.memberId,
-    member_since: '22-09-2026', community_name: member.communityName,
-    member_card_path: invalidCard ? 'https://svsamiti.com/' : tinyPdf.toString('base64') };
   const client = async options => {
-    calls.push(['prepare', options]);
-    if (prepareError) throw prepareError;
-    return { data: { success: true, fields } };
-  };
-  client.post = async (url, form, options) => {
-    calls.push(['php', url, form, options]);
-    if (networkError) throw new Error('Network Error');
+    calls.push(options);
+    if (requestError) throw requestError;
     return { status, data: body };
   };
-  return { calls, fields, service: loader({ axios: client })('src/lib/services/emailService.ts').emailService };
+  return { calls, service: loader({ axios: client })('src/lib/services/emailService.ts').emailService };
 }
 
-test('client prepares PDF then sends exactly six fields directly to PHP', async () => {
-  const api = directClient();
+test('client sends only one same-origin request and never calls PHP directly', async () => {
+  const api = proxyClient();
   assert.equal((await api.service.sendVerificationEmail(member)).success, true);
-  assert.deepEqual(api.calls.map(call => call[0]), ['prepare', 'php']);
-  assert.equal(api.calls[0][1].url, '/api/email/verification?prepareOnly=1');
-  const [, url, form, options] = api.calls[1];
-  assert.equal(url, 'https://svsamiti.com/prabasiodia/verification.php');
-  assert.deepEqual(Object.fromEntries(form), api.fields);
-  assert.deepEqual(Buffer.from(form.get('member_card_path'), 'base64'), tinyPdf);
-  assert.deepEqual(options.headers, { Accept: '*/*' });
-  assert.equal(options.withCredentials, false);
-  assert.equal(options.adapter, undefined);
+  assert.equal(api.calls.length, 1);
+  assert.equal(api.calls[0].url, '/api/email/verification');
+  assert.equal(api.calls[0].data.uid, member.uid);
+  assert.equal(api.calls[0].data.memberId, member.memberId);
+  assert.equal(api.calls[0].data.email, member.email);
+  assert.equal(api.calls[0].headers['x-api-key'], undefined);
 });
 
-test('client never contacts PHP if card preparation fails or returns a URL', async () => {
-  for (const options of [{ prepareError: new Error('Card failed') }, { invalidCard: true }]) {
-    const api = directClient(options);
-    assert.equal((await api.service.sendVerificationEmail(member)).success, false);
-    assert.deepEqual(api.calls.map(call => call[0]), ['prepare']);
+test('client preserves server failure messages without automatic retries', async () => {
+  for (const message of ['Could not generate the member-card PDF.', 'Provider rejected request (HTTP 406).']) {
+    const api = proxyClient({ requestError: { response: { data: { message } } } });
+    const result = await api.service.sendVerificationEmail(member);
+    assert.equal(result.success, false);
+    assert.equal(result.message, message);
+    assert.equal(api.calls.length, 1);
   }
 });
 
-test('direct PHP errors and unreadable responses fail without retry or proxy fallback', async () => {
+test('unconfirmed responses fail without retry or direct-browser fallback', async () => {
   for (const options of [
     { status: 406, body: '<html>Not Acceptable</html>' },
     { status: 500, body: '{"status":true}' },
     { body: '{"status":true,"success":false}' },
     { body: '{"status":false,"message":"Attachment missing"}' },
     { body: '<html>Success?</html>' },
-    { networkError: true },
+    { requestError: new Error('Network Error') },
   ]) {
-    const api = directClient(options);
+    const api = proxyClient(options);
     const result = await api.service.sendVerificationEmail(member);
     assert.equal(result.success, false);
-    assert.deepEqual(api.calls.map(call => call[0]), ['prepare', 'php']);
+    assert.equal(api.calls.length, 1);
+    assert.equal(api.calls[0].url, '/api/email/verification');
     if (options.status === 406) assert.match(result.message, /HTTP 406/);
-    if (options.networkError) assert.match(result.message, /CORS.*pending.*before retrying/);
+    if (options.requestError) assert.match(result.message, /before retrying/);
   }
-  const api = directClient({ body: '\uFEFF{"status":true}' });
+  const api = proxyClient({ body: '\uFEFF{"status":true}' });
   assert.equal((await api.service.sendVerificationEmail(member)).success, true);
 });
 
