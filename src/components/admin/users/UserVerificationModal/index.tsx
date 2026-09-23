@@ -266,12 +266,6 @@ export default function UserVerificationModal({
       user!.currentCity ||
       "Prabasi Odia Community";
 
-    // Do not approve the application when the mail provider rejects the
-    // verification email or returns an invalid response. deliverVerificationEmail
-    // shows the provider error and records the failed attempt for this user.
-    const emailSent = await deliverVerificationEmail(finalMemberId, emailCommunityName);
-    if (!emailSent) return;
-
     await log({
       action: ActivityActions.VERIFY,
       entityType: ActivityEntityTypes.USER,
@@ -287,7 +281,8 @@ export default function UserVerificationModal({
     const verificationResult = await onVerify(user!.uid, finalMemberId, communityOptions);
     if (!verificationResult.success) return;
 
-    toast.success("User verified successfully and verification email sent.");
+    toast.success("User verified successfully. Sending verification email…");
+    await deliverVerificationEmail(finalMemberId, emailCommunityName);
     onClose();
   };
 

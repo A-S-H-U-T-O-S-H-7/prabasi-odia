@@ -7,15 +7,12 @@ import {
   resolveMemberId,
   resolveMemberName,
   resolvePhotoURL,
+  resolveMemberCardInput,
 } from '@/lib/services/memberCardData';
+import { generateMemberCardPDF } from '@/lib/services/memberCardPDF';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const VERIFICATION_EMAIL_URL = 'https://svsamiti.com/prabasiodia/verification.php';
-// verification.php expects a URL in member_card_path, not PDF bytes. Keep this
-// configurable so the PHP service can receive the exact public path it expects.
-const MEMBER_CARD_PATH = process.env.VERIFICATION_MEMBER_CARD_PATH || 'https://svsamiti.com/';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +42,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let memberCardPdf: Buffer | null = null;
+
+    try {
+      memberCardPdf = await generateMemberCardPDF(resolveMemberCardInput({
+        ...userData, name, memberId, memberSince, bloodGroup, location, communityName, photoURL, isVerified: true,
+      }, process.env.NEXT_PUBLIC_BASE_URL || 'https://prabasiodia.svsamiti.com'));
+    } catch (cardError) {
+      console.error('Member card generation failed for verification email:', cardError);
+    }
+
+    if (!memberCardPdf) {
+      return NextResponse.json(
+        { status: false, success: false, message: 'Failed to generate member card for verification email' },
+        { status: 500 }
+      );
+    }
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('email', email);
@@ -56,9 +70,14 @@ export async function POST(request: NextRequest) {
     formData.append('city', String(userData.currentCity || ''));
     formData.append('state', String(userData.currentState || ''));
     formData.append('photo_url', photoURL);
-    formData.append('member_card_path', MEMBER_CARD_PATH);
+    // The mail endpoint's legacy member_card_path field expects PDF bytes as
+    // base64. Do not also upload the same multi-megabyte document as a file:
+    // duplicating it can exceed PHP's request limit and truncate the download.
+    formData.append('member_card_path', memberCardPdf.toString('base64'));
+    formData.append('member_card_mime_type', 'application/pdf');
+    formData.append('member_card_file_name', `${memberId}-member-card.pdf`);
 
-    const response = await fetch(VERIFICATION_EMAIL_URL, {
+    const response = await fetch('https://svsamiti.com/prabasiodia/verification.php', {
       method: 'POST',
       headers: {
         Accept: '*/*',
