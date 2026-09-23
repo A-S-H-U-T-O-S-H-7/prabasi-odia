@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
     const saved = await adminDb.collection('users').doc(uid).get();
     if (!saved.exists) return NextResponse.json({ error: 'Could not load this membership. Please try again.' }, { status: 404 });
     const user = saved.data() || {};
-    if (user.isVerified !== true || !user.memberId || user.memberId === 'Pending') {
+    // Support approved records created before isVerified was consistently
+    // stored alongside applicationStatus.
+    const approved = user.isVerified === true || user.applicationStatus === 'approved';
+    if (!approved || !user.memberId || user.memberId === 'Pending') {
       return NextResponse.json({ error: 'Your member card will be available after your application is approved.' }, { status: 403 });
     }
     const input = resolveMemberCardInput(user, process.env.NEXT_PUBLIC_BASE_URL || 'https://prabasiodia.svsamiti.com');

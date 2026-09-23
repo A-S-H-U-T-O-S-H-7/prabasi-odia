@@ -51,6 +51,15 @@ export default function AdminMemberProfile({ uid: suppliedUid, onBack }: AdminMe
     </div>
   );
 
+  // Older approved records can have applicationStatus without an isVerified
+  // flag. Both fields represent an approved membership when a member ID exists.
+  const hasMemberCard = Boolean(
+    profile.memberId &&
+    profile.memberId !== "Pending" &&
+    (profile.isVerified === true || profile.applicationStatus === "approved")
+  );
+  const cardProfile = { ...profile, isVerified: hasMemberCard };
+
   return (
     <div className="relative min-h-screen pb-12">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#6B1E5B]/5 to-transparent" />
@@ -61,7 +70,7 @@ export default function AdminMemberProfile({ uid: suppliedUid, onBack }: AdminMe
           <div className="space-y-6 lg:col-span-2">
             <ProfilePeopleNearby profile={profile} />
             <ProfileAbout profile={profile} />
-            {profile.isVerified && profile.memberId ? <ProfileMemberCard profile={profile} memberUid={uid} /> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900"><p className="font-semibold">Membership application under review</p><p className="mt-1 text-sm">The member pass will appear here after approval.</p></div>}
+            {hasMemberCard ? <ProfileMemberCard profile={cardProfile} memberUid={uid} /> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900"><p className="font-semibold">Membership application under review</p><p className="mt-1 text-sm">The member pass will appear here after approval.</p></div>}
           </div>
           <div className="space-y-6"><ProfileStats profile={profile} /><ProfileAddresses profile={profile} /><ProfileActivity profile={profile} /></div>
         </div>
