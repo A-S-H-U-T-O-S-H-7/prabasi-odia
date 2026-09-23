@@ -46,7 +46,9 @@ export default function ProfileMemberCard({ profile, memberUid }: ProfileMemberC
           body: memberUid ? JSON.stringify({ uid: memberUid }) : undefined,
           signal: controller.signal,
         });
-        const data = await response.json();
+        const body = await response.text();
+        let data: MemberCardBundle & { error?: string } = {} as MemberCardBundle & { error?: string };
+        try { data = JSON.parse(body) as MemberCardBundle & { error?: string }; } catch { /* A hosting-level 500 may be empty or HTML. */ }
         if (!response.ok) throw new Error(data.error || 'Could not load your member card.');
         if (!data.front || !data.back || !data.pdf) throw new Error('Your card could not be prepared. Please try again.');
         if (!cancelled) setBundle(data);
