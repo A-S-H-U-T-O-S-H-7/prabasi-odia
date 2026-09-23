@@ -148,7 +148,7 @@ async function withMockFetch(mock, callback) {
   try { return await callback(); } finally { global.fetch = original; }
 }
 
-test('client prepares the PDF then sends the multipart attachment directly to PHP', async () => {
+test('client prepares the PDF then sends the PHP JSON attachment contract directly', async () => {
   const api = proxyClient({ body: { success: true, fields: {
     name: member.name, email: member.email, member_id: member.memberId,
     member_since: '22-09-2026', community_name: member.communityName,
@@ -170,6 +170,10 @@ test('client prepares the PDF then sends the multipart attachment directly to PH
   assert.equal(directCalls[0].url, 'https://svsamiti.com/prabasiodia/verification.php');
   assert.equal(directCalls[0].options.method, 'POST');
   assert.equal(directCalls[0].options.credentials, 'omit');
+  assert.equal(directCalls[0].options.headers['Content-Type'], 'application/json');
+  const providerPayload = JSON.parse(directCalls[0].options.body);
+  assert.equal(providerPayload.member_since, '2026-09-22');
+  assert.equal(providerPayload.member_card_path, `data:application/pdf;base64,${tinyPdf.toString('base64')}`);
 });
 
 test('client preserves server failure messages without automatic retries', async () => {
@@ -197,7 +201,7 @@ test('failed preparation responses fail without retrying the mail provider', asy
     assert.equal(api.calls.length, 1);
     assert.equal(api.calls[0].url, '/api/email/verification?prepareOnly=1');
     if (options.status === 406) assert.match(result.message, /prepare the member-card attachment/);
-    if (options.requestError) assert.match(result.message, /before retrying/);
+    if (options.requestError) assert.match(result.message, /Could not contact the email provider directly/);
   }
   const api = proxyClient({ body: { success: true, fields: { name: member.name } } });
   const result = await withMockFetch(async () => new Response('\uFEFF{"status":true}', { status: 200 }), () => api.service.sendVerificationEmail(member));

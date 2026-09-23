@@ -96,10 +96,9 @@ export const emailService = {
    */
   async sendVerificationEmail(data: VerificationEmailData): Promise<{ success: boolean; message?: string }> {
     try {
-      // The server prepares the card only. The browser uploads it directly to
-      // the PHP mail endpoint so a slow attachment send cannot time out the
-      // Next.js route. The PHP endpoint is intentionally public and must
-      // allow this website origin through CORS.
+      // The server prepares the card only. The browser then sends the JSON
+      // format required by the PHP email endpoint, avoiding a slow Next.js
+      // relay while preserving the backend's data-URI attachment contract.
       const prepared = await axios({
         method: "POST",
         url: "/api/email/verification?prepareOnly=1",
@@ -129,14 +128,28 @@ export const emailService = {
         return { success: false, message: 'Could not prepare the member-card attachment.' };
       }
 
-      const form = new FormData();
-      for (const [key, value] of Object.entries(fields)) {
-        if (typeof value === 'string') form.append(key, value);
+      const rawPdf = typeof fields.member_card_path === 'string' ? fields.member_card_path : '';
+      if (!rawPdf) {
+        return { success: false, message: 'The member-card attachment is missing.' };
       }
+
+      const memberSince = typeof fields.member_since === 'string'
+        ? fields.member_since.replace(/^(\d{2})-(\d{2})-(\d{4})$/, '$3-$2-$1')
+        : '';
+      const providerPayload = {
+        name: String(fields.name || ''),
+        email: String(fields.email || ''),
+        member_id: String(fields.member_id || ''),
+        member_since: memberSince,
+        community_name: String(fields.community_name || ''),
+        // The PHP API's verified request format requires this prefix.
+        member_card_path: `data:application/pdf;base64,${rawPdf}`,
+      };
 
       const response = await fetch(VERIFICATION_EMAIL_ENDPOINT, {
         method: 'POST',
-        body: form,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(providerPayload),
         credentials: 'omit',
       });
       const body = await response.text();
