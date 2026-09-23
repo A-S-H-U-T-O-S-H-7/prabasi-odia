@@ -142,15 +142,34 @@ function proxyClient({ status = 200, body = { status: true }, requestError } = {
   return { calls, service: loader({ axios: client })('src/lib/services/emailService.ts').emailService };
 }
 
-test('client sends only one same-origin request and never calls PHP directly', async () => {
-  const api = proxyClient();
-  assert.equal((await api.service.sendVerificationEmail(member)).success, true);
+async function withMockFetch(mock, callback) {
+  const original = global.fetch;
+  global.fetch = mock;
+  try { return await callback(); } finally { global.fetch = original; }
+}
+
+test('client prepares the PDF then sends the multipart attachment directly to PHP', async () => {
+  const api = proxyClient({ body: { success: true, fields: {
+    name: member.name, email: member.email, member_id: member.memberId,
+    member_since: '22-09-2026', community_name: member.communityName,
+    member_card_path: tinyPdf.toString('base64'),
+  } } });
+  const directCalls = [];
+  const result = await withMockFetch(async (url, options) => {
+    directCalls.push({ url, options });
+    return new Response(JSON.stringify({ status: true }), { status: 200 });
+  }, () => api.service.sendVerificationEmail(member));
+  assert.equal(result.success, true);
   assert.equal(api.calls.length, 1);
-  assert.equal(api.calls[0].url, '/api/email/verification');
+  assert.equal(api.calls[0].url, '/api/email/verification?prepareOnly=1');
   assert.equal(api.calls[0].data.uid, member.uid);
   assert.equal(api.calls[0].data.memberId, member.memberId);
   assert.equal(api.calls[0].data.email, member.email);
   assert.equal(api.calls[0].headers['x-api-key'], undefined);
+  assert.equal(directCalls.length, 1);
+  assert.equal(directCalls[0].url, 'https://svsamiti.com/prabasiodia/verification.php');
+  assert.equal(directCalls[0].options.method, 'POST');
+  assert.equal(directCalls[0].options.credentials, 'omit');
 });
 
 test('client preserves server failure messages without automatic retries', async () => {
@@ -163,7 +182,7 @@ test('client preserves server failure messages without automatic retries', async
   }
 });
 
-test('unconfirmed responses fail without retry or direct-browser fallback', async () => {
+test('failed preparation responses fail without retrying the mail provider', async () => {
   for (const options of [
     { status: 406, body: '<html>Not Acceptable</html>' },
     { status: 500, body: '{"status":true}' },
@@ -176,12 +195,13 @@ test('unconfirmed responses fail without retry or direct-browser fallback', asyn
     const result = await api.service.sendVerificationEmail(member);
     assert.equal(result.success, false);
     assert.equal(api.calls.length, 1);
-    assert.equal(api.calls[0].url, '/api/email/verification');
-    if (options.status === 406) assert.match(result.message, /HTTP 406/);
+    assert.equal(api.calls[0].url, '/api/email/verification?prepareOnly=1');
+    if (options.status === 406) assert.match(result.message, /prepare the member-card attachment/);
     if (options.requestError) assert.match(result.message, /before retrying/);
   }
-  const api = proxyClient({ body: '\uFEFF{"status":true}' });
-  assert.equal((await api.service.sendVerificationEmail(member)).success, true);
+  const api = proxyClient({ body: { success: true, fields: { name: member.name } } });
+  const result = await withMockFetch(async () => new Response('\uFEFF{"status":true}', { status: 200 }), () => api.service.sendVerificationEmail(member));
+  assert.equal(result.success, true);
 });
 
 test('invalid PDF is rejected before sending', () => {

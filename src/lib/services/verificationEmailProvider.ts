@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { coerceDate } from './memberCardData';
-
-const ENDPOINT = 'https://svsamiti.com/prabasiodia/verification.php';
+import { VERIFICATION_EMAIL_ENDPOINT } from './verificationEmailEndpoint';
 
 interface VerificationFields {
   name: string;
@@ -34,17 +33,35 @@ export async function sendVerificationForm(form: FormData) {
   // Use the backend example's Node Axios multipart transport. It supplies
   // Content-Length and the final CRLF required by strict multipart receivers.
   // No automatic retries: a timeout may follow a successfully sent message.
-  const response = await axios.post(ENDPOINT, form, {
-    adapter: 'http',
-    headers: { Accept: '*/*', 'User-Agent': 'Prabasi-Odia/1.0' },
-    timeout: 30_000,
-    maxRedirects: 0,
-    maxBodyLength: Infinity,
-    maxContentLength: 1024 * 1024,
-    responseType: 'text',
-    transformResponse: [(data: string) => data],
-    validateStatus: () => true,
-  });
+  const startedAt = Date.now();
+  let response;
+  try {
+    response = await axios.post(VERIFICATION_EMAIL_ENDPOINT, form, {
+      adapter: 'http',
+      headers: { Accept: '*/*', 'User-Agent': 'Prabasi-Odia/1.0' },
+      // Card rendering and its Base64 upload may take longer than a normal
+      // email request. Keep this below the route's 60-second limit.
+      timeout: 45_000,
+      maxRedirects: 0,
+      maxBodyLength: Infinity,
+      maxContentLength: 1024 * 1024,
+      responseType: 'text',
+      transformResponse: [(data: string) => data],
+      validateStatus: () => true,
+    });
+  } catch (error) {
+    const requestError = error as { code?: string; name?: string; message?: string };
+    // This helps distinguish a slow PHP response from DNS/TLS/connectivity
+    // failures without exposing the recipient, form fields, or PDF content.
+    console.error('Verification provider transport failed:', JSON.stringify({
+      endpoint: new URL(VERIFICATION_EMAIL_ENDPOINT).origin,
+      elapsedMs: Date.now() - startedAt,
+      code: requestError.code || null,
+      name: requestError.name || null,
+      message: requestError.message || 'Unknown transport error',
+    }));
+    throw error;
+  }
   let data: Record<string, unknown> | null = null;
   try {
     const parsed: unknown = JSON.parse(String(response.data).replace(/^\uFEFF/, '').trim());

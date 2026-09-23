@@ -1,6 +1,7 @@
 // lib/services/emailService.ts
 import axios from 'axios';
 import { parseVerificationEmailResponse } from './verificationEmailResponse';
+import { VERIFICATION_EMAIL_ENDPOINT } from './verificationEmailEndpoint';
 
 interface WelcomeEmailData {
   name: string;
@@ -95,9 +96,13 @@ export const emailService = {
    */
   async sendVerificationEmail(data: VerificationEmailData): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await axios({
+      // The server prepares the card only. The browser uploads it directly to
+      // the PHP mail endpoint so a slow attachment send cannot time out the
+      // Next.js route. The PHP endpoint is intentionally public and must
+      // allow this website origin through CORS.
+      const prepared = await axios({
         method: "POST",
-        url: "/api/email/verification",
+        url: "/api/email/verification?prepareOnly=1",
         headers: {
           "Content-Type": "application/json",
         },
@@ -113,21 +118,36 @@ export const emailService = {
           photoURL: data.photoURL,
           residencyStatus: data.residencyStatus,
         },
-        // Keep this below the API route's 60-second execution limit so the
-        // admin receives a useful error instead of a terminated request.
+        // This request generates the PDF but does not send an email.
         timeout: 55_000,
         maxBodyLength: Infinity,
         maxContentLength: Infinity,
       });
 
-      return parseVerificationEmailResponse(response.status, response.data);
+      const fields = prepared.data?.fields;
+      if (!prepared.data?.success || !fields || typeof fields !== 'object') {
+        return { success: false, message: 'Could not prepare the member-card attachment.' };
+      }
+
+      const form = new FormData();
+      for (const [key, value] of Object.entries(fields)) {
+        if (typeof value === 'string') form.append(key, value);
+      }
+
+      const response = await fetch(VERIFICATION_EMAIL_ENDPOINT, {
+        method: 'POST',
+        body: form,
+        credentials: 'omit',
+      });
+      const body = await response.text();
+      return parseVerificationEmailResponse(response.status, body);
     } catch (error: any) {
-      // Return the provider error to the admin without logging the full
-      // Axios request (which includes member details and profile-photo URLs).
+      // Do not log the Axios request: it contains member details and the PDF.
+      // A browser fetch failure is normally a connectivity or CORS issue.
       return {
         success: false,
         message: error?.response?.data?.message ||
-          'Email delivery could not be confirmed. Check the inbox before retrying to avoid duplicate emails.',
+          'Could not contact the email provider directly. Check its CORS setting and the inbox before retrying.',
       };
     }
   },
