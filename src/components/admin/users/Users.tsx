@@ -12,6 +12,7 @@ import UserFilters from "@/components/admin/users/UserFilters";
 import UserTable from "@/components/admin/users/UserTable";
 import UserVerificationModal from "./UserVerificationModal";
 import EditMemberModal from "./EditMemberModal";
+import AdminMemberProfile from "./AdminMemberProfile";
 
 export default function AdminUsersPage() {
   const pageSize = 10;
@@ -23,6 +24,7 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [profileUser, setProfileUser] = useState<UserData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -101,6 +103,7 @@ export default function AdminUsersPage() {
     setSelectedUser(user);
     setIsModalOpen(true);
   };
+  const handleViewProfile = (user: UserData) => setProfileUser(user);
   const handleEditUser = (user: UserData) => { setSelectedUser(user); setIsEditModalOpen(true); };
 
   const handleVerify = async (
@@ -175,6 +178,10 @@ export default function AdminUsersPage() {
     );
   }
 
+  if (profileUser) {
+    return <AdminMemberProfile uid={profileUser.uid} onBack={() => setProfileUser(null)} />;
+  }
+
   const displayUsers = searchResults
     ? searchResults.filter((user) =>
         statusFilter === 'all' ||
@@ -231,6 +238,7 @@ export default function AdminUsersPage() {
       <UserTable
         users={paginatedUsers}
         onViewUser={handleViewUser}
+        onViewProfile={handleViewProfile}
         onEditUser={handleEditUser}
         loading={loading}
         startIndex={pageStart}

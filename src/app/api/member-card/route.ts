@@ -1,49 +1,39 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { generateMemberCardBundle } from '@/lib/services/memberCardPDF';
 import { resolveMemberCardInput } from '@/lib/services/memberCardData';
+import { adminAuth, adminDb } from '@/lib/firebase/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-interface FirestoreValue {
-  stringValue?: string;
-  timestampValue?: string;
-  booleanValue?: boolean;
-  integerValue?: string;
-  doubleValue?: number;
-  mapValue?: { fields?: Record<string, FirestoreValue> };
-}
-function readFields(fields: Record<string, FirestoreValue> = {}): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key,
-    value.stringValue ?? value.timestampValue ?? value.booleanValue ?? value.doubleValue ??
-    (value.integerValue !== undefined ? Number(value.integerValue) : value.mapValue ? readFields(value.mapValue.fields) : null),
-  ]));
-}
-
 export async function POST(request: NextRequest) {
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
   if (!token) return NextResponse.json({ error: 'Please sign in to view your member card.' }, { status: 401 });
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  if (!apiKey || !projectId) return NextResponse.json({ error: 'Member cards are temporarily unavailable.' }, { status: 503 });
 
   try {
-    // Verify the Firebase token without requiring an additional Admin service account.
-    const accountResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(apiKey)}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }),
-      cache: 'no-store', signal: AbortSignal.timeout(10_000),
-    });
-    const account = await accountResponse.json();
-    const uid = account.users?.[0]?.localId;
-    if (!accountResponse.ok || !uid) return NextResponse.json({ error: 'Your session has expired. Please sign in again.' }, { status: 401 });
+    const decoded = await adminAuth.verifyIdToken(token);
+    const requestedUid = (await request.json().catch(() => null))?.uid;
+    let uid = decoded.uid;
 
-    // Only the signed-in member's saved application can become a verified card.
-    const profileResponse = await fetch(`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/users/${encodeURIComponent(uid)}`, {
-      headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', signal: AbortSignal.timeout(10_000),
-    });
-    if (!profileResponse.ok) return NextResponse.json({ error: 'Could not load your membership. Please try again.' }, { status: profileResponse.status === 404 ? 404 : 502 });
-    const saved = await profileResponse.json();
-    const user = readFields(saved.fields);
+    if (requestedUid && requestedUid !== decoded.uid) {
+      const adminSnapshot = await adminDb.collection('admins').doc(decoded.uid).get();
+      let admin = adminSnapshot.data();
+      if (!admin && decoded.email) {
+        const legacyAdminSnapshot = await adminDb.collection('admins')
+          .where('email', '==', decoded.email.toLowerCase())
+          .limit(1)
+          .get();
+        admin = legacyAdminSnapshot.docs[0]?.data();
+      }
+      const canViewMembers = admin?.status === 'active' &&
+        (admin.role === 'super_admin' || admin.permissions?.includes('users'));
+      if (!canViewMembers) return NextResponse.json({ error: 'You are not authorized to view this member card.' }, { status: 403 });
+      uid = String(requestedUid);
+    }
+
+    const saved = await adminDb.collection('users').doc(uid).get();
+    if (!saved.exists) return NextResponse.json({ error: 'Could not load this membership. Please try again.' }, { status: 404 });
+    const user = saved.data() || {};
     if (user.isVerified !== true || !user.memberId || user.memberId === 'Pending') {
       return NextResponse.json({ error: 'Your member card will be available after your application is approved.' }, { status: 403 });
     }

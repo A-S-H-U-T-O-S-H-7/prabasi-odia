@@ -1,18 +1,19 @@
 "use client";
 
 import { UserData } from "@/lib/services/adminUserService";
-import { CheckCircle, XCircle, Eye, User, Pencil } from "lucide-react";
+import { CheckCircle, XCircle, Eye, User, Pencil, UserRound } from "lucide-react";
 import ResidencyBadge from "./ResidencyBadge";
 
 interface UserTableProps {
   users: UserData[];
   onViewUser: (user: UserData) => void;
+  onViewProfile: (user: UserData) => void;
   onEditUser: (user: UserData) => void;
   loading?: boolean;
   startIndex?: number;
 }
 
-export default function UserTable({ users, onViewUser, onEditUser, loading = false, startIndex = 0 }: UserTableProps) {
+export default function UserTable({ users, onViewUser, onViewProfile, onEditUser, loading = false, startIndex = 0 }: UserTableProps) {
   if (loading) {
     return (
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/50 p-8 text-center">
@@ -102,6 +103,15 @@ export default function UserTable({ users, onViewUser, onEditUser, loading = fal
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => onViewProfile(user)}
+                    className="inline-flex p-2 rounded-xl text-[#6B5E5A] hover:text-[#6B1E5B] hover:bg-[#6B1E5B]/10 transition-all duration-300"
+                    title="View Profile"
+                    aria-label={`View ${user.displayName || "member"} profile`}
+                  >
+                    <UserRound className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => onViewUser(user)}
                     className="p-2 rounded-xl text-[#6B5E5A] hover:text-[#6B1E5B] hover:bg-[#6B1E5B]/10 transition-all duration-300 cursor-pointer"

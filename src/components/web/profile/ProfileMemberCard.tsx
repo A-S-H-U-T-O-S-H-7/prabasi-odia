@@ -12,9 +12,13 @@ interface MemberCardBundle {
   fileName: string;
   details: { name: string; memberId: string; memberSince: string; bloodGroup: string; location: string; communityName?: string; residencyStatus?: string };
 }
-interface ProfileMemberCardProps { profile: { uid?: string; memberId?: string; isVerified?: boolean; updatedAt?: unknown } }
+interface ProfileMemberCardProps {
+  profile: { uid?: string; memberId?: string; isVerified?: boolean; updatedAt?: unknown };
+  /** Lets an authorized admin preview a member's card from their profile. */
+  memberUid?: string;
+}
 
-export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
+export default function ProfileMemberCard({ profile, memberUid }: ProfileMemberCardProps) {
   const [bundle, setBundle] = useState<MemberCardBundle | null>(null);
   const [side, setSide] = useState<'front' | 'back'>('front');
   const [loading, setLoading] = useState(true);
@@ -37,7 +41,10 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
         if (!auth.currentUser) throw new Error('Please sign in again to load your member card.');
         const token = await auth.currentUser.getIdToken();
         const response = await fetch('/api/member-card', {
-          method: 'POST', headers: { Authorization: `Bearer ${token}` }, signal: controller.signal,
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: memberUid ? JSON.stringify({ uid: memberUid }) : undefined,
+          signal: controller.signal,
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not load your member card.');
@@ -50,7 +57,7 @@ export default function ProfileMemberCard({ profile }: ProfileMemberCardProps) {
       }
     })();
     return () => { cancelled = true; controller.abort(); };
-  }, [profile.uid, profile.memberId, updatedAt, canDownload, retry]);
+  }, [profile.uid, profile.memberId, updatedAt, canDownload, memberUid, retry]);
 
   const download = () => {
     if (!bundle || !canDownload) return;
