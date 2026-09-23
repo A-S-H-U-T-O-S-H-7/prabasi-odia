@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, UserCheck, Loader2, XCircle, AlertCircle, Shield, Check } from "lucide-react";
 import Image from "next/image";
@@ -55,6 +55,9 @@ export default function UserVerificationModal({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedCommunityName, setSelectedCommunityName] = useState("");
   const [isSendingVerificationEmail, setIsSendingVerificationEmail] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const approvalInFlight = useRef(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   // ============================================
   // EFFECTS
@@ -68,6 +71,7 @@ export default function UserVerificationModal({
   }, [isOpen, user]);
 
   const resetState = () => {
+    setVerificationError(null);
     setSelectedCommunityId("");
     setCommunityAction("auto");
     setSearchTerm("");
@@ -154,6 +158,7 @@ export default function UserVerificationModal({
     if (!user) return false;
 
     setIsSendingVerificationEmail(true);
+    setVerificationError(null);
     try {
       const emailResult = await emailService.sendVerificationEmail({
         uid: user.uid,
@@ -175,7 +180,9 @@ export default function UserVerificationModal({
 
       if (!emailResult.success) {
         console.error("Verification email was not sent:", emailResult.message);
-        toast.error(emailResult.message || "Member verified, but the confirmation email could not be sent.");
+        const message = emailResult.message || 'The verification email could not be sent.';
+        setVerificationError(message);
+        toast.error(message);
         return false;
       }
 
@@ -183,6 +190,7 @@ export default function UserVerificationModal({
       return true;
     } catch (emailError) {
       const message = emailError instanceof Error ? emailError.message : "Email service error";
+      setVerificationError(message);
       console.error("Verification email error:", emailError);
       await adminUserService.recordVerificationEmail(user.uid, { success: false, message });
       toast.error(message);
@@ -193,6 +201,7 @@ export default function UserVerificationModal({
   };
 
   const handleResendVerificationEmail = async () => {
+    if (isSendingVerificationEmail || approvalInFlight.current) return;
     if (!user?.isVerified || !user.memberId) {
       toast.error("This member must be verified and have a member ID before an email can be sent.");
       return;
@@ -205,6 +214,7 @@ export default function UserVerificationModal({
   };
 
   const handleVerify = async () => {
+    if (!user || approvalInFlight.current || isVerifying || isSendingVerificationEmail) return;
     if (user?.applicationStatus === 'rejected') {
       toast.error("This application has been rejected and cannot be verified.");
       return;
@@ -266,24 +276,40 @@ export default function UserVerificationModal({
       user!.currentCity ||
       "Prabasi Odia Community";
 
-    await log({
-      action: ActivityActions.VERIFY,
-      entityType: ActivityEntityTypes.USER,
-      entityId: user!.uid,
-      entityTitle: user!.displayName,
-      details: `Verified user ${user!.displayName} with member ID ${finalMemberId} (${communityAction}${
-        communityOptions.communityName || communityOptions.createName
-          ? `: ${communityOptions.communityName || communityOptions.createName}`
-          : ""
-      })`,
-    });
+    approvalInFlight.current = true;
+    setIsApproving(true);
+    try {
+      const emailSent = await deliverVerificationEmail(finalMemberId, emailCommunityName);
+      if (!emailSent) return;
 
-    const verificationResult = await onVerify(user!.uid, finalMemberId, communityOptions);
-    if (!verificationResult.success) return;
+      const verificationResult = await onVerify(user.uid, finalMemberId, communityOptions);
+      if (!verificationResult.success) {
+        setVerificationError(verificationResult.error || 'Email sent, but approval could not be saved.');
+        return;
+      }
 
-    toast.success("User verified successfully. Sending verification email…");
-    await deliverVerificationEmail(finalMemberId, emailCommunityName);
-    onClose();
+      await log({
+        action: ActivityActions.VERIFY,
+        entityType: ActivityEntityTypes.USER,
+        entityId: user.uid,
+        entityTitle: user.displayName,
+        details: `Verified user ${user.displayName} with member ID ${finalMemberId} (${communityAction}${
+          communityOptions.communityName || communityOptions.createName
+            ? `: ${communityOptions.communityName || communityOptions.createName}`
+            : ""
+        })`,
+      });
+
+      toast.success('User verified successfully and member-card email sent.');
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not complete verification.';
+      setVerificationError(message);
+      toast.error(message);
+    } finally {
+      approvalInFlight.current = false;
+      setIsApproving(false);
+    }
   };
 
   const handleReject = async () => {
@@ -547,9 +573,9 @@ export default function UserVerificationModal({
                       <div className="flex gap-3">
                         <button
                           onClick={user?.isVerified ? handleResendVerificationEmail : handleVerify}
-                          disabled={user?.isVerified ? isSendingVerificationEmail : isRejected || isVerifying || isLoadingCount || !memberId}
+                          disabled={isApproving || isSendingVerificationEmail || isVerifying || (!user?.isVerified && (isRejected || isLoadingCount || !memberId))}
                           className={`flex-1 py-3 rounded-xl text-white font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                            (user?.isVerified ? isSendingVerificationEmail : isRejected || isVerifying || isLoadingCount || !memberId)
+                            (isApproving || isSendingVerificationEmail || isVerifying || (!user?.isVerified && (isRejected || isLoadingCount || !memberId)))
                               ? 'bg-gray-400 cursor-not-allowed opacity-50'
                               : 'bg-gradient-to-r from-green-600 to-green-700 hover:shadow-lg hover:scale-[1.02]'
                           }`}
@@ -563,13 +589,15 @@ export default function UserVerificationModal({
                         </button>
                         <button
                           onClick={() => setShowRejectForm(true)}
-                          disabled={isRejected || isVerifying || isSendingVerificationEmail}
+                          disabled={isRejected || isVerifying || isSendingVerificationEmail || isApproving}
                           className="flex-1 py-3 rounded-xl border border-red-300 text-red-600 font-medium hover:bg-red-50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <XCircle className="w-4 h-4 inline mr-1" />
                           Reject
                         </button>
                       </div>
+
+                      {verificationError && <p role="alert" className="mt-2 text-sm text-red-700">{verificationError}</p>}
 
                       {user?.isVerified && (
                         <p className={`mt-2 text-xs ${

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import QRCode from 'qrcode';
 import sharp from 'sharp';
+import { Resvg } from '@resvg/resvg-js';
 import { CARD_WIDTH, CARD_DESIGN_VERSION, renderMemberCardFaces } from './memberCardTemplate';
 
 export interface MemberCardInput {
@@ -52,7 +53,15 @@ export async function renderMemberCardImages(data: MemberCardInput) {
   ]);
   const faces = renderMemberCardFaces({ ...data, photoURL, qrDataUrl, logoUrl: localImage('logo.png'), odishaArtUrl: localImage('images/member-card/odisha-heritage.png'), jagannathArtUrl: localImage('images/member-card/odisha-jagannath-v2.png'), svsLogoUrl: localImage('svslogo.png') });
   // One source image for every destination; no browser screenshots or separate PDF layout.
-  const [front, back] = await Promise.all([faces.front, faces.back].map(svg => sharp(Buffer.from(svg), { density: 108 }).png({ palette: true, quality: 90, effort: 1, dither: 0 }).toBuffer()));
+  const [front, back] = await Promise.all([faces.front, faces.back].map(async (svg) => {
+    // Next's image optimizer blocks SVG loaders in Sharp globally. Render our
+    // existing SVG design independently without weakening that restriction.
+    const png = new Resvg(svg, {
+      fitTo: { mode: 'width', value: Math.round(CARD_WIDTH * 108 / 72) },
+      font: { loadSystemFonts: false },
+    }).render().asPng();
+    return sharp(png).png({ palette: true, quality: 90, effort: 1, dither: 0 }).toBuffer();
+  }));
   return { front, back };
 }
 

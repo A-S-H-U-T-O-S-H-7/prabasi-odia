@@ -1,114 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-import {
-  formatMemberSince,
-  resolveBloodGroup,
-  resolveLocation,
-  resolveMemberId,
-  resolveMemberName,
-  resolvePhotoURL,
-  resolveMemberCardInput,
-} from '@/lib/services/memberCardData';
+import { resolveMemberCardInput } from '@/lib/services/memberCardData';
 import { generateMemberCardPDF } from '@/lib/services/memberCardPDF';
+import { createVerificationForm, sendVerificationForm } from '@/lib/services/verificationEmailProvider';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
+  let stage: 'request' | 'card' | 'provider' = 'request';
   try {
     const payload = await request.json();
-    // This route receives the verified member details from the admin panel.
-    // Avoid Firebase Admin here: production email delivery must not depend on
-    // a second server credential initialization.
-    const userData = payload || {};
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new Error('Invalid verification request.');
+    }
+    const name = typeof payload.name === 'string' ? payload.name.trim() : '';
+    const email = typeof payload.email === 'string' ? payload.email.trim() : '';
+    const memberId = typeof payload.memberId === 'string' ? payload.memberId.trim() : '';
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !memberId || memberId === 'Pending') {
+      throw new Error('Name, valid email, and member ID are required.');
+    }
+    const communityName = typeof payload.communityName === 'string' && payload.communityName.trim()
+      ? payload.communityName.trim() : 'Prabasi Odia Community';
+    const memberSince = payload.memberSince || new Date().toISOString();
 
-    const name = resolveMemberName(userData, payload.name);
-    const email = String(payload.email || userData.email || '').trim();
-    const memberId = resolveMemberId(userData, payload.memberId);
-    const communityName =
-      payload.communityName ||
-      userData.nearbyCommunityName ||
-      userData.requestedCommunityName ||
-      'Prabasi Odia Community';
-    const bloodGroup = resolveBloodGroup(userData, payload.bloodGroup);
-    const location = resolveLocation(userData, payload.location);
-    const photoURL = resolvePhotoURL(userData, payload.photoURL);
-    const memberSince = formatMemberSince(payload.memberSince || userData.createdAt);
+    // Generate using the admin's selected member ID before saving approval.
+    // No call to the already-verified-only /api/member-card-pdf is needed.
+    stage = 'card';
+    const card = await generateMemberCardPDF(resolveMemberCardInput({
+      ...payload, name, memberId, communityName, memberSince, isVerified: true,
+    }, process.env.NEXT_PUBLIC_BASE_URL || 'https://prabasiodia.svsamiti.com'));
+    const form = createVerificationForm({ name, email, memberId, communityName, memberSince }, card);
 
-    if (!name || !email || !memberId || memberId === 'Pending') {
-      return NextResponse.json(
-        { status: false, success: false, message: 'Name, email, and member ID are required' },
-        { status: 400 }
-      );
+    // Browser-direct delivery: prepare the six PHP fields, but do not send mail.
+    // This uses the same generator without weakening /api/member-card-pdf's
+    // verified-member restriction or exposing its API key to the browser.
+    if (new URL(request.url).searchParams.get('prepareOnly') === '1') {
+      return NextResponse.json({ success: true, fields: Object.fromEntries(form.entries()) }, {
+        headers: { 'Cache-Control': 'no-store' },
+      });
     }
 
-    let memberCardPdf: Buffer | null = null;
-
-    try {
-      memberCardPdf = await generateMemberCardPDF(resolveMemberCardInput({
-        ...userData, name, memberId, memberSince, bloodGroup, location, communityName, photoURL, isVerified: true,
-      }, process.env.NEXT_PUBLIC_BASE_URL || 'https://prabasiodia.svsamiti.com'));
-    } catch (cardError) {
-      console.error('Member card generation failed for verification email:', cardError);
+    // Local preview tests the actual Next.js renderer without sending email.
+    if (process.env.NODE_ENV === 'development' && new URL(request.url).searchParams.get('preview') === '1') {
+      return new Response(new Uint8Array(card), {
+        headers: { 'Content-Type': 'application/pdf', 'Cache-Control': 'no-store' },
+      });
     }
 
-    if (!memberCardPdf) {
-      return NextResponse.json(
-        { status: false, success: false, message: 'Failed to generate member card for verification email' },
-        { status: 500 }
-      );
-    }
-
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('email', email);
-    formData.append('member_id', memberId);
-    formData.append('member_since', memberSince);
-    formData.append('community_name', communityName);
-    formData.append('blood_group', bloodGroup);
-    formData.append('location', location);
-    formData.append('city', String(userData.currentCity || ''));
-    formData.append('state', String(userData.currentState || ''));
-    formData.append('photo_url', photoURL);
-    // The mail endpoint's legacy member_card_path field expects PDF bytes as
-    // base64. Do not also upload the same multi-megabyte document as a file:
-    // duplicating it can exceed PHP's request limit and truncate the download.
-    formData.append('member_card_path', memberCardPdf.toString('base64'));
-    formData.append('member_card_mime_type', 'application/pdf');
-    formData.append('member_card_file_name', `${memberId}-member-card.pdf`);
-
-    const response = await fetch('https://svsamiti.com/prabasiodia/verification.php', {
-      method: 'POST',
-      headers: {
-        Accept: '*/*',
-        'User-Agent': 'Prabasi-Odia/1.0',
-      },
-      body: formData,
-      signal: AbortSignal.timeout(30_000),
-    });
-
-    const responseText = await response.text();
-    let data: Record<string, unknown>;
-    try {
-      data = JSON.parse(responseText) as Record<string, unknown>;
-    } catch {
-      console.error('Verification email provider returned a non-JSON response:', response.status);
-      return NextResponse.json(
-        { status: false, success: false, message: 'The email provider returned an invalid response.' },
-        { status: 502 }
-      );
-    }
-
-    const sent = response.ok && (data.status === true || data.success === true);
-    return NextResponse.json(
-      { status: sent, success: sent, message: data.message || (sent ? 'Verification email sent' : 'Failed to send verification email') },
-      { status: sent ? 200 : 502 }
-    );
+    stage = 'provider';
+    const result = await sendVerificationForm(form);
+    return NextResponse.json({ status: result.success, ...result }, { status: result.success ? 200 : 502 });
   } catch (error) {
-    console.error('Verification email error:', error);
-    return NextResponse.json(
-      { status: false, success: false, message: 'Failed to send verification email' },
-      { status: 500 }
-    );
+    const detail = error instanceof Error ? error.message : 'Unknown error';
+    const code = typeof error === 'object' && error && 'code' in error ? error.code : undefined;
+    // Do not log Axios objects: they include recipient details and the PDF.
+    console.error(`Verification ${stage} failed: ${detail}`);
+    const timeout = code === 'ECONNABORTED' || code === 'ETIMEDOUT';
+    const message = stage === 'request' ? detail
+      : stage === 'card' ? 'Could not generate the member-card PDF. No email was sent.'
+        : timeout ? 'The email provider timed out. Delivery could not be confirmed.'
+          : 'Could not contact the email provider. Delivery could not be confirmed.';
+    return NextResponse.json({ status: false, success: false, message }, {
+      status: stage === 'request' ? 400 : stage === 'card' ? 500 : timeout ? 504 : 502,
+    });
   }
 }

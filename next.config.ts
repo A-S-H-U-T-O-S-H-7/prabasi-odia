@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['sharp', 'fontkit'],
+  serverExternalPackages: ['sharp', 'fontkit', '@resvg/resvg-js'],
   outputFileTracingIncludes: {
     '/api/member-card': ['./public/fonts/member-card/**/*', './public/logo.png', './public/svslogo.png', './public/images/member-card/**/*'],
     '/api/member-card-pdf': ['./public/fonts/member-card/**/*', './public/logo.png', './public/svslogo.png', './public/images/member-card/**/*'],
