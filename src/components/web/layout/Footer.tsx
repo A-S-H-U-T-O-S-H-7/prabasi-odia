@@ -22,6 +22,7 @@ const footerLinks = {
     { label: "Events", href: "/events" },
     { label: "Jobs", href: "/jobs" },
     { label: "Urgent Help", href: "/urgent-help" },
+    { label: "Media", href: "/media" },
     { label: "Advisory Board", href: "/advisory-board" },
     { label: "About Us", href: "/about" },
     { label: "Associates", href: "/associates" },

@@ -10,6 +10,7 @@ import {
   UserPlus,
   Building2,
   CalendarDays,
+  Images,
   BriefcaseBusiness,
   HeartHandshake,
   Megaphone,
@@ -34,6 +35,7 @@ const navigationItems = [
   { name: "Registered Users", href: "/admin/registered-users", icon: UserPlus },
   { name: "Communities", href: "/admin/communities", icon: Building2 },
   { name: "Events", href: "/admin/events", icon: CalendarDays },
+  { name: "Media", href: "/admin/media", icon: Images },
   { name: "Jobs", href: "/admin/jobs", icon: BriefcaseBusiness },
   { name: "Urgent Help", href: "/admin/urgent-help", icon: HeartHandshake },
   { name: "Helper Offers", href: "/admin/urgent-help/offers", icon: HeartHandshake },
@@ -73,6 +75,7 @@ export default function AdminSidebar() {
     if (item.name === "Registered Users" && permissions.includes("users")) return true;
     if (item.name === "Communities" && permissions.includes("communities")) return true;
     if (item.name === "Events" && permissions.includes("events")) return true;
+    if (item.name === "Media" && permissions.includes("media")) return true;
     if (item.name === "Jobs" && permissions.includes("jobs")) return true;
     if (item.name === "Urgent Help" && permissions.includes("urgent_help")) return true;
     if (item.name === "Helper Offers" && permissions.includes("urgent_help")) return true;

@@ -15,6 +15,7 @@ export default function PermissionSelector({ selectedPermissions, onChange }: Pe
     Users: true,
     Communities: true,
     Events: true,
+    Media: true,
     Notices: true,
     Admins: true,
     Activity: true,

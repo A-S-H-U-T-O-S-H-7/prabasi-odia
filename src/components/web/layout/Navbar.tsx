@@ -73,6 +73,7 @@ export default function Navbar() {
   const moreLinks = [
     { href: '/jobs', label: 'Jobs' },
     { href: '/urgent-help', label: 'Urgent Help' },
+    { href: '/media', label: 'Media' },
     { href: '/advisory-board', label: 'Advisory Board' },
   ];
   const donateHref = isAuthenticated ? '/donation' : '/join-community';
@@ -356,7 +357,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden bg-[#FFF8F2] border-b border-[#E7D7E8] overflow-hidden"
+            className="max-h-[calc(100dvh-3.5rem)] overflow-y-auto md:hidden bg-[#FFF8F2] border-b border-[#E7D7E8]"
           >
             <div className="px-4 py-4 space-y-3">
               {navLinks.map((link) => (
