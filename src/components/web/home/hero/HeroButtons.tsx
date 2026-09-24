@@ -1,6 +1,6 @@
 "use client";
 
-import { FaArrowRight, FaBriefcase, FaGlobeAsia, FaHandHoldingHeart, FaUserPlus, FaUsers } from "react-icons/fa";
+import { FaArrowRight, FaBriefcase, FaGlobeAsia, FaHandHoldingHeart, FaImages, FaUserPlus, FaUsers } from "react-icons/fa";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useAuthStore, useUserStore } from "@/lib/store";
@@ -114,6 +114,9 @@ export function HeroQuickLinks() {
       </Link>
       <Link href="/advisory-board" className="inline-flex items-center gap-2 rounded-full border border-[#6B1E5B]/20 bg-white/80 px-4 py-2 text-sm font-semibold text-[#6B1E5B] shadow-sm transition hover:border-[#6B1E5B] hover:bg-white">
         <FaUsers aria-hidden="true" className="text-base" /> Advisory Board
+      </Link>
+      <Link href="/media" className="inline-flex items-center gap-2 rounded-full border border-[#164A4A]/25 bg-white/80 px-4 py-2 text-sm font-semibold text-[#164A4A] shadow-sm transition hover:border-[#164A4A] hover:bg-white">
+        <FaImages aria-hidden="true" className="text-base" /> Media
       </Link>
     </nav>
   );
