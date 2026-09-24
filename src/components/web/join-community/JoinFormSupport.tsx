@@ -15,6 +15,7 @@ export default function JoinFormSupport({ children, step }: { children: ReactNod
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [mobile, setMobile] = useState('');
+  const [email, setEmail] = useState('');
   const [problem, setProblem] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -30,7 +31,8 @@ export default function JoinFormSupport({ children, step }: { children: ReactNod
     if (manual) setSent(false);
     const number = String(getValues('mobileNumber') || '').trim();
     const code = String(getValues('mobileCountryCode') || '').trim();
-    setMobile((current) => current || (number ? normalizeSupportMobile(`${code}${number}`) || number : ''));
+    setMobile(number ? `${code}${number}` : '');
+    setEmail(String(getValues('email') || '').trim());
     setError('');
     setOpen(true);
   };
@@ -40,6 +42,8 @@ export default function JoinFormSupport({ children, step }: { children: ReactNod
     if (sending || !problem.trim()) return;
     const contactMobile = normalizeSupportMobile(mobile);
     if (!contactMobile) { setError('Enter a contact phone number with 4–14 digits.'); return; }
+    const contactEmail = email.trim();
+    if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { setError('Enter a valid email address.'); return; }
     setSending(true);
     setError('');
     try {
@@ -47,7 +51,7 @@ export default function JoinFormSupport({ children, step }: { children: ReactNod
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mobile: contactMobile, message: problem.trim(),
+          mobile: contactMobile, email: contactEmail, message: problem.trim(),
         }),
         signal: AbortSignal.timeout(25_000),
       });
@@ -86,6 +90,9 @@ export default function JoinFormSupport({ children, step }: { children: ReactNod
               <input type="tel" autoComplete="tel" required maxLength={25} value={mobile} onChange={(event) => {
                 if (event.target.value.replace(/\D/g, '').length <= 14) setMobile(event.target.value);
               }} disabled={sending} placeholder="Phone number (4–14 digits)" className="mt-2 w-full rounded-xl border border-[#D4C8C0] p-3 outline-none focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20" />
+            </label>
+            <label className="block text-sm font-medium">Email address
+              <input type="email" autoComplete="email" maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} disabled={sending} placeholder="you@example.com" className="mt-2 w-full rounded-xl border border-[#D4C8C0] p-3 outline-none focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20" />
             </label>
             <label className="block text-sm font-medium">Your problem
               <textarea autoFocus required maxLength={2000} rows={5} value={problem} onChange={(event) => setProblem(event.target.value)} disabled={sending} placeholder="Tell us where you got stuck…" className="mt-2 w-full resize-y rounded-xl border border-[#D4C8C0] p-3 outline-none focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/20" />

@@ -13,10 +13,14 @@ export async function POST(request: NextRequest) {
     if (!mobile) {
       return NextResponse.json({ success: false, message: 'Enter a contact phone number with 4–14 digits.' }, { status: 400 });
     }
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    if (email.length > 254 || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      return NextResponse.json({ success: false, message: 'Enter a valid email address.' }, { status: 400 });
+    }
     const endpoint = process.env.JOIN_SUPPORT_EMAIL_URL || 'https://svsamiti.com/prabasiodia/feedback.php';
     const token = process.env.JOIN_SUPPORT_EMAIL_TOKEN;
     const response = await fetch(endpoint, {
-      method: 'POST', body: JSON.stringify({ mobile, message: body.message.trim() }),
+      method: 'POST', body: JSON.stringify({ mobile, email, message: body.message.trim() }),
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       signal: AbortSignal.timeout(20_000), cache: 'no-store',
     });
