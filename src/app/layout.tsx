@@ -45,35 +45,8 @@ export default function RootLayout({
     };
   }, [initialize]);
 
-  useEffect(() => {
-    const blockKeyboardZoom = (event: KeyboardEvent) => {
-      if (event.ctrlKey && ["+", "-", "=", "0"].includes(event.key)) event.preventDefault();
-    };
-    const blockPinchZoom = (event: WheelEvent) => {
-      if (event.ctrlKey) event.preventDefault();
-    };
-    const blockGestureZoom = (event: Event) => event.preventDefault();
-
-    window.addEventListener("keydown", blockKeyboardZoom);
-    window.addEventListener("wheel", blockPinchZoom, { passive: false });
-    document.addEventListener("gesturestart", blockGestureZoom, { passive: false });
-    document.addEventListener("gesturechange", blockGestureZoom, { passive: false });
-    document.addEventListener("gestureend", blockGestureZoom, { passive: false });
-
-    return () => {
-      window.removeEventListener("keydown", blockKeyboardZoom);
-      window.removeEventListener("wheel", blockPinchZoom);
-      document.removeEventListener("gesturestart", blockGestureZoom);
-      document.removeEventListener("gesturechange", blockGestureZoom);
-      document.removeEventListener("gestureend", blockGestureZoom);
-    };
-  }, []);
-
   return (
     <html lang="en" className={`${libreBaskerville.variable} ${poppins.variable}`}>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
-      </head>
       <body className="font-body antialiased">
         <Toaster position="top-center" />
         <AnimatePresence mode="wait">

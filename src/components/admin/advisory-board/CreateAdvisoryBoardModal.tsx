@@ -54,7 +54,6 @@ export default function CreateAdvisoryBoardModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isAdvisor = formData.category === 'advisor';
 
   useEffect(() => {
     if (editingMember) {
@@ -264,7 +263,6 @@ export default function CreateAdvisoryBoardModal({
               )}
             </div>
 
-            {!isAdvisor && <>
             {/* Organization + Designation/Expertise */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -313,7 +311,6 @@ export default function CreateAdvisoryBoardModal({
               />
             </div>
 
-            </>}
             {/* Location + Joined Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -345,7 +342,6 @@ export default function CreateAdvisoryBoardModal({
               </div>
             </div>
 
-            {!isAdvisor && <>
             {/* Social links */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -402,7 +398,6 @@ export default function CreateAdvisoryBoardModal({
             </div>
 
             {/* Order + flags */}
-            </>}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
               <div>
                 <label className="block text-sm font-medium text-[#2A1636] mb-1.5">
@@ -421,7 +416,7 @@ export default function CreateAdvisoryBoardModal({
                   min="0"
                 />
               </div>
-              {!isAdvisor && <label className="flex items-center gap-2 cursor-pointer pb-2.5">
+              <label className="flex items-center gap-2 cursor-pointer pb-2.5">
                 <input
                   type="checkbox"
                   checked={formData.isActive}
@@ -431,8 +426,8 @@ export default function CreateAdvisoryBoardModal({
                   className="w-4 h-4 rounded border-[#D4C8C0] text-[#6B1E5B] focus:ring-[#6B1E5B]/20 cursor-pointer"
                 />
                 <span className="text-sm font-medium text-[#2A1636]">Active</span>
-              </label>}
-              {!isAdvisor && <label className="flex items-center gap-2 cursor-pointer pb-2.5">
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer pb-2.5">
                 <input
                   type="checkbox"
                   checked={formData.featured}
@@ -442,7 +437,7 @@ export default function CreateAdvisoryBoardModal({
                   className="w-4 h-4 rounded border-[#D4C8C0] text-[#6B1E5B] focus:ring-[#6B1E5B]/20 cursor-pointer"
                 />
                 <span className="text-sm font-medium text-[#2A1636]">Featured</span>
-              </label>}
+              </label>
             </div>
 
             <div className="flex gap-3 pt-4 border-t border-[#E7D7E8]">
