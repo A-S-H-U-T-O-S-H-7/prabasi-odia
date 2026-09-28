@@ -86,7 +86,7 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: index * 0.08 }}
         viewport={{ once: true }}
-        className={`relative flex h-[374px] flex-col rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-400 border border-[#6B1E5B]/10 cursor-pointer ${
+        className={`group relative flex h-[374px] flex-col rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-400 border border-[#6B1E5B]/10 cursor-pointer ${
           isHovered && !isMobile ? 'ring-2 ring-[#6B1E5B]/30 ring-offset-2' : ''
         } ${isMobile ? 'active:scale-[0.98]' : ''}`}
         onClick={handleCardClick}
@@ -235,7 +235,7 @@ export default function AdvisoryBoardCard({ member, index }: AdvisoryBoardCardPr
                   </div>
 
                   {/* Popover Content */}
-                  <div className="bg-white rounded-2xl shadow-2xl p-6 w-[480px] max-h-[500px] overflow-y-auto border border-[#6B1E5B]/20 relative ml-1">
+                  <div className="bg-white rounded-2xl shadow-2xl p-6 w-[min(480px,calc(100vw-2rem))] max-h-[500px] overflow-y-auto border border-[#6B1E5B]/20 relative ml-1">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] to-transparent rounded-t-2xl" />
                     
                     {/* Popover content */}
@@ -325,18 +325,26 @@ function PopoverContent({ member }: { member: Member }) {
           <p className="text-xs text-[#D9772B] font-medium">
             {advisoryCategoryDetails(member.category).role}
           </p>
+          {member.designation && (
+            <p className="mt-0.5 text-xs text-[#5A4A4A]">{member.designation}</p>
+          )}
+          {member.organization && (
+            <p className="text-xs text-[#5A4A4A]">{member.organization}</p>
+          )}
         </div>
       </div>
 
       {/* Details */}
       <div className="space-y-3">
         {/* Bio */}
-        {member.bio && (
+        {member.bio ? (
           <div className="bg-gradient-to-r from-[#FDF5F8] to-transparent rounded-xl p-3">
             <p className="text-sm text-[#5A4A4A] leading-relaxed">
               {member.bio}
             </p>
           </div>
+        ) : (
+          <p className="text-sm text-[#6B5E5A]">Profile details coming soon.</p>
         )}
 
         {/* Joined Date & Location */}
@@ -447,12 +455,14 @@ function MobileModalContent({ member }: { member: Member }) {
       {/* Details */}
       <div className="space-y-4">
         {/* Bio */}
-        {member.bio && (
+        {member.bio ? (
           <div className="bg-gradient-to-r from-[#FDF5F8] to-transparent rounded-xl p-4">
             <p className="text-sm text-[#5A4A4A] leading-relaxed">
               {member.bio}
             </p>
           </div>
+        ) : (
+          <p className="text-sm text-[#6B5E5A]">Profile details coming soon.</p>
         )}
 
         {/* Joined Date & Location */}

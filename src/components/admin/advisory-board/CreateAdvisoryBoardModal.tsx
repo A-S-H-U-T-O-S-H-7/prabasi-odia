@@ -177,9 +177,6 @@ export default function CreateAdvisoryBoardModal({
                 setFormData({
                   ...formData,
                   category,
-                  ...(category === 'advisor' ? {
-                    organization: '', designation: '', bio: '', linkedin: '', twitter: '', website: '', featured: false, isActive: true,
-                  } : {}),
                 });
               }} className="mt-1.5 w-full rounded-xl border-2 border-[#D4C8C0]/50 bg-white px-4 py-2.5 text-sm">
                 {ADVISORY_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.title} — {category.role}</option>)}
