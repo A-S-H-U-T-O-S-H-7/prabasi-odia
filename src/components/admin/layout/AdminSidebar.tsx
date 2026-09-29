@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Images,
   BriefcaseBusiness,
+  HandCoins,
   HeartHandshake,
   Megaphone,
   Settings,
@@ -26,6 +27,8 @@ import {
   Award,
   Phone,
   Heart,
+  Stethoscope,
+  Music2,
 } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 
@@ -37,6 +40,9 @@ const navigationItems = [
   { name: "Events", href: "/admin/events", icon: CalendarDays },
   { name: "Media", href: "/admin/media", icon: Images },
   { name: "Jobs", href: "/admin/jobs", icon: BriefcaseBusiness },
+  { name: "Investments", href: "/admin/investments", icon: HandCoins },
+  { name: "Doctors", href: "/admin/doctors", icon: Stethoscope },
+  { name: "Cultural Teams", href: "/admin/cultural-teams", icon: Music2 },
   { name: "Urgent Help", href: "/admin/urgent-help", icon: HeartHandshake },
   { name: "Helper Offers", href: "/admin/urgent-help/offers", icon: HeartHandshake },
   { name: "Notices", href: "/admin/notices", icon: Megaphone },
@@ -77,6 +83,9 @@ export default function AdminSidebar() {
     if (item.name === "Events" && permissions.includes("events")) return true;
     if (item.name === "Media" && permissions.includes("media")) return true;
     if (item.name === "Jobs" && permissions.includes("jobs")) return true;
+    if (item.name === "Investments" && permissions.includes("investments")) return true;
+    if (item.name === "Doctors" && permissions.includes("doctors")) return true;
+    if (item.name === "Cultural Teams" && permissions.includes("cultural_teams")) return true;
     if (item.name === "Urgent Help" && permissions.includes("urgent_help")) return true;
     if (item.name === "Helper Offers" && permissions.includes("urgent_help")) return true;
     if (item.name === "Notices" && permissions.includes("notices")) return true;

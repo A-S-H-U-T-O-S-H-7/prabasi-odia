@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "render:mmbio": "node scripts/render-mmbio.mjs",
     "start": "next start"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "date-fns": "^4.4.0",
     "firebase": "^12.16.0",
     "firebase-admin": "^14.2.0",
+    "fontkit": "2.0.4",
     "formik": "^2.4.9",
     "framer-motion": "^12.42.2",
     "html2canvas": "^1.4.1",
@@ -41,15 +43,15 @@
     "react-icons": "^5.7.0",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.10.0",
+    "sharp": "0.35.3",
     "sweetalert2": "^11.26.25",
     "tailwind-merge": "^3.6.0",
     "yup": "^1.7.1",
     "zod": "^4.4.3",
-    "zustand": "^5.0.14",
-    "fontkit": "2.0.4",
-    "sharp": "0.35.3"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.9",
     "@tailwindcss/postcss": "^4",
     "@types/google.maps": "^3.65.4",
     "@types/jsdom": "^30.0.0",
@@ -57,6 +59,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "pdfjs-dist": "^6.3.289",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

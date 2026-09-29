@@ -72,6 +72,9 @@ export default function Navbar() {
   ];
   const moreLinks = [
     { href: '/jobs', label: 'Jobs' },
+    { href: '/investments', label: 'Investments' },
+    { href: '/doctors', label: 'Doctor Consultations' },
+    { href: '/cultural-teams', label: 'Cultural Teams' },
     { href: '/urgent-help', label: 'Urgent Help' },
     { href: '/media', label: 'Media' },
     { href: '/advisory-board', label: 'Advisory Board' },
