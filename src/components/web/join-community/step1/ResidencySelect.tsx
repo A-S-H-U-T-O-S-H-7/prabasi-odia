@@ -1,27 +1,13 @@
 "use client";
 
 import { useFormContext } from 'react-hook-form';
-import { residencyDefaults, type ResidencyStatus } from '@/lib/residency';
+import type { ResidencyStatus } from '@/lib/residency';
+import { useResidencyChange } from './useResidencyChange';
 
 export default function ResidencySelect() {
-  const { watch, setValue, clearErrors } = useFormContext();
+  const { watch } = useFormContext();
   const residencyStatus = watch('residencyStatus');
-
-  const selectResidency = (value: ResidencyStatus) => {
-    if (value === residencyStatus) return;
-    const updates = {
-      ...residencyDefaults(value),
-      currentState: '', currentCity: '', currentPinCode: '',
-      currentLatitude: undefined, currentLongitude: undefined,
-      nearbyCommunityId: '', nearbyCommunityName: '', requestedCommunityName: '',
-      passportNumber: '', passportFile: undefined,
-      mobileVerified: false, verifiedMobileNumber: '', emailVerified: false, verifiedEmail: '',
-    };
-    Object.entries(updates).forEach(([field, nextValue]) => {
-      setValue(field, nextValue, { shouldDirty: true });
-    });
-    clearErrors(Object.keys(updates));
-  };
+  const selectResidency = useResidencyChange();
 
   return (
     <fieldset className="rounded-xl border border-[#6B1E5B]/15 bg-[#6B1E5B]/5 p-3 sm:rounded-2xl sm:p-4">

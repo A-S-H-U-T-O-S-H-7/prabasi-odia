@@ -13,7 +13,7 @@ import ResidencySelect from "./step1/ResidencySelect";
 import ProfilePhotoUpload from "./step1/ProfilePhotoUpload";
 import PersonalDetails from "./step1/PersonalDetails";
 import ContactVerification from "./step1/ContactVerification";
-import Step3Interests from "./Step3Interests";
+import Step1IdentitySection from "./Step1IdentitySection";
 import { useJoinFormSupport } from "./JoinFormSupport";
 
 interface Step1PersonalProps {
@@ -116,7 +116,7 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
           {verificationError}
         </div>
       )}
-      <Step3Interests compact onNext={handleNext} />
+      <Step1IdentitySection compact onNext={handleNext} />
     </motion.div>
   );
 }

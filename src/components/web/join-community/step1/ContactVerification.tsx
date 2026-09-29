@@ -10,6 +10,7 @@ import { toast } from "react-hot-toast";
 import { Controller, useFormContext } from "react-hook-form";
 import { useCountries } from "@/hooks/useCountries";
 import CountryCodeSelect from "./CountryCodeSelect";
+import { useResidencyChange } from "./useResidencyChange";
 import { useJoinFormSupport } from "../JoinFormSupport";
 import { 
   normalizeEmail,
@@ -24,6 +25,7 @@ interface ContactVerificationProps {
 export default function ContactVerification({ loginEmail }: ContactVerificationProps) {
   const support = useJoinFormSupport();
   const { control, watch, getValues, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
+  const selectResidency = useResidencyChange();
   const { countries, loading: loadingCountries, error: countriesError, retry: retryCountries } = useCountries();
   const countryCodes = countries.flatMap((country) => {
     const digits = String(country.phonecode ?? "").replace(/\D/g, "");
@@ -454,7 +456,12 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
               <CountryCodeSelect
                 options={countryCodes}
                 value={field.value || ""}
-                onChange={field.onChange}
+                onChange={(code) => {
+                  field.onChange(code);
+                  if (code !== "+91" && getValues("residencyStatus") === "RI") {
+                    selectResidency("NRI", code);
+                  }
+                }}
                 onBlur={field.onBlur}
                 inputRef={field.ref}
                 name={field.name}

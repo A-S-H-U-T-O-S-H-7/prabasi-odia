@@ -9,7 +9,7 @@ import { FaPassport } from "react-icons/fa";
 import Image from "next/image";
 import { useJoinFormSupport } from "./JoinFormSupport";
 
-interface Step3InterestsProps {
+interface Step1IdentitySectionProps {
   onNext: () => void;
   onBack?: () => void;
   compact?: boolean;
@@ -162,7 +162,7 @@ function DocumentUpload({
   );
 }
 
-export default function Step3Interests({ onNext, onBack, compact = false }: Step3InterestsProps) {
+export default function Step1IdentitySection({ onNext, onBack, compact = false }: Step1IdentitySectionProps) {
   const support = useJoinFormSupport();
   const { watch, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
@@ -197,6 +197,12 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
 
   const handleNext = async () => {
     setHasAttemptedSubmit(true);
+
+    // Identity fields are hidden in the compact first step.
+    if (compact) {
+      onNext();
+      return;
+    }
 
     // ✅ 1. Check if at least 2 interests are selected
     // ✅ 2. Check if Aadhar/Passport selection is made
@@ -323,6 +329,8 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
         </div>
       </div>}
 
+      {/* Identity fields are retained here for future use, but hidden in step one. */}
+      {!compact && <>
       {/* Do you have Aadhar? Section */}
       <div className={compact ? "rounded-xl bg-[#6B1E5B]/5 p-2.5 sm:p-3" : "pt-2 border-t border-[#D4C8C0]/20"}>
         <label className="block text-sm font-medium text-[#2A1636] mb-3">
@@ -487,6 +495,7 @@ export default function Step3Interests({ onNext, onBack, compact = false }: Step
         />
         <span>I hereby confirm that I am providing these identity details with my consent and that the information is accurate.</span>
       </label>
+      </>}
       {/* Navigation Buttons */}
       <div className={`flex ${compact ? "justify-end pt-3 mt-3" : "justify-between pt-6 border-t border-[#D4C8C0]/20 mt-6"}`}>
         {!compact && <button

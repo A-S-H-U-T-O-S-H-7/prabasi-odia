@@ -97,7 +97,7 @@ const schema = z.object({
   requestedCommunityName: z.string().optional(),
 
   // ID fields - using zod enum with proper type
-  idType: z.enum(["aadhar", "passport"]).default("aadhar"),
+  idType: z.enum(["aadhar", "passport"]).optional(),
   aadharNumber: z.string()
     .optional()
     .refine((val) => !val || (val.length === 12 && /^[0-9]+$/.test(val)), 
@@ -106,7 +106,7 @@ const schema = z.object({
     .optional()
     .refine((val) => !val || (val.length >= 6 && val.length <= 9 && /^[A-Z0-9]+$/.test(val)), 
       "Passport number must be 6-9 characters"),
-  identityConsent: z.boolean(),
+  identityConsent: z.boolean().optional(),
   identityDocumentSelected: z.boolean().optional(),
   
   // ✅ Document uploads - optional
@@ -123,9 +123,6 @@ const schema = z.object({
   }
   if (data.residencyStatus === "RI" && data.mobileCountryCode !== "+91") {
     ctx.addIssue({ code: "custom", message: "Resident Indians must use a +91 mobile number for SMS verification", path: ["mobileCountryCode"] });
-  }
-  if (data.residencyStatus === "RI" && data.idType !== "aadhar") {
-    ctx.addIssue({ code: "custom", message: "Aadhar is required for Resident Indians", path: ["idType"] });
   }
   if (data.residencyStatus === "NRI" && !z.email().safeParse(data.email?.trim()).success) {
     ctx.addIssue({ code: "custom", message: "Enter a valid email address for OTP verification", path: ["email"] });
@@ -144,6 +141,8 @@ const schema = z.object({
       });
     }
   }
+  // Identity details are optional while their collection is hidden in step one.
+  /*
   if (data.idType === "aadhar") {
     if (!data.aadharNumber || data.aadharNumber.length !== 12) {
       ctx.addIssue({
@@ -161,6 +160,7 @@ const schema = z.object({
       });
     }
   }
+  */
 
   // Validate community request
   if (data.nearbyCommunityId === CANT_FIND_COMMUNITY) {
@@ -228,7 +228,7 @@ export default function JoinCommunityPage() {
       requestedCommunityName: "",
       aadharNumber: "",
       passportNumber: "",
-      identityConsent: true,
+      identityConsent: false,
       ...residencyDefaults("RI"),
       aadharFront: undefined,
       aadharBack: undefined,
