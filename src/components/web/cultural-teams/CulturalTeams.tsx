@@ -1,19 +1,27 @@
 'use client';
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import Link from 'next/link';
-import { createPortal } from 'react-dom';
-import { ArrowRight, Globe2, Images, MapPin, Music2, Plus, Search, Send, Users, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Music2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/lib/store';
-import { CULTURAL_ART_FORMS, INDIAN_STATES, TRAVEL_SCOPES, type CulturalTeam, type CulturalTeamDraft, type CulturalTeamEnquiryDraft, type TravelScope } from '@/lib/culturalTeams/types';
+import {
+  type CulturalTeam,
+  type CulturalTeamDraft,
+  type CulturalTeamEnquiryDraft,
+  type TravelScope,
+} from '@/lib/culturalTeams/types';
 import { culturalTeamsService } from '@/lib/services/culturalTeamsService';
+import CulturalTeamCard from './CulturalTeamCard';
+import CulturalTeamDialog from './CulturalTeamDialog';
+import CulturalTeamsFilters from './CulturalTeamsFilters';
+import CulturalTeamsHero from './CulturalTeamsHero';
+import CulturalTeamsHighlights from './CulturalTeamsHighlights';
 
-const field = 'mt-1.5 w-full rounded-xl border border-[#e9dcd5] bg-white px-3.5 py-3 text-sm text-[#382333] outline-none transition focus:border-[#ad6659] focus:ring-2 focus:ring-[#ad6659]/15';
-const scopeLabel = { states: 'Selected states', national: 'Across India', international: 'International' };
-const availability = (team: CulturalTeam) => [team.travelScopes.includes('states') ? team.availableStates.join(', ') : '', team.travelScopes.includes('national') ? 'Across India' : '', team.travelScopes.includes('international') ? 'International' : ''].filter(Boolean).join(' · ');
+type DialogMode = 'register' | 'detail' | 'enquiry';
 
 export default function CulturalTeams() {
+  const router = useRouter();
   const { user, isAuthenticated, loading: authLoading } = useAuthStore();
   const [teams, setTeams] = useState<CulturalTeam[]>([]);
   const [mine, setMine] = useState<CulturalTeam[]>([]);
@@ -22,7 +30,7 @@ export default function CulturalTeams() {
   const [search, setSearch] = useState('');
   const [artForm, setArtForm] = useState('All art forms');
   const [travel, setTravel] = useState('Anywhere');
-  const [mode, setMode] = useState<'register' | 'detail' | 'enquiry' | null>(null);
+  const [mode, setMode] = useState<DialogMode | null>(null);
   const [selected, setSelected] = useState<CulturalTeam | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [scopes, setScopes] = useState<TravelScope[]>([]);
@@ -32,85 +40,253 @@ export default function CulturalTeams() {
   const [formError, setFormError] = useState('');
 
   const load = async () => {
-    setLoading(true); setError('');
-    try { setTeams(await culturalTeamsService.getApproved()); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load cultural teams.'); }
-    finally { setLoading(false); }
+    setLoading(true);
+    setError('');
+    try {
+      setTeams(await culturalTeamsService.getApproved());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not load cultural teams.');
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(() => { void load(); }, []);
-  useEffect(() => { if (isAuthenticated) void culturalTeamsService.getMine().then(setMine).catch(() => setMine([])); else setMine([]); }, [isAuthenticated, user?.uid]);
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void culturalTeamsService.getMine().then(setMine).catch(() => setMine([]));
+    } else {
+      setMine([]);
+    }
+  }, [isAuthenticated, user?.uid]);
+
   useEffect(() => {
     if (!mode) return;
-    const old = document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = old; };
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, [mode]);
 
-  const visible = useMemo(() => teams.filter(team => {
+  const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (artForm === 'All art forms' || team.artForm === artForm)
+    return teams.filter((team) =>
+      (artForm === 'All art forms' || team.artForm === artForm)
       && (travel === 'Anywhere' || team.travelScopes.includes(travel as TravelScope))
-      && (!term || `${team.name} ${team.artForm} ${team.baseCity} ${team.baseState} ${team.availableStates.join(' ')}`.toLowerCase().includes(term));
-  }), [teams, search, artForm, travel]);
-  const close = () => { if (!busy) { setMode(null); setSelected(null); setFormError(''); } };
+      && (!term || `${team.name} ${team.artForm} ${team.baseCity} ${team.baseState} ${team.availableStates.join(' ')}`.toLowerCase().includes(term))
+    );
+  }, [teams, search, artForm, travel]);
+
+  const close = () => {
+    if (!busy) {
+      setMode(null);
+      setSelected(null);
+      setFormError('');
+    }
+  };
+
+  const openRegistration = () => {
+    setFiles([]);
+    setScopes([]);
+    setStates([]);
+    setFormError('');
+    setMode('register');
+  };
 
   const register = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy) return;
-    if (!scopes.length) { setFormError('Choose where your team can perform.'); return; }
-    if (scopes.includes('states') && !states.length) { setFormError('Choose at least one available state.'); return; }
+    if (!scopes.length) {
+      setFormError('Choose where your team can perform.');
+      return;
+    }
+    if (scopes.includes('states') && !states.length) {
+      setFormError('Choose at least one available state.');
+      return;
+    }
+
     const form = new FormData(event.currentTarget);
     const draft: CulturalTeamDraft = {
-      name: String(form.get('name') || '').trim(), artForm: String(form.get('artForm') || ''),
-      description: String(form.get('description') || '').trim(), memberCount: Number(form.get('memberCount')),
-      baseCity: String(form.get('baseCity') || '').trim(), baseState: String(form.get('baseState') || '').trim(),
-      baseCountry: String(form.get('baseCountry') || '').trim(), languages: String(form.get('languages') || '').trim(),
-      travelScopes: scopes, availableStates: states,
+      name: String(form.get('name') || '').trim(),
+      artForm: String(form.get('artForm') || ''),
+      description: String(form.get('description') || '').trim(),
+      memberCount: Number(form.get('memberCount')),
+      baseCity: String(form.get('baseCity') || '').trim(),
+      baseState: String(form.get('baseState') || '').trim(),
+      baseCountry: String(form.get('baseCountry') || '').trim(),
+      languages: String(form.get('languages') || '').trim(),
+      travelScopes: scopes,
+      availableStates: states,
     };
-    const contact = { contactName: String(form.get('contactName') || '').trim(), email: String(form.get('email') || '').trim(), phone: String(form.get('phone') || '').trim() };
-    setBusy(true); setFormError('');
+    const contact = {
+      contactName: String(form.get('contactName') || '').trim(),
+      email: String(form.get('email') || '').trim(),
+      phone: String(form.get('phone') || '').trim(),
+    };
+
+    setBusy(true);
+    setFormError('');
     try {
-      await culturalTeamsService.register(draft, contact, files, (done, total) => setUploadProgress(`Uploading image ${done} of ${total}`));
-      setMode(null); setFiles([]); setScopes([]); setStates([]); setUploadProgress('');
+      await culturalTeamsService.register(draft, contact, files, (done, total) => {
+        setUploadProgress(`Uploading image ${done} of ${total}`);
+      });
+      setMode(null);
+      setFiles([]);
+      setScopes([]);
+      setStates([]);
       toast.success('Team registered for admin review.');
       void culturalTeamsService.getMine().then(setMine).catch(() => {});
-    } catch (cause) { setFormError(cause instanceof Error ? cause.message : 'Could not register the team.'); }
-    finally { setBusy(false); setUploadProgress(''); }
+    } catch (cause) {
+      setFormError(cause instanceof Error ? cause.message : 'Could not register the team.');
+    } finally {
+      setBusy(false);
+      setUploadProgress('');
+    }
   };
+
   const enquire = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selected || busy) return;
+
     const form = new FormData(event.currentTarget);
     const draft: CulturalTeamEnquiryDraft = {
-      organiserName: String(form.get('organiserName') || '').trim(), email: String(form.get('email') || '').trim(),
-      phone: String(form.get('phone') || '').trim(), eventType: String(form.get('eventType') || '').trim(),
-      eventDate: String(form.get('eventDate') || ''), eventLocation: String(form.get('eventLocation') || '').trim(),
+      organiserName: String(form.get('organiserName') || '').trim(),
+      email: String(form.get('email') || '').trim(),
+      phone: String(form.get('phone') || '').trim(),
+      eventType: String(form.get('eventType') || '').trim(),
+      eventDate: String(form.get('eventDate') || ''),
+      eventLocation: String(form.get('eventLocation') || '').trim(),
       message: String(form.get('message') || '').trim(),
     };
-    setBusy(true); setFormError('');
-    try { await culturalTeamsService.sendEnquiry(selected.id, draft); setMode(null); setSelected(null); toast.success('Enquiry sent to our coordination team.'); }
-    catch (cause) { setFormError(cause instanceof Error ? cause.message : 'Could not send the enquiry.'); }
-    finally { setBusy(false); }
+
+    setBusy(true);
+    setFormError('');
+    try {
+      await culturalTeamsService.sendEnquiry(selected.id, draft);
+      setMode(null);
+      setSelected(null);
+      toast.success('Enquiry sent to our coordination team.');
+    } catch (cause) {
+      setFormError(cause instanceof Error ? cause.message : 'Could not send the enquiry.');
+    } finally {
+      setBusy(false);
+    }
   };
 
-  return <main className="min-h-screen bg-[#fdf9f5] text-[#382333]">
-    <section className="relative overflow-hidden bg-[radial-gradient(circle_at_80%_20%,#a85b54_0%,#713d55_45%,#382a4b_100%)] px-4 py-16 text-white sm:px-6 md:py-20"><div className="pointer-events-none absolute -right-20 -top-24 h-96 w-96 rounded-full border border-white/10" /><div className="relative mx-auto max-w-7xl"><span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-bold tracking-wide"><Music2 size={15} /> CULTURE IN MOTION</span><h1 className="mt-6 max-w-2xl font-serif text-4xl font-bold leading-tight sm:text-5xl">Cultural teams, ready to make moments memorable.</h1><p className="mt-5 max-w-xl text-sm leading-7 text-white/85 sm:text-base">Discover performing teams for your next program. Explore their work, send an enquiry, and our team will coordinate the introduction.</p><div className="mt-8 flex flex-wrap gap-3"><a href="#explore-teams" className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#713d55]">Explore teams <ArrowRight size={16} /></a><button type="button" onClick={() => { setFiles([]); setScopes([]); setStates([]); setFormError(''); setMode('register'); }} className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"><Plus size={16} /> Register your team</button></div></div></section>
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14"><div className="mb-8 grid gap-4 sm:grid-cols-3"><div className="rounded-2xl border border-[#efdfd8] bg-white p-5"><Images className="text-[#b16e58]" /><strong className="mt-3 block text-sm">Showcase your work</strong><p className="mt-1 text-xs leading-5 text-[#806f75]">Register with up to 10 performance photos.</p></div><div className="rounded-2xl border border-[#efdfd8] bg-white p-5"><Globe2 className="text-[#b16e58]" /><strong className="mt-3 block text-sm">Travel that fits</strong><p className="mt-1 text-xs leading-5 text-[#806f75]">Choose specific states, nationwide or international availability.</p></div><div className="rounded-2xl border border-[#efdfd8] bg-white p-5"><Users className="text-[#b16e58]" /><strong className="mt-3 block text-sm">Introductions through us</strong><p className="mt-1 text-xs leading-5 text-[#806f75]">Your private contact details stay with the admin team.</p></div></div>
-      {isAuthenticated && mine.length > 0 && <section className="mb-10 rounded-2xl border border-[#efdfd8] bg-white p-5"><h2 className="font-serif text-xl font-bold">Your team applications</h2><div className="mt-4 flex flex-wrap gap-2">{mine.map(team => <span key={team.id} className="rounded-full bg-[#f7eee9] px-3 py-2 text-xs font-semibold">{team.name} · <span className="capitalize">{team.status}</span>{team.status === 'rejected' && team.rejectionReason ? ` · ${team.rejectionReason}` : ''}</span>)}</div></section>}
-      <section id="explore-teams" className="scroll-mt-24"><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#a65c52]">APPROVED TEAMS</p><h2 className="mt-2 font-serif text-3xl font-bold">Explore cultural teams</h2></div><span className="text-sm text-[#806f75]">{loading ? 'Loading...' : `${visible.length} teams`}</span></div><div className="grid gap-3 rounded-2xl border border-[#efdfd8] bg-white p-3 shadow-sm md:grid-cols-[1fr_210px_190px] md:p-4"><label className="relative"><Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ab989b]" /><span className="sr-only">Search teams</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search team, art form or location" className="w-full rounded-xl bg-[#fbf5f1] py-3 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-[#ad6659]/15" /></label><select aria-label="Filter by art form" value={artForm} onChange={event => setArtForm(event.target.value)} className="rounded-xl bg-[#fbf5f1] px-4 py-3 text-sm"><option>All art forms</option>{CULTURAL_ART_FORMS.map(value => <option key={value}>{value}</option>)}</select><select aria-label="Filter by travel availability" value={travel} onChange={event => setTravel(event.target.value)} className="rounded-xl bg-[#fbf5f1] px-4 py-3 text-sm"><option>Anywhere</option>{TRAVEL_SCOPES.map(value => <option key={value} value={value}>{scopeLabel[value]}</option>)}</select></div>{error ? <div role="alert" className="mt-6 rounded-2xl bg-white p-8 text-center text-sm text-red-700">{error}<button type="button" onClick={() => void load()} className="ml-2 font-bold underline">Retry</button></div> : loading ? <div role="status" className="mt-6 rounded-2xl bg-white p-12 text-center text-sm text-[#806f75]">Loading cultural teams...</div> : visible.length === 0 ? <div className="mt-6 rounded-2xl border border-dashed border-[#e5d5cd] bg-white p-12 text-center"><Music2 className="mx-auto text-[#b16e58]" /><h3 className="mt-4 font-semibold">No teams match this search</h3><p className="mt-2 text-sm text-[#806f75]">Try another art form or location.</p><button type="button" onClick={() => { setSearch(''); setArtForm('All art forms'); setTravel('Anywhere'); }} className="mt-4 text-sm font-bold text-[#a65c52]">Clear filters</button></div> : <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{visible.map(team => <TeamCard key={team.id} team={team} onOpen={() => { setSelected(team); setMode('detail'); setFormError(''); }} />)}</div>}</section>
-    </div>
-    {mode && createPortal(<div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#241b2b]/70 p-3 backdrop-blur-sm sm:p-5" onMouseDown={event => { if (event.target === event.currentTarget) close(); }}><div role="dialog" aria-modal="true" aria-labelledby="cultural-dialog-title" className="flex max-h-[calc(100dvh-24px)] w-full max-w-3xl flex-col overflow-hidden rounded-[26px] bg-[#fdf9f5] shadow-2xl"><div className="flex items-start justify-between gap-4 border-b border-[#efdfd8] bg-white p-5 sm:px-7"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#aa6555]">{mode === 'register' ? 'JOIN THE DIRECTORY' : mode === 'enquiry' ? 'PROGRAM ENQUIRY' : selected?.artForm}</p><h2 id="cultural-dialog-title" className="mt-1 font-serif text-2xl font-bold">{mode === 'register' ? 'Register your cultural team' : mode === 'enquiry' ? `Contact ${selected?.name}` : selected?.name}</h2></div><button type="button" onClick={close} disabled={busy} aria-label="Close" className="rounded-full border border-[#efdfd8] p-2 disabled:opacity-50"><X size={18} /></button></div><div className="min-h-0 overflow-y-auto p-5 sm:p-7">{mode === 'detail' && selected && <><div className="grid grid-cols-3 gap-2 overflow-hidden rounded-2xl">{selected.images.map((image, index) => <img key={image.path} src={image.url} alt={`${selected.name} performance ${index + 1}`} className={`h-28 w-full object-cover sm:h-40 ${index === 0 ? 'col-span-2 row-span-2 h-full' : ''}`} />)}</div><p className="mt-6 whitespace-pre-wrap text-sm leading-7 text-[#6f5964]">{selected.description}</p><div className="mt-5 grid gap-3 rounded-2xl bg-white p-5 text-sm sm:grid-cols-2"><p><span className="block text-xs text-[#99838b]">Based in</span><strong>{selected.baseCity}, {selected.baseState}, {selected.baseCountry}</strong></p><p><span className="block text-xs text-[#99838b]">Team size</span><strong>{selected.memberCount} members</strong></p><p><span className="block text-xs text-[#99838b]">Languages</span><strong>{selected.languages}</strong></p><p><span className="block text-xs text-[#99838b]">Available for programs</span><strong>{availability(selected)}</strong></p></div><p className="mt-4 text-xs leading-5 text-[#806f75]">Enquiries go to our coordination team. The team's private contact details are not shown publicly.</p><button type="button" onClick={() => setMode('enquiry')} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#8a465b] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#71374c]">Enquire for a program <ArrowRight size={16} /></button></>}
-      {mode === 'register' && (!isAuthenticated && !authLoading ? <div className="rounded-2xl bg-white p-8 text-center"><h3 className="font-semibold">Sign in to register a team</h3><p className="mt-2 text-sm text-[#806f75]">Your account lets you see the application status after submission.</p><Link href="/login" className="mt-5 inline-flex rounded-xl bg-[#8a465b] px-5 py-3 text-sm font-bold text-white">Sign in</Link></div> : <form onSubmit={register} className="space-y-6"><div className="grid gap-4 sm:grid-cols-2"><label className="text-xs font-semibold">Team name *<input name="name" required minLength={3} maxLength={120} className={field} /></label><label className="text-xs font-semibold">Art form *<select name="artForm" required className={field}>{CULTURAL_ART_FORMS.map(value => <option key={value}>{value}</option>)}</select></label><label className="text-xs font-semibold">Number of members *<input name="memberCount" type="number" min={1} max={500} required className={field} /></label><label className="text-xs font-semibold">Languages performed in *<input name="languages" required maxLength={160} placeholder="Odia, Hindi, English" className={field} /></label><label className="text-xs font-semibold">Base city *<input name="baseCity" required maxLength={100} className={field} /></label><label className="text-xs font-semibold">Base state / region *<input name="baseState" required maxLength={100} className={field} /></label><label className="text-xs font-semibold sm:col-span-2">Base country *<input name="baseCountry" required maxLength={100} defaultValue="India" className={field} /></label></div><label className="block text-xs font-semibold">About the team and performances *<textarea name="description" required minLength={40} maxLength={4000} rows={4} placeholder="Tell organisers about your art, experience and the kinds of programs you perform" className={field} /></label><fieldset><legend className="text-sm font-bold">Where can your team perform? *</legend><p className="mt-1 text-xs text-[#806f75]">Select every option that applies.</p><div className="mt-3 flex flex-wrap gap-2">{TRAVEL_SCOPES.map(value => <label key={value} className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-semibold ${scopes.includes(value) ? 'border-[#a45b5c] bg-[#fbede9] text-[#8a465b]' : 'border-[#e9dcd5] bg-white'}`}><input type="checkbox" checked={scopes.includes(value)} onChange={() => setScopes(current => current.includes(value) ? current.filter(item => item !== value) : [...current, value])} className="accent-[#8a465b]" />{scopeLabel[value]}</label>)}</div>{scopes.includes('states') && <div className="mt-4 rounded-2xl border border-[#efdfd8] bg-white p-4"><p className="text-xs font-semibold">Select available Indian states and territories *</p><div className="mt-3 grid max-h-44 gap-2 overflow-y-auto sm:grid-cols-2">{INDIAN_STATES.map(value => <label key={value} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={states.includes(value)} onChange={() => setStates(current => current.includes(value) ? current.filter(item => item !== value) : [...current, value])} className="accent-[#8a465b]" />{value}</label>)}</div></div>}</fieldset><fieldset><legend className="text-sm font-bold">Team photos * <span className="font-normal text-[#806f75]">(1–10 images, max 5 MB each)</span></legend><input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={event => { const incoming = Array.from(event.target.files || []); event.target.value = ''; if (files.length + incoming.length > 10) { setFormError('You can select up to 10 images.'); return; } if (incoming.some(file => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size === 0 || file.size > 5 * 1024 * 1024)) { setFormError('Each image must be JPG, PNG or WebP and under 5 MB.'); return; } setFormError(''); setFiles(current => [...current, ...incoming]); }} className="mt-3 block w-full rounded-xl border border-dashed border-[#d8bfb8] bg-white p-4 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-[#f7e7df] file:px-3 file:py-2 file:font-semibold file:text-[#8a465b]" /><p className="mt-2 text-xs text-[#806f75]">{files.length} of 10 selected</p>{files.length > 0 && <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">{files.map((file, index) => <ImageThumb key={`${file.name}-${index}`} file={file} onRemove={() => setFiles(current => current.filter((_, item) => item !== index))} />)}</div>}</fieldset><div className="rounded-2xl bg-white p-5"><h3 className="text-sm font-bold">Private team contact</h3><p className="mt-1 text-xs text-[#806f75]">Only admins use these details to coordinate enquiries.</p><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-xs font-semibold">Contact person *<input name="contactName" required maxLength={100} defaultValue={user?.displayName || ''} className={field} /></label><label className="text-xs font-semibold">Email *<input name="email" type="email" required maxLength={200} defaultValue={user?.email || ''} className={field} /></label><label className="text-xs font-semibold sm:col-span-2">Phone with country code *<input name="phone" type="tel" required maxLength={25} placeholder="+91 98765 43210" className={field} /></label></div></div><label className="flex gap-3 rounded-xl bg-[#f7eee9] p-4 text-xs leading-5"><input type="checkbox" required className="mt-1 accent-[#8a465b]" /><span>I confirm I can represent this team, and I consent to publishing the team profile and selected photos after admin approval.</span></label>{formError && <p role="alert" className="text-sm text-red-700">{formError}</p>}{uploadProgress && <p role="status" className="text-sm font-semibold text-[#8a465b]">{uploadProgress}</p>}<div className="flex justify-end gap-2"><button type="button" onClick={close} disabled={busy} className="rounded-xl border border-[#e9dcd5] px-4 py-3 text-sm font-semibold">Cancel</button><button type="submit" disabled={busy} className="rounded-xl bg-[#8a465b] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Submitting...' : 'Submit for approval'}</button></div></form>)}
-      {mode === 'enquiry' && selected && <form onSubmit={enquire} className="space-y-5"><p className="rounded-xl bg-[#f7eee9] p-4 text-xs leading-5 text-[#795d64]">Tell us about your program. Our team will review the enquiry and coordinate with {selected.name}; their private contact details remain with us.</p><div className="grid gap-4 sm:grid-cols-2"><label className="text-xs font-semibold">Your name / organisation *<input name="organiserName" required maxLength={100} className={field} /></label><label className="text-xs font-semibold">Email *<input name="email" type="email" required maxLength={200} className={field} /></label><label className="text-xs font-semibold">Phone with country code *<input name="phone" type="tel" required maxLength={25} className={field} /></label><label className="text-xs font-semibold">Program type *<input name="eventType" required maxLength={120} placeholder="Festival, wedding, community event..." className={field} /></label><label className="text-xs font-semibold">Tentative date<input name="eventDate" type="date" className={field} /></label><label className="text-xs font-semibold">Program location *<input name="eventLocation" required maxLength={180} placeholder="City, state, country" className={field} /></label></div><label className="block text-xs font-semibold">Program details *<textarea name="message" required minLength={20} maxLength={2000} rows={4} placeholder="Expected audience, program duration, requirements, and anything else we should know" className={field} /></label><label className="flex gap-3 rounded-xl bg-[#f7eee9] p-4 text-xs leading-5"><input type="checkbox" required className="mt-1 accent-[#8a465b]" /><span>I consent to the coordination team using these details to respond to my enquiry and coordinate with the selected cultural team.</span></label>{formError && <p role="alert" className="text-sm text-red-700">{formError}</p>}<div className="flex justify-end gap-2"><button type="button" onClick={() => setMode('detail')} disabled={busy} className="rounded-xl border border-[#e9dcd5] px-4 py-3 text-sm font-semibold">Back</button><button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-[#8a465b] px-5 py-3 text-sm font-bold text-white disabled:opacity-50"><Send size={15} />{busy ? 'Sending...' : 'Send enquiry'}</button></div></form>}</div></div></div>, document.body)}
-  </main>;
-}
+  return (
+    <main className="min-h-screen bg-[#fdf9f5] px-2 py-3 text-[#382333] sm:px-4 md:py-8">
+      <div className="mx-1 max-w-8xl md:mx-10">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="mb-3 inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-[#6B5E5A] transition-colors hover:text-[#713d55]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <CulturalTeamsHero onRegister={openRegistration} />
+        <div>
+          <CulturalTeamsHighlights />
 
-function TeamCard({ team, onOpen }: { team: CulturalTeam; onOpen: () => void }) {
-  return <article className="flex h-full flex-col overflow-hidden rounded-[24px] border border-[#efdfd8] bg-white shadow-[0_10px_28px_rgba(81,45,65,.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_36px_rgba(81,45,65,.12)]"><div className="relative h-52 overflow-hidden bg-[linear-gradient(135deg,#e9b99e,#8a465b)]">{team.images[0] && <img src={team.images[0].url} alt={`${team.name} performance`} className="h-full w-full object-cover transition duration-500 hover:scale-105" />}<span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-[#8a465b]">{team.artForm}</span>{team.images.length > 1 && <span className="absolute bottom-3 right-3 rounded-full bg-[#382333]/80 px-3 py-1.5 text-xs text-white">+{team.images.length - 1} photos</span>}</div><div className="flex flex-1 flex-col p-5"><h3 className="font-serif text-xl font-bold">{team.name}</h3><p className="mt-2 flex items-center gap-1.5 text-xs text-[#806f75]"><MapPin size={14} />{team.baseCity}, {team.baseState}</p><p className="mt-4 line-clamp-3 flex-1 text-sm leading-6 text-[#6f5964]">{team.description}</p><p className="mt-4 line-clamp-2 text-xs text-[#806f75]"><Globe2 size={13} className="mr-1 inline" />{availability(team)}</p><button type="button" onClick={onOpen} className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#8a465b] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#71374c]">View team & enquire <ArrowRight size={15} /></button></div></article>;
-}
+          {isAuthenticated && mine.length > 0 && (
+            <section aria-labelledby="team-applications-heading" className="mb-8 rounded-2xl border border-[#efdfd8] bg-white p-5 shadow-sm">
+              <h2 id="team-applications-heading" className="text-xl font-bold">Your team applications</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {mine.map((team) => (
+                  <span key={team.id} className="rounded-full bg-[#f7eee9] px-3 py-2 text-xs font-semibold">
+                    {team.name} · <span className="capitalize">{team.status}</span>
+                    {team.status === 'rejected' && team.rejectionReason ? ` · ${team.rejectionReason}` : ''}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
 
-function ImageThumb({ file, onRemove }: { file: File; onRemove: () => void }) {
-  const [url, setUrl] = useState('');
-  useEffect(() => { const objectUrl = URL.createObjectURL(file); setUrl(objectUrl); return () => URL.revokeObjectURL(objectUrl); }, [file]);
-  return <div className="relative aspect-square overflow-hidden rounded-xl bg-[#f7eee9]">{url && <img src={url} alt={file.name} className="h-full w-full object-cover" />}<button type="button" onClick={onRemove} aria-label={`Remove ${file.name}`} className="absolute right-1 top-1 rounded-full bg-white p-1 shadow"><X size={13} /></button></div>;
+          <section id="explore-teams" aria-labelledby="explore-teams-heading" className="scroll-mt-24">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[.18em] text-[#a65c52]">Approved teams</p>
+                <h2 id="explore-teams-heading" className="mt-2 text-3xl font-bold">Explore cultural teams</h2>
+              </div>
+              <span className="text-sm text-[#806f75]">
+                {loading ? 'Loading…' : `${visible.length} ${visible.length === 1 ? 'team' : 'teams'}`}
+              </span>
+            </div>
+
+            <CulturalTeamsFilters
+              search={search}
+              artForm={artForm}
+              travel={travel}
+              onSearch={setSearch}
+              onArtForm={setArtForm}
+              onTravel={setTravel}
+            />
+
+            {error ? (
+              <div role="alert" className="mt-6 rounded-2xl border border-[#efdfd8] bg-white p-8 text-center text-sm text-red-700">
+                {error}
+                <button type="button" onClick={() => void load()} className="ml-2 font-bold underline">Try again</button>
+              </div>
+            ) : loading ? (
+              <div role="status" className="mt-6 rounded-2xl border border-[#efdfd8] bg-white p-12 text-center text-sm text-[#806f75]">
+                Loading cultural teams…
+              </div>
+            ) : visible.length === 0 ? (
+              <div className="mt-6 rounded-2xl border border-dashed border-[#e5d5cd] bg-white p-12 text-center">
+                <Music2 aria-hidden="true" className="mx-auto h-8 w-8 text-[#b16e58]" />
+                <h3 className="mt-4 font-semibold">No teams match this search</h3>
+                <p className="mt-2 text-sm text-[#806f75]">Try another art form or location.</p>
+                <button
+                  type="button"
+                  onClick={() => { setSearch(''); setArtForm('All art forms'); setTravel('Anywhere'); }}
+                  className="mt-4 text-sm font-bold text-[#a65c52]"
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <div className="mt-6 grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {visible.map((team) => (
+                  <CulturalTeamCard
+                    key={team.id}
+                    team={team}
+                    onOpen={() => { setSelected(team); setMode('detail'); setFormError(''); }}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      {mode && (
+        <CulturalTeamDialog
+          mode={mode}
+          selected={selected}
+          isAuthenticated={isAuthenticated}
+          authLoading={authLoading}
+          userName={user?.displayName || ''}
+          userEmail={user?.email || ''}
+          files={files}
+          scopes={scopes}
+          states={states}
+          busy={busy}
+          uploadProgress={uploadProgress}
+          error={formError}
+          onClose={close}
+          onMode={setMode}
+          onRegister={register}
+          onEnquire={enquire}
+          onFiles={setFiles}
+          onScopes={setScopes}
+          onStates={setStates}
+          onError={setFormError}
+        />
+      )}
+    </main>
+  );
 }

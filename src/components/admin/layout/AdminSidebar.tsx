@@ -29,6 +29,7 @@ import {
   Heart,
   Stethoscope,
   Music2,
+  BookOpen,
 } from "lucide-react";
 import useAdminAuthStore from "@/lib/store/useAdminAuthStore";
 
@@ -39,12 +40,12 @@ const navigationItems = [
   { name: "Communities", href: "/admin/communities", icon: Building2 },
   { name: "Events", href: "/admin/events", icon: CalendarDays },
   { name: "Media", href: "/admin/media", icon: Images },
+  { name: "Magazine", href: "/admin/magazine", icon: BookOpen },
   { name: "Jobs", href: "/admin/jobs", icon: BriefcaseBusiness },
   { name: "Investments", href: "/admin/investments", icon: HandCoins },
   { name: "Doctors", href: "/admin/doctors", icon: Stethoscope },
   { name: "Cultural Teams", href: "/admin/cultural-teams", icon: Music2 },
   { name: "Urgent Help", href: "/admin/urgent-help", icon: HeartHandshake },
-  { name: "Helper Offers", href: "/admin/urgent-help/offers", icon: HeartHandshake },
   { name: "Notices", href: "/admin/notices", icon: Megaphone },
   { name: "Donations", href: "/admin/donations", icon: Heart },
   { name: "Contacts", href: "/admin/contact", icon: Mail },
@@ -82,12 +83,12 @@ export default function AdminSidebar() {
     if (item.name === "Communities" && permissions.includes("communities")) return true;
     if (item.name === "Events" && permissions.includes("events")) return true;
     if (item.name === "Media" && permissions.includes("media")) return true;
+    if (item.name === "Magazine" && (permissions.includes("magazines") || permissions.includes("media"))) return true;
     if (item.name === "Jobs" && permissions.includes("jobs")) return true;
     if (item.name === "Investments" && permissions.includes("investments")) return true;
     if (item.name === "Doctors" && permissions.includes("doctors")) return true;
     if (item.name === "Cultural Teams" && permissions.includes("cultural_teams")) return true;
     if (item.name === "Urgent Help" && permissions.includes("urgent_help")) return true;
-    if (item.name === "Helper Offers" && permissions.includes("urgent_help")) return true;
     if (item.name === "Notices" && permissions.includes("notices")) return true;
     if (item.name === "Donations" && permissions.includes("donations")) return true;
     if (item.name === "Contacts" && (permissions.includes("contacts") || permissions.includes("contact"))) return true;

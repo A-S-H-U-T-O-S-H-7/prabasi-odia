@@ -26,6 +26,7 @@ const footerLinks = {
     { label: "Cultural Teams", href: "/cultural-teams" },
     { label: "Urgent Help", href: "/urgent-help" },
     { label: "Media", href: "/media" },
+    { label: "Magazine", href: "/magazine" },
     { label: "Advisory Board", href: "/advisory-board" },
     { label: "About Us", href: "/about" },
     { label: "Associates", href: "/associates" },
@@ -112,15 +113,15 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links - Desktop: 2 columns, Mobile: 2 columns side by side */}
+          {/* Community links use two columns; Support sits beside them when space allows. */}
           <div className="md:col-span-2">
-            <div className="grid grid-cols-2 gap-6 md:gap-10">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:gap-6">
               {Object.entries(footerLinks).map(([title, links]) => (
-                <div key={title}>
+                <div key={title} className={title === 'Community' ? 'col-span-2' : 'col-span-2 sm:col-span-1'}>
                   <h4 className="text-white font-semibold text-sm mb-4">
                     {title}
                   </h4>
-                  <ul className="space-y-2.5">
+                  <ul className={title === 'Community' ? 'grid grid-cols-2 gap-x-4 gap-y-2.5' : 'space-y-2.5'}>
                     {links.map((link) => (
                       <li key={link.href}>
                         <Link

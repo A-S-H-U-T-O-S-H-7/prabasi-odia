@@ -1,79 +1,56 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { Users, Star, Award } from "lucide-react";
+import { Users } from 'lucide-react';
 
 interface AdvisoryBoardHeroProps {
   totalMembers: number;
   featuredCount: number;
+  loading?: boolean;
 }
 
 export default function AdvisoryBoardHero({
   totalMembers,
   featuredCount,
+  loading = false,
 }: AdvisoryBoardHeroProps) {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
   return (
-    <div className="relative rounded-2xl md:rounded-3xl overflow-hidden mb-8 md:mb-12">
-      <div className="absolute inset-0 z-0">
-        <Image
-          src={isMobile ? "/advisormob.png" : "/advisorybg.png"}
-          alt="Advisory Board Banner"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#2A1636]/75 via-[#2A1636]/55 to-[#2A1636]/30" />
-      </div>
+    <section className="relative mb-8 overflow-hidden rounded-lg bg-[#2A1636] px-4 py-4 text-white shadow-xl shadow-[#6B1E5B]/10 sm:px-10 md:py-15">
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
+        style={{ backgroundImage: "url('/advisory-mob.png')" }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0 hidden bg-cover bg-center bg-no-repeat md:block"
+        style={{ backgroundImage: "url('/advisory-desktop.png')" }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-[#2A1636]/90 via-[#2A1636]/55 to-[#2A1636]/15"
+        aria-hidden="true"
+      />
 
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 text-center py-16 md:py-24 lg:py-28 px-4"
-      >
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white">
-          Patrons, Mentors &amp; <span className="text-[#E6A11C]">Advisors</span>
+      <div className="relative max-w-2xl">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[.16em] text-[#F4C875]">
+          <Users className="h-4 w-4" />
+          Community guidance
+        </span>
+        <h1 className="mt-4 text-2xl font-bold leading-tight sm:text-4xl">
+          Patrons, Mentors &amp; <span className="text-[#F4C875]">Advisors</span>
         </h1>
-        <p className="text-sm md:text-lg text-white/80 mt-3 md:mt-4 max-w-2xl mx-auto px-2">
-          Meet the leaders guiding Prabasi Odia with wisdom, experience, and
-          cultural pride.
+        <p className="mt-3 max-w-2xl text-xs leading-7 text-white/75 md:text-sm">
+          Meet the leaders guiding Prabasi Odia with wisdom, experience, and cultural pride.
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 mt-6 md:mt-8">
-          <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 md:px-5 md:py-2.5 rounded-full border border-white/10">
-            <Users className="w-4 h-4 md:w-5 md:h-5 text-[#E6A11C]" />
-            <span className="text-xs md:text-sm text-white/80">
-              <span className="font-bold text-white">{totalMembers}</span> Members
-            </span>
+        <div className="mt-4 flex gap-3">
+          <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 backdrop-blur-sm md:px-5 md:py-3">
+            <strong className="block text-2xl">{loading ? '-' : totalMembers}</strong>
+            <span className="text-xs text-white/70">Members</span>
           </div>
-          {featuredCount > 0 && (
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 md:px-5 md:py-2.5 rounded-full border border-white/10">
-              <Star className="w-4 h-4 md:w-5 md:h-5 text-[#E6A11C]" />
-              <span className="text-xs md:text-sm text-white/80">
-                <span className="font-bold text-white">{featuredCount}</span>{" "}
-                Featured
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 md:px-5 md:py-2.5 rounded-full border border-white/10">
-            <Award className="w-4 h-4 md:w-5 md:h-5 text-[#E6A11C]" />
-            <span className="text-xs md:text-sm text-white/80">
-              Guiding Our Community
-            </span>
+          <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 backdrop-blur-sm md:px-5 md:py-3">
+            <strong className="block text-2xl">{loading ? '-' : featuredCount}</strong>
+            <span className="text-xs text-white/70">Featured</span>
           </div>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </section>
   );
 }

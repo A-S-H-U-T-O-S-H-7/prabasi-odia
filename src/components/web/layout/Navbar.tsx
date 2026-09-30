@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, X, User, LogOut, Bell, ChevronDown, 
-  Home, Calendar, Users, Settings, HelpCircle, MapPin 
+  Home, Calendar, Users, Settings, HelpCircle, MapPin, Siren
 } from 'lucide-react';
 import { useAuthStore, useUserStore } from '@/lib/store';
 
@@ -71,12 +71,13 @@ export default function Navbar() {
     { href: '/about', label: 'About' },
   ];
   const moreLinks = [
+    { href: '/urgent-help', label: 'Urgent Help' },
     { href: '/jobs', label: 'Jobs' },
     { href: '/investments', label: 'Investments' },
     { href: '/doctors', label: 'Doctor Consultations' },
     { href: '/cultural-teams', label: 'Cultural Teams' },
-    { href: '/urgent-help', label: 'Urgent Help' },
     { href: '/media', label: 'Media' },
+    { href: '/magazine', label: 'Magazine' },
     { href: '/advisory-board', label: 'Advisory Board' },
   ];
   const donateHref = isAuthenticated ? '/donation' : '/join-community';
@@ -185,8 +186,9 @@ export default function Navbar() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="block rounded-lg px-3 py-2.5 text-sm text-[#6B5E5A] hover:bg-[#E7D7E8]/40 hover:text-[#6B1E5B] transition-colors"
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors ${link.href === '/urgent-help' ? 'bg-red-50 font-semibold text-red-700 hover:bg-red-100 hover:text-red-800' : 'text-[#6B5E5A] hover:bg-[#E7D7E8]/40 hover:text-[#6B1E5B]'}`}
                     >
+                      {link.href === '/urgent-help' && <Siren aria-hidden="true" className="urgent-help-siren h-4 w-4 shrink-0" />}
                       {link.label}
                     </Link>
                   ))}
@@ -380,9 +382,10 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center gap-3 text-[#6B5E5A] hover:text-[#6B1E5B] transition-colors py-2"
+                    className={`flex items-center gap-3 rounded-lg px-2 py-2 transition-colors ${link.href === '/urgent-help' ? 'bg-red-50 font-semibold text-red-700 hover:bg-red-100 hover:text-red-800' : 'text-[#6B5E5A] hover:text-[#6B1E5B]'}`}
                     onClick={() => setIsOpen(false)}
                   >
+                    {link.href === '/urgent-help' && <Siren aria-hidden="true" className="urgent-help-siren h-5 w-5 shrink-0" />}
                     <span>{link.label}</span>
                   </Link>
                 ))}

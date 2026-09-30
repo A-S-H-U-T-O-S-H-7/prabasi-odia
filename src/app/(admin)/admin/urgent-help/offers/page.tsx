@@ -1,5 +1,5 @@
-import HelperOffers from '@/components/admin/urgent-help/HelperOffers';
+import { redirect } from 'next/navigation';
 
 export default function UrgentHelpOffersPage() {
-  return <HelperOffers />;
+  redirect('/admin/urgent-help?tab=offers');
 }
