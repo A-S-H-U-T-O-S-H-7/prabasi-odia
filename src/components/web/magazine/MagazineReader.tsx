@@ -2,100 +2,193 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, BookOpen, ChevronLeft, ChevronRight, ExternalLink, Hand, Loader2 } from 'lucide-react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { magazineService, type MagazineIssue } from '@/lib/services/magazineService';
+import styles from './magazineReader.module.css';
 
 const pdfRoute = (id: string, pdfUrl: string) =>
   `/api/magazines/${encodeURIComponent(id)}/pdf?url=${encodeURIComponent(pdfUrl)}`;
+type FlipBook = import('page-flip').PageFlip;
 
-function PdfPage({ pdf, number }: { pdf: PDFDocumentProxy; number: number }) {
-  const wrapper = useRef<HTMLDivElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const [width, setWidth] = useState(0);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState(false);
+function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onReady, onEndAttempt }: {
+  pdf: PDFDocumentProxy;
+  coverUrl: string;
+  pageRatio: number;
+  startPage: number;
+  onPageChange: (page: number) => void;
+  onReady: (book: FlipBook | null) => void;
+  onEndAttempt: () => void;
+}) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const changeRef = useRef(onPageChange);
+  const readyRef = useRef(onReady);
+  const endAttemptRef = useRef(onEndAttempt);
+  changeRef.current = onPageChange;
+  readyRef.current = onReady;
+  endAttemptRef.current = onEndAttempt;
 
   useEffect(() => {
-    const element = wrapper.current;
-    if (!element) return;
-    const observer = new ResizeObserver(() => setWidth(element.clientWidth));
-    observer.observe(element);
-    setWidth(element.clientWidth);
-    return () => observer.disconnect();
-  }, []);
+    const host = hostRef.current;
+    if (!host) return;
+    let disposed = false;
+    let book: FlipBook | null = null;
+    const urls: string[] = [];
+    const renders = new Map<number, Promise<void>>();
+    const images: HTMLImageElement[] = [];
+    const root = document.createElement('div');
+    root.className = styles.flipRoot;
+    host.appendChild(root);
 
-  useEffect(() => {
-    if (!width || !canvas.current) return;
-    let cancelled = false;
-    let renderTask: ReturnType<Awaited<ReturnType<PDFDocumentProxy['getPage']>>['render']> | null = null;
-    setReady(false);
-    setError(false);
-
-    const render = async () => {
-      try {
-        const page = await pdf.getPage(number);
-        if (cancelled || !canvas.current) return;
-        const original = page.getViewport({ scale: 1 });
-        const pixels = Math.min(width * Math.min(window.devicePixelRatio || 1, 2), 1400);
-        const viewport = page.getViewport({ scale: pixels / original.width });
-        const context = canvas.current.getContext('2d');
-        if (!context) return;
-        canvas.current.width = Math.ceil(viewport.width);
-        canvas.current.height = Math.ceil(viewport.height);
-        renderTask = page.render({ canvas: canvas.current, canvasContext: context, viewport });
-        await renderTask.promise;
-        if (!cancelled) setReady(true);
-      } catch (error) {
-        if (!cancelled) {
-          console.error(`Could not render magazine page ${number}`, error);
-          setError(true);
+    const renderPage = (number: number): Promise<void> => {
+      if (number < 2 || number > pdf.numPages) return Promise.resolve();
+      if (renders.has(number)) return renders.get(number)!;
+      const task = (async () => {
+        try {
+          const page = await pdf.getPage(number);
+          if (disposed) return;
+          const original = page.getViewport({ scale: 1 });
+          const viewport = page.getViewport({ scale: 1200 / original.width });
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          const context = canvas.getContext('2d');
+          if (!context) throw new Error('Canvas is unavailable');
+          await page.render({ canvas, canvasContext: context, viewport }).promise;
+          if (disposed) return;
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+          if (!blob || disposed) return;
+          const url = URL.createObjectURL(blob);
+          urls.push(url);
+          images[number - 1].src = url;
+        } catch (reason) {
+          if (!disposed) console.error(`Could not render magazine page ${number}`, reason);
         }
-      }
+      })();
+      renders.set(number, task);
+      return task;
     };
-    void render();
-    return () => {
-      cancelled = true;
-      renderTask?.cancel();
+    const prefetch = (index: number) => {
+      for (let page = Math.max(2, index); page <= Math.min(pdf.numPages, index + 5); page++) void renderPage(page);
     };
-  }, [pdf, number, width]);
 
-  return (
-    <div ref={wrapper} className="relative h-full w-full overflow-hidden bg-[#FFFCF7]">
-      {!ready && !error && (
-        <div className="absolute inset-0 flex items-center justify-center text-[#8C7667]" role="status">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="sr-only">Loading page {number}</span>
-        </div>
-      )}
-      {error && <p role="alert" className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-red-700">Page {number} could not be displayed.</p>}
-      <canvas ref={canvas} role="img" aria-label={`Page ${number}`} className={`h-full w-full object-contain ${ready ? '' : 'opacity-0'}`} />
-    </div>
-  );
+    const mount = async () => {
+      const { PageFlip } = await import('page-flip');
+      if (disposed) return;
+      const pages = Array.from({ length: pdf.numPages }, (_, index) => {
+        const element = document.createElement('div');
+        element.className = styles.flipPage;
+        if (index === 0) element.dataset.density = 'hard';
+        const image = document.createElement('img');
+        image.alt = index === 0 ? 'Magazine cover' : `Magazine page ${index + 1}`;
+        image.draggable = false;
+        if (index === 0) image.src = coverUrl;
+        images.push(image);
+        element.appendChild(image);
+        return element;
+      });
+      await Promise.all([2, 3, 4, startPage, startPage + 1].map(renderPage));
+      if (disposed) return;
+      const width = 440;
+      book = new PageFlip(root, {
+        width, height: Math.round(width / pageRatio), size: 'stretch',
+        minWidth: 160, maxWidth: width, minHeight: Math.round(160 / pageRatio), maxHeight: Math.round(width / pageRatio),
+        autoSize: true, usePortrait: true, showCover: true, drawShadow: true,
+        flippingTime: 850, showPageCorners: false, disableFlipByClick: true,
+        useMouseEvents: false, mobileScrollSupport: true, startPage: startPage - 1,
+      });
+      book.on('flip', (event) => { changeRef.current(event.data + 1); prefetch(event.data + 1); });
+      book.loadFromHTML(pages);
+      readyRef.current(book);
+      prefetch(startPage);
+    };
+    void mount();
+
+    let gesture: { id: number; x: number; y: number; active: boolean } | null = null;
+    const position = (event: PointerEvent) => {
+      const area = root.querySelector('.stf__block')?.getBoundingClientRect();
+      return { x: event.clientX - (area?.left || 0), y: event.clientY - (area?.top || 0) };
+    };
+    const pointerDown = (event: PointerEvent) => {
+      if (!book || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, active: false };
+    };
+    const pointerMove = (event: PointerEvent) => {
+      if (!book || !gesture || event.pointerId !== gesture.id) return;
+      const dx = event.clientX - gesture.x;
+      const dy = event.clientY - gesture.y;
+      if (!gesture.active) {
+        if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+        const current = book.getCurrentPageIndex();
+        const lastSpread = current === book.getPageCount() - 1 ||
+          (book.getOrientation() === 'landscape' && current > 0 && current >= book.getPageCount() - 2);
+        if (dx < 0 && lastSpread) {
+          endAttemptRef.current();
+          gesture = null;
+          return;
+        }
+        if (dx > 0 && current === 0) return;
+        const area = root.querySelector('.stf__block')?.getBoundingClientRect();
+        if (!area) return;
+        const middle = area.left + area.width / 2;
+        if (book.getOrientation() === 'landscape' && ((dx < 0 && gesture.x < middle) || (dx > 0 && gesture.x > middle))) return;
+        book.startUserTouch({ x: gesture.x - area.left, y: gesture.y - area.top });
+        gesture.active = true;
+        host.setPointerCapture(event.pointerId);
+      }
+      book.userMove(position(event), event.pointerType === 'touch');
+      if (event.cancelable) event.preventDefault();
+    };
+    const pointerUp = (event: PointerEvent) => {
+      if (!gesture || event.pointerId !== gesture.id) return;
+      if (gesture.active && book) book.userStop(position(event));
+      if (host.hasPointerCapture(event.pointerId)) host.releasePointerCapture(event.pointerId);
+      gesture = null;
+    };
+    host.addEventListener('pointerdown', pointerDown);
+    host.addEventListener('pointermove', pointerMove);
+    host.addEventListener('pointerup', pointerUp);
+    host.addEventListener('pointercancel', pointerUp);
+    return () => {
+      disposed = true;
+      readyRef.current(null);
+      host.removeEventListener('pointerdown', pointerDown);
+      host.removeEventListener('pointermove', pointerMove);
+      host.removeEventListener('pointerup', pointerUp);
+      host.removeEventListener('pointercancel', pointerUp);
+      book?.destroy();
+      root.remove();
+      urls.forEach(URL.revokeObjectURL);
+    };
+  }, [pdf, coverUrl, pageRatio, startPage]);
+
+  return <div ref={hostRef} className={styles.bookHost} aria-label="Drag a magazine page to turn it" />;
 }
 
-export default function MagazineReader({ issueId }: { issueId: string }) {
-  const [issue, setIssue] = useState<MagazineIssue | null>(null);
+export default function MagazineReader({ issueId, initialIssue, embedded = false }: {
+  issueId: string;
+  initialIssue?: MagazineIssue;
+  embedded?: boolean;
+}) {
+  const [issue, setIssue] = useState<MagazineIssue | null>(initialIssue || null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isWide, setIsWide] = useState(false);
   const [page, setPage] = useState(1);
-  const [direction, setDirection] = useState(1);
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const initialHashApplied = useRef(false);
-  const reduceMotion = useReducedMotion();
+  const [initialPage, setInitialPage] = useState(1);
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape' | null>(null);
+  const [showEndMessage, setShowEndMessage] = useState(false);
+  const bookRef = useRef<FlipBook | null>(null);
+  const endMessageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let task: ReturnType<typeof import('pdfjs-dist')['getDocument']> | null = null;
-
     const load = async () => {
       setLoading(true);
       setError('');
       try {
-        const found = await magazineService.getIssue(issueId);
+        const found = initialIssue || await magazineService.getIssue(issueId);
         if (!found) throw new Error('This magazine could not be found.');
         if (cancelled) return;
         setIssue(found);
@@ -103,185 +196,97 @@ export default function MagazineReader({ issueId }: { issueId: string }) {
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
         task = pdfjs.getDocument({ url: pdfRoute(issueId, found.pdfUrl) });
         const document = await task.promise;
-        if (!cancelled) setPdf(document);
-      } catch (reason) {
         if (!cancelled) {
-          setError(reason instanceof Error ? reason.message : 'Could not open this magazine.');
+          const fromHash = embedded ? 1 : Number(new URLSearchParams(window.location.hash.slice(1)).get('p'));
+          const first = Number.isInteger(fromHash) && fromHash >= 1 && fromHash <= document.numPages ? fromHash : 1;
+          setInitialPage(first);
+          setPage(first);
+          setPdf(document);
         }
+      } catch (reason) {
+        if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not open this magazine.');
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
     void load();
-    return () => {
-      cancelled = true;
-      void task?.destroy();
-    };
-  }, [issueId]);
+    return () => { cancelled = true; void task?.destroy(); };
+  }, [issueId, initialIssue, embedded]);
 
   useEffect(() => {
-    const query = window.matchMedia('(min-width: 800px)');
-    const update = () => {
-      setIsWide(query.matches);
-      setPage((current) => query.matches && current > 1 && current % 2 === 1 ? current - 1 : current);
-    };
-    update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
+    if (!embedded && pdf) window.history.replaceState(null, '', `#p=${page}`);
+  }, [page, embedded, pdf]);
+  useEffect(() => () => {
+    if (endMessageTimer.current) clearTimeout(endMessageTimer.current);
   }, []);
-
-  const count = pdf?.numPages || issue?.pageCount || 0;
-  const stops = isWide
-    ? [1, ...Array.from({ length: Math.ceil((count - 1) / 2) }, (_, index) => 2 + index * 2)]
-    : Array.from({ length: count }, (_, index) => index + 1);
-  const lastVisible = isWide && page > 1 ? Math.min(page + 1, count) : page;
-  const canGoBack = page > 1;
-  const canGoForward = lastVisible < count;
-
-  const goBack = () => {
-    if (!canGoBack) return;
-    setDirection(-1);
-    setPage((current) => isWide ? Math.max(1, current - 2) : current - 1);
+  const count = pdf?.numPages || 0;
+  const visibleEnd = orientation === 'landscape' && page > 1 ? Math.min(page + 1, count) : page;
+  const atEnd = count > 0 && visibleEnd >= count;
+  const showEnd = () => {
+    setShowEndMessage(true);
+    if (endMessageTimer.current) clearTimeout(endMessageTimer.current);
+    endMessageTimer.current = setTimeout(() => setShowEndMessage(false), 3500);
   };
-  const goForward = () => {
-    if (!canGoForward) return;
-    setDirection(1);
-    setPage((current) => current === 1 ? 2 : current + (isWide ? 2 : 1));
+  const nextPage = () => {
+    if (atEnd) showEnd();
+    else bookRef.current?.flipNext('bottom');
   };
-  const jumpTo = (target: number) => {
-    if (!Number.isFinite(target) || target < 1 || target > count) return;
-    const next = isWide && target > 1 && target % 2 === 1 ? target - 1 : target;
-    setDirection(next >= page ? 1 : -1);
-    setPage(next);
-  };
-
-  useEffect(() => {
-    if (!pdf || initialHashApplied.current) return;
-    initialHashApplied.current = true;
-    const target = Number(new URLSearchParams(window.location.hash.slice(1)).get('p'));
-    if (target >= 1 && target <= pdf.numPages) jumpTo(target);
-    else window.history.replaceState(null, '', '#p=1');
-  }, [pdf, isWide]);
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) return;
-      if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        goForward();
-      } else if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        goBack();
-      }
+      if (event.key === 'ArrowRight') nextPage();
+      if (event.key === 'ArrowLeft') bookRef.current?.flipPrev('bottom');
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   });
-
-  useEffect(() => {
-    if (!initialHashApplied.current) return;
-    window.history.replaceState(null, '', `#p=${page}`);
-  }, [page]);
-
+  const onReady = (book: FlipBook | null) => {
+    bookRef.current = book;
+    if (book) {
+      setOrientation(book.getOrientation());
+      book.on('changeOrientation', (event) => setOrientation(event.data));
+    } else setOrientation(null);
+  };
   return (
-    <div className="min-h-screen bg-[#F5EEE5] px-3 py-5 text-[#2A1636] sm:px-6 md:py-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <Link href="/magazine" className="inline-flex items-center gap-2 text-sm font-semibold text-[#7C3A21] hover:underline">
-            <ArrowLeft className="h-4 w-4" /> All magazines
-          </Link>
-          {issue && (
-            <a href={pdfRoute(issueId, issue.pdfUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-[#7C3A21] hover:underline">
-              Original PDF <ExternalLink className="h-4 w-4" />
-            </a>
-          )}
+    <main className={`${styles.reader} ${embedded ? styles.embedded : ''}`}>
+      <div className={styles.shell}>
+        <div className={styles.topbar}>
+          {!embedded && <Link href="/magazine" className={styles.backLink}><ArrowLeft size={17} /> All magazines</Link>}
+          {issue && <a href={pdfRoute(issueId, issue.pdfUrl)} target="_blank" rel="noopener noreferrer" className={styles.pdfLink}>Open original PDF <ExternalLink size={15} /></a>}
         </div>
-
-        {loading ? (
-          <div role="status" className="flex min-h-96 items-center justify-center gap-3 text-sm text-[#6B5E5A]">
-            <Loader2 className="h-6 w-6 animate-spin text-[#7C3A21]" /> Opening magazine...
-          </div>
-        ) : error || !issue || !pdf ? (
-          <div role="alert" className="rounded-2xl border border-[#E7D7E8] bg-white p-10 text-center text-sm text-red-700">
-            {error || 'This magazine is unavailable.'}
-          </div>
-        ) : (
+        {loading ? <div className={styles.loading} role="status"><Loader2 className={styles.loadingIcon} /> Preparing the magazine...</div> : error || !issue || !pdf ? <div className={styles.error} role="alert">{error || 'This magazine is unavailable.'}</div> : (
           <>
-            <header className="mb-5 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#9A5B20]">Prabasi Odia Magazine</p>
-              <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{issue.title}</h1>
-              {issue.description && <p className="mx-auto mt-2 max-w-2xl text-sm text-[#6B5E5A]">{issue.description}</p>}
+            <header className={styles.heading}>
+              <span className={styles.eyebrow}>Prabasi Odia · Digital magazine</span>
+              <h1>{issue.title}</h1>
+              <p>{new Date(`${issue.issueMonth}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })} <span>·</span> {count} pages</p>
             </header>
-
-            <div
-              className="mx-auto max-w-6xl [perspective:1800px]"
-              onTouchStart={(event) => {
-                touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
-              }}
-              onTouchEnd={(event) => {
-                const start = touchStart.current;
-                touchStart.current = null;
-                if (!start) return;
-                const dx = event.changedTouches[0].clientX - start.x;
-                const dy = event.changedTouches[0].clientY - start.y;
-                if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-                  if (dx < 0) goForward(); else goBack();
-                }
-              }}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={`${isWide}-${page}`}
-                  initial={reduceMotion ? false : { opacity: 0, rotateY: direction * -12, x: direction * 36 }}
-                  animate={{ opacity: 1, rotateY: 0, x: 0 }}
-                  exit={reduceMotion ? undefined : { opacity: 0, rotateY: direction * 12, x: direction * -36 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.28, ease: 'easeInOut' }}
-                  className="relative mx-auto flex w-full overflow-hidden rounded-md border border-[#D8C8B6] bg-[#FFFCF7] shadow-[0_18px_48px_rgba(70,45,29,0.25)]"
-                  style={{ aspectRatio: isWide ? (issue.pageRatio || 0.707) * 2 : issue.pageRatio || 0.707 }}
-                >
-                  {isWide && (
-                    <div className="relative h-full w-1/2 border-r border-[#D8C8B6] bg-[#FAF4EA]">
-                      {page > 1 && <PdfPage pdf={pdf} number={page} />}
-                    </div>
-                  )}
-                  <div className={`relative h-full ${isWide ? 'w-1/2' : 'w-full'} bg-[#FFFCF7]`}>
-                    {(isWide ? (page === 1 ? 1 : page + 1) : page) <= count && (
-                      <PdfPage pdf={pdf} number={isWide ? (page === 1 ? 1 : page + 1) : page} />
-                    )}
-                  </div>
-                  {isWide && <div className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-8 -translate-x-1/2 bg-gradient-to-r from-black/10 via-transparent to-black/10" aria-hidden="true" />}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-3 sm:justify-between">
-              <button type="button" onClick={goBack} disabled={!canGoBack} className="inline-flex items-center gap-2 rounded-xl border border-[#D8C8B6] bg-white px-4 py-2.5 text-sm font-semibold text-[#7C3A21] disabled:cursor-not-allowed disabled:opacity-40">
-                <ChevronLeft className="h-4 w-4" /> Previous
+            <section className={styles.bookStage} data-cover={page === 1} data-orientation={orientation} aria-label={`Read ${issue.title}`}>
+              <button type="button" className={styles.sideTurn} disabled={!orientation || page <= 1} onClick={() => bookRef.current?.flipPrev('bottom')} aria-label="Turn to previous pages" title="Previous pages">
+                <ChevronLeft size={27} aria-hidden="true" />
               </button>
-              <div className="flex items-center gap-2 text-sm text-[#6B5E5A]">
-                <span>{page === lastVisible ? `Page ${page}` : `Pages ${page}–${lastVisible}`} of {count}</span>
-                <label className="sr-only" htmlFor="magazine-page-jump">Jump to page</label>
-                <select
-                  id="magazine-page-jump"
-                  value={page}
-                  onChange={(event) => jumpTo(Number(event.target.value))}
-                  className="rounded-lg border border-[#D8C8B6] bg-white px-2 py-1 text-xs text-[#2A1636]"
-                >
-                  {stops.map((stop) => (
-                    <option key={stop} value={stop}>
-                      {isWide && stop > 1 ? `Pages ${stop}–${Math.min(stop + 1, count)}` : `Page ${stop}`}
-                    </option>
-                  ))}
+              <MagazineBook pdf={pdf} coverUrl={issue.coverUrl} pageRatio={issue.pageRatio && issue.pageRatio > 0 ? issue.pageRatio : 0.707} startPage={initialPage} onPageChange={(number) => { setPage(number); setShowEndMessage(false); }} onReady={onReady} onEndAttempt={showEnd} />
+              <button type="button" className={styles.sideTurn} data-ended={atEnd} disabled={!orientation} aria-disabled={atEnd} onClick={nextPage} aria-label={atEnd ? 'End of magazine' : 'Turn to next pages'} title={atEnd ? 'End of magazine' : 'Next pages'}>
+                <ChevronRight size={27} aria-hidden="true" />
+              </button>
+            </section>
+            <p className={`${styles.dragHint} ${showEndMessage ? styles.endMessage : ''}`} role="status" aria-live="polite">
+              {showEndMessage ? <><BookOpen size={19} aria-hidden="true" /> You’ve reached the end of this magazine.</> : <><Hand size={19} aria-hidden="true" /><ArrowLeftRight size={20} aria-hidden="true" /> Drag a page to turn it</>}
+            </p>
+            <nav className={styles.controls} aria-label="Magazine pages">
+              <button type="button" className={styles.previous} disabled={page <= 1} onClick={() => bookRef.current?.flipPrev('bottom')}><ChevronLeft size={18} /> Previous</button>
+              <div className={styles.pagePosition} aria-live="polite">
+                <span>{page === 1 ? `Cover · ${count} pages` : `Page ${page}${visibleEnd > page ? `-${visibleEnd}` : ''} of ${count}`}</span>
+                <select aria-label="Jump to magazine page" value={page} onChange={(event) => { const target = Number(event.target.value); bookRef.current?.turnToPage(target - 1); setPage(target); }}>
+                  {Array.from({ length: count }, (_, index) => <option key={index} value={index + 1}>{index === 0 ? 'Cover' : `Page ${index + 1}`}</option>)}
                 </select>
               </div>
-              <button type="button" onClick={goForward} disabled={!canGoForward} className="inline-flex items-center gap-2 rounded-xl bg-[#7C3A21] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
-                Next <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="mt-3 text-center text-xs text-[#8C7667]">Swipe or use the arrow keys to turn pages.</p>
+              <button type="button" className={styles.next} data-ended={atEnd} disabled={!orientation} aria-disabled={atEnd} onClick={nextPage}>{atEnd ? 'End' : 'Next'} <ChevronRight size={18} /></button>
+            </nav>
+            <p className={styles.hint}>Drag with your mouse or finger, or use the arrows beside the magazine.</p>
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }

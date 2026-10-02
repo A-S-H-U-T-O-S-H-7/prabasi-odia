@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BookOpen, Loader2 } from 'lucide-react';
 import { magazineService, type MagazineIssue } from '@/lib/services/magazineService';
 import MagazineHero from './MagazineHero';
+import MagazineModal from './MagazineModal';
+import styles from './magazineArchive.module.css';
 
 function displayMonth(value: string) {
   const date = new Date(`${value}-01T00:00:00`);
@@ -19,6 +21,8 @@ export default function Magazine() {
   const [issues, setIssues] = useState<MagazineIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState<MagazineIssue | null>(null);
+  const closeMagazine = useCallback(() => setSelectedIssue(null), []);
 
   const load = async () => {
     setLoading(true);
@@ -57,7 +61,7 @@ export default function Magazine() {
             </h2>
             <p className="mt-2 text-sm text-[#6B5E5A]">
               {issues.length
-                ? 'Choose an issue to turn its pages in a new tab.'
+                ? 'Choose an issue to turn its pages.'
                 : 'A space for stories from across the Prabasi Odia community.'}
             </p>
           </div>
@@ -76,25 +80,25 @@ export default function Magazine() {
           ) : issues.length ? (
             <div className="grid grid-cols-2 items-start gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 lg:grid-cols-4">
               {issues.map((issue) => (
-                <Link
+                <button
                   key={issue.id}
-                  href={`/magazine/${issue.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block min-w-0 text-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#7C3A21]"
-                  aria-label={`Open ${issue.title} in a new tab`}
+                  type="button"
+                  onClick={() => setSelectedIssue(issue)}
+                  className={`${styles.issueLink} block min-w-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#7C3A21]`}
+                  aria-label={`Open ${issue.title} magazine`}
                 >
-                  <img
-                    src={issue.coverUrl}
-                    alt={`${issue.title} cover`}
-                    loading="lazy"
-                    className="aspect-[3/4] w-full bg-white object-contain shadow-md transition-shadow group-hover:shadow-xl"
-                  />
-                  <h3 className="mt-3 line-clamp-2 text-base font-semibold leading-snug text-[#2A1636] group-hover:text-[#7C3A21] sm:text-lg">
-                    {issue.title}
-                  </h3>
-                  <p className="mt-1 text-xs text-[#6B5E5A]">{displayMonth(issue.issueMonth)}</p>
-                </Link>
+                  <div className={styles.bookCover} style={{ aspectRatio: issue.pageRatio || 0.707 }}>
+                    <span className={styles.pageEdges} aria-hidden="true" />
+                    <div className={styles.coverFace}>
+                      <img src={issue.coverUrl} alt={`${issue.title} cover`} loading="lazy" />
+                      <span className={styles.spine} aria-hidden="true" />
+                      <div className={styles.issueDetails}>
+                        <h3>{issue.title}</h3>
+                        <p>{displayMonth(issue.issueMonth)} <ArrowRight size={14} aria-hidden="true" /></p>
+                      </div>
+                    </div>
+                  </div>
+                </button>
               ))}
             </div>
           ) : (
@@ -113,6 +117,7 @@ export default function Magazine() {
           )}
         </section>
       </div>
+      {selectedIssue && <MagazineModal issue={selectedIssue} onClose={closeMagazine} />}
     </div>
   );
 }
