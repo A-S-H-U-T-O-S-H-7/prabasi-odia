@@ -12,6 +12,7 @@
 .panel {
   width: min(1500px, 100%);
   max-height: calc(100dvh - 24px);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid #d7c2af;
@@ -59,6 +60,7 @@
 .closeButton:focus-visible { outline: 2px solid #7c3a21; outline-offset: 2px; }
 @media (max-width: 767px) {
   .backdrop { padding: 6px; }
-  .panel { max-height: calc(100dvh - 12px); border-radius: 10px; }
+  .panel { max-height: calc(100dvh - 12px); border-radius: 10px; scrollbar-width: none; }
+  .panel::-webkit-scrollbar { display: none; }
   .modalHeader { min-height: 54px; padding: 7px 11px; }
 }

@@ -12,6 +12,7 @@ import ProfileAddresses from "@/components/web/profile/ProfileAddresses";
 import ProfilePeopleNearby from "@/components/web/profile/ProfilePeopleNearby";
 import ProfileDonations from "@/components/web/profile/ProfileDonations";
 import { Heart, Loader2, User } from "lucide-react";
+import { canHaveMemberCard } from '@/lib/residency';
 
 type ProfileTab = "overview" | "donations";
 
@@ -63,6 +64,9 @@ export default function ProfilePage() {
     );
   }
 
+  const isGuest = profile.residencyStatus === 'GUEST';
+  const hasCard = canHaveMemberCard(profile.residencyStatus) && profile.isVerified && Boolean(profile.memberId);
+
   return (
     <div className="min-h-screen bg-[#FFF9F2] pt-6 pb-12">
       <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-[#6B1E5B]/5 to-transparent pointer-events-none" />
@@ -70,7 +74,7 @@ export default function ProfilePage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <ProfileHeader profile={profile} />
 
-        <div className="mt-6 inline-flex p-1 rounded-2xl bg-white/70 border border-white/60 shadow-sm backdrop-blur-sm">
+        {!isGuest && <div className="mt-6 inline-flex p-1 rounded-2xl bg-white/70 border border-white/60 shadow-sm backdrop-blur-sm">
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
@@ -95,19 +99,33 @@ export default function ProfilePage() {
             <Heart className="w-4 h-4" />
             Donations
           </button>
-        </div>
+        </div>}
 
-        {activeTab === "overview" ? (
+        {isGuest ? (
+          <div className="mt-6 max-w-2xl rounded-2xl border border-[#D4C8C0] bg-white/80 p-6 shadow-sm">
+            <h2 className="font-serif text-xl font-bold text-[#2A1636]">Guest account</h2>
+            <p className="mt-2 text-sm leading-6 text-[#6B5E5A]">You can explore the site. Posting, applications, enquiries, and community membership are available to approved Odia applicants.</p>
+            <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+              <div><dt className="text-[#6B5E5A]">Email</dt><dd className="font-medium text-[#2A1636]">{profile.email}</dd></div>
+              <div><dt className="text-[#6B5E5A]">Mobile</dt><dd className="font-medium text-[#2A1636]">{profile.phoneNumber || 'Not provided'}</dd></div>
+            </dl>
+          </div>
+        ) : activeTab === "overview" ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <div className="lg:col-span-2 space-y-6">
               <ProfilePeopleNearby profile={profile} />
               <ProfileAbout profile={profile} />
-              {profile.isVerified && profile.memberId ? (
+              {hasCard ? (
                 <ProfileMemberCard profile={profile} />
+              ) : profile.isVerified ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
+                  <p className="font-semibold">Your account is approved</p>
+                  <p className="mt-1 text-sm">You can use member services. This account type does not receive a member card.</p>
+                </div>
               ) : (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
-                  <p className="font-semibold">Membership application under review</p>
-                  <p className="mt-1 text-sm">Your account is active, but you are not a member until an administrator approves your application.</p>
+                  <p className="font-semibold">{profile.residencyStatus === 'RO' ? 'Odia account under review' : 'Membership application under review'}</p>
+                  <p className="mt-1 text-sm">An administrator will review your application before member services become available.</p>
                 </div>
               )}
             </div>

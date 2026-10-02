@@ -53,7 +53,9 @@ export default function ProfileActivity({ profile }: ProfileActivityProps) {
   if (profile.hasJoinedCommunity) {
     activities.push({
       icon: CheckCircle2,
-      label: "Completed Community Registration",
+      label: profile.residencyStatus === 'RO'
+        ? "Completed Odia account application"
+        : "Completed Community Registration",
       date: profile.updatedAt ? formatDate(profile.updatedAt) : "Recently",
       monthYear: profile.updatedAt ? formatMonthYear(profile.updatedAt) : "Recently",
       fullDate: profile.updatedAt ? formatDate(profile.updatedAt) : "Recently",

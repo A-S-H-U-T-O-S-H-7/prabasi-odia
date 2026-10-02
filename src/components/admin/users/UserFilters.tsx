@@ -5,6 +5,7 @@ import AdminSearchFilters, { type AdminSearchProps } from "@/components/admin/co
 interface UserFiltersProps extends AdminSearchProps {
   statusFilter: 'all' | 'pending' | 'verified' | 'rejected';
   setStatusFilter: (status: 'all' | 'pending' | 'verified' | 'rejected') => void;
+  guestView?: boolean;
 }
 
 export default function UserFilters({
@@ -15,6 +16,7 @@ export default function UserFilters({
   isSearching,
   statusFilter,
   setStatusFilter,
+  guestView = false,
 }: UserFiltersProps) {
   return (
     <AdminSearchFilters
@@ -23,11 +25,12 @@ export default function UserFilters({
       onSearch={onSearch}
       onClear={onClear}
       isSearching={isSearching}
-      placeholder="Search by name, email, member ID..."
+      placeholder={guestView ? 'Search by name or email...' : 'Search by name, email, member ID...'}
     >
-
-      {/* Status Filter */}
-      <div className="flex flex-wrap gap-2">
+      {guestView ? (
+        <span className="px-2 text-sm text-[#6B5E5A]">Showing Guest accounts</span>
+      ) : (
+        <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setStatusFilter('all')}
@@ -72,7 +75,8 @@ export default function UserFilters({
         >
           Rejected
         </button>
-      </div>
+        </div>
+      )}
     </AdminSearchFilters>
   );
 }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, HandCoins, LockKeyhole, Plus, Search, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuthStore, useUserStore } from '@/lib/store';
+import { canUseMemberServices } from '@/lib/residency';
 import { investmentsService } from '@/lib/services/investmentsService';
 import { INVESTMENT_SECTORS, type Investment } from '@/lib/investments/types';
 import InvestmentModal from './InvestmentModal';
@@ -19,7 +20,8 @@ export default function Investments() {
   const currentProfile = profile?.uid === user?.uid ? profile : null;
   const verified = Boolean(
     (currentProfile?.hasJoinedCommunity ?? user?.hasJoinedCommunity) &&
-    (currentProfile?.isVerified ?? user?.isVerified)
+    (currentProfile?.isVerified ?? user?.isVerified) &&
+    canUseMemberServices(currentProfile?.residencyStatus ?? user?.residencyStatus)
   );
   const [items, setItems] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(false);

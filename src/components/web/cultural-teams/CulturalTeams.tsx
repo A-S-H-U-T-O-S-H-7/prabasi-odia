@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Music2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUserStore } from '@/lib/store';
+import { canUseMemberServices } from '@/lib/residency';
 import {
   type CulturalTeam,
   type CulturalTeamDraft,
@@ -23,6 +24,13 @@ type DialogMode = 'register' | 'detail' | 'enquiry';
 export default function CulturalTeams() {
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading } = useAuthStore();
+  const profile = useUserStore((state) => state.profile);
+  const currentProfile = profile?.uid === user?.uid ? profile : null;
+  const canParticipate = Boolean(
+    (currentProfile?.isVerified ?? user?.isVerified) &&
+    (currentProfile?.hasJoinedCommunity ?? user?.hasJoinedCommunity) &&
+    canUseMemberServices(currentProfile?.residencyStatus ?? user?.residencyStatus)
+  );
   const [teams, setTeams] = useState<CulturalTeam[]>([]);
   const [mine, setMine] = useState<CulturalTeam[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +98,14 @@ export default function CulturalTeams() {
   };
 
   const openRegistration = () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    if (!canParticipate) {
+      toast.error('An approved Odia account is required to register a team.');
+      return;
+    }
     setFiles([]);
     setScopes([]);
     setStates([]);
@@ -278,7 +294,13 @@ export default function CulturalTeams() {
           uploadProgress={uploadProgress}
           error={formError}
           onClose={close}
-          onMode={setMode}
+          onMode={(next) => {
+            if (next === 'enquiry' && !canParticipate) {
+              toast.error('An approved Odia account is required to contact a team.');
+              return;
+            }
+            setMode(next);
+          }}
           onRegister={register}
           onEnquire={enquire}
           onFiles={setFiles}

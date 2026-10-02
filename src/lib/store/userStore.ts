@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import type { ResidencyStatus } from '@/lib/residency';
 
 export interface FamilyMember {
   id?: string;
@@ -17,6 +18,7 @@ export interface UserProfile {
   email: string;
   photoURL?: string;
   phoneNumber?: string;
+  residencyStatus?: ResidencyStatus;
   
   // Community Status
   hasJoinedCommunity: boolean;

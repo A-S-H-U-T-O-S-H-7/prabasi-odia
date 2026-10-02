@@ -40,6 +40,7 @@ export default function CommunitiesPage() {
     isAuthenticated,
     hasJoinedCommunity: hasCompletedJoiningForm,
     isVerified,
+    residencyStatus: user?.residencyStatus ?? profile?.residencyStatus,
   });
 
   useEffect(() => {
@@ -69,6 +70,10 @@ export default function CommunitiesPage() {
   };
 
   const handleJoin = async (communityId: string) => {
+    if (user?.residencyStatus === 'RO' || user?.residencyStatus === 'GUEST') {
+      toast.error('This account type cannot join communities.');
+      return;
+    }
     if (accessRoute) {
       router.push(accessRoute);
       return;

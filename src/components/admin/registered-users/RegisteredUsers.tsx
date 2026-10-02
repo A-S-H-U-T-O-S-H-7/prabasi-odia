@@ -9,6 +9,7 @@ import { adminUserService, UserData } from "@/lib/services/adminUserService";
 import RegisteredUserStats from "@/components/admin/registered-users/RegisteredUserStats";
 import RegisteredUserFilters from "@/components/admin/registered-users/RegisteredUserFilters";
 import RegisteredUserTable from "@/components/admin/registered-users/RegisteredUserTable";
+import AccountTypeTabs, { type AccountTypeTab } from "@/components/admin/registered-users/AccountTypeTabs";
 
 export default function AdminRegisteredUsersPage() {
   const pageSize = 10;
@@ -19,6 +20,7 @@ export default function AdminRegisteredUsersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "joined" | "signup_only">("all");
+  const [accountType, setAccountType] = useState<AccountTypeTab>('all');
   const [stats, setStats] = useState({ total: 0, joined: 0, signupOnly: 0 });
   const [searchResults, setSearchResults] = useState<UserData[] | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,7 +51,6 @@ export default function AdminRegisteredUsersPage() {
         setUsers(result.users);
         setCurrentPage(1);
       }
-      setSearchResults(null);
     } catch (error) {
       toast.error("Failed to load registered users");
     } finally {
@@ -77,13 +78,7 @@ export default function AdminRegisteredUsersPage() {
     try {
       const result = await adminUserService.searchRegisteredUsers(searchTerm);
       if (result.success && result.users) {
-        let filtered = result.users;
-        if (statusFilter === "joined") {
-          filtered = filtered.filter((u) => u.hasJoinedCommunity);
-        } else if (statusFilter === "signup_only") {
-          filtered = filtered.filter((u) => !u.hasJoinedCommunity);
-        }
-        setSearchResults(filtered);
+        setSearchResults(result.users);
         setCurrentPage(1);
       }
     } catch (error) {
@@ -113,7 +108,12 @@ export default function AdminRegisteredUsersPage() {
     );
   }
 
-  const displayUsers = searchResults || users;
+  const displayUsers = (searchResults || users).filter((user) => {
+    const matchesAccountType = accountType === 'all' || user.residencyStatus === accountType;
+    const matchesStatus = !searchResults || statusFilter === 'all' ||
+      (statusFilter === 'joined' ? user.hasJoinedCommunity : !user.hasJoinedCommunity);
+    return matchesAccountType && matchesStatus;
+  });
   const totalPages = Math.max(1, Math.ceil(displayUsers.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const pageStart = (safeCurrentPage - 1) * pageSize;
@@ -150,6 +150,15 @@ export default function AdminRegisteredUsersPage() {
       </div>
 
       <RegisteredUserStats stats={stats} />
+
+      <AccountTypeTabs
+        value={accountType}
+        onChange={(next) => {
+          setAccountType(next);
+          setStatusFilter('all');
+          setCurrentPage(1);
+        }}
+      />
 
       <RegisteredUserFilters
         onSearch={handleSearch}

@@ -2,6 +2,7 @@ import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, up
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { auth, db, storage } from '@/lib/firebase/config';
 import { validateUrgentHelpMedia } from '@/lib/urgentHelpMedia';
+import { requireApprovedMember } from '@/lib/memberAccess';
 
 export const URGENT_HELP_CATEGORIES = ['Medical support', 'Blood donation', 'Travel / stranded', 'Shelter / essentials', 'Other urgent help'] as const;
 export type UrgentHelpCategory = typeof URGENT_HELP_CATEGORIES[number];
@@ -54,8 +55,9 @@ export const urgentHelpService = {
   getApprovedRequests: () => readRequests('approved'),
   getAllRequests: () => readRequests(),
   async createOffer(data: Omit<UrgentHelpOffer, 'id' | 'status' | 'createdAt' | 'updatedAt'>) {
+    const uid = await requireApprovedMember('offer help');
     const now = new Date().toISOString();
-    const reference = await addDoc(collection(db, 'urgentHelpOffers'), { ...data, status: 'new', createdAt: now, updatedAt: now });
+    const reference = await addDoc(collection(db, 'urgentHelpOffers'), { ...data, userId: uid, status: 'new', createdAt: now, updatedAt: now });
     return reference.id;
   },
   async getOffers(requestId?: string) {
@@ -71,13 +73,9 @@ export const urgentHelpService = {
   },
   updateOfferStatus: (id: string, status: UrgentHelpOfferStatus) => updateDoc(doc(db, 'urgentHelpOffers', id), { status, updatedAt: new Date().toISOString() }),
   async createRequest(data: Omit<UrgentHelpRequest, 'id' | 'status' | 'rejectionReason' | 'media' | 'createdAt' | 'updatedAt'>, files: File[]) {
-    const signedInUser = auth.currentUser;
-    if (!signedInUser || signedInUser.uid !== data.ownerId) {
+    const uid = await requireApprovedMember('submit an urgent-help request');
+    if (uid !== data.ownerId) {
       throw new Error('Please sign in before submitting an urgent-help request.');
-    }
-    const member = await getDoc(doc(db, 'users', signedInUser.uid));
-    if (!member.exists() || member.data().isVerified !== true) {
-      throw new Error('Only verified members can submit an urgent-help request.');
     }
     if (files.length > 3) throw new Error('You can upload up to 3 photos or videos.');
     const mediaTypes = files.map(validateUrgentHelpMedia);

@@ -16,9 +16,12 @@ import { userService, type UserProfileData } from "@/lib/services/userService";
 import { emailService } from "@/lib/services/emailService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
 import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
-import { residencyDefaults, isResidencyContactVerified } from "@/lib/residency";
+import { residencyDefaults, isResidencyContactVerified, type ResidencyStatus } from "@/lib/residency";
 import { useJoinFormDraft } from "@/hooks/useJoinFormDraft";
 import JoinFormSupport from "@/components/web/join-community/JoinFormSupport";
+import JoinTypeDialog from "@/components/web/join-community/JoinTypeDialog";
+import GuestJoinForm from "@/components/web/join-community/GuestJoinForm";
+import { saveJoinFormDraft } from "@/lib/joinFormDraft";
 
 // Calculate age from DOB
 const calculateAge = (dob: string): number => {
@@ -35,7 +38,7 @@ const calculateAge = (dob: string): number => {
 
 // Define the schema
 const schema = z.object({
-  residencyStatus: z.enum(["RI", "NRI"]),
+  residencyStatus: z.enum(["RI", "NRI", "RO"]),
   // Personal Info
   photo: z.any().refine((file) => file instanceof File, "Profile photo is required"),
   fullName: z.string().min(2, "Full name is required"),
@@ -50,7 +53,7 @@ const schema = z.object({
   dobDay: z.string().optional(),
   dobMonth: z.string().optional(),
   dobYear: z.string().optional(),
-  bloodGroup: z.string().min(1, "Blood group is required"),
+  bloodGroup: z.string().optional(),
   mobileCountryCode: z.string().min(1, "Country code is required"),
   mobileNumber: z.string()
     .min(1, "Mobile number is required")
@@ -59,9 +62,10 @@ const schema = z.object({
       const cleanNumber = val.replace(/[\s\-()]/g, '');
       return cleanNumber.length >= 4 && cleanNumber.length <= 15;
     }, "Mobile number must be 4-15 digits"),
-  profession: z.enum(["Teacher", "Doctor", "Student", "Engineer", "Business", "Others"], {
-    message: "Please select your profession",
-  }),
+  profession: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.enum(["Teacher", "Doctor", "Student", "Engineer", "Business", "Others"]).optional()
+  ),
   doctorSpecialization: z.string().optional(),
   otherProfession: z.string().optional(),
   email: z.string().optional(),
@@ -71,28 +75,20 @@ const schema = z.object({
   verifiedEmail: z.string().optional(),
 
   // Address Info
-  odishaHomeAddress: z.string().min(5, "Odisha home address is required"),
-  odishaDistrict: z.string().min(1, "District is required"),
-  odishaCity: z.string().min(2, "City is required"),
-  odishaPinCode: z.string()
-    .min(6, "Pin code must be 6 digits")
-    .max(6, "Pin code must be 6 digits")
-    .regex(/^[0-9]+$/, "Pin code must contain only numbers"),
+  odishaHomeAddress: z.string(),
+  odishaDistrict: z.string(),
+  odishaCity: z.string(),
+  odishaPinCode: z.string(),
 
   currentAddress: z.string().min(5, "Current address is required"),
   currentCountry: z.string().min(2, "Country is required"),
-  currentState: z.string()
-    .min(2, "State is required")
-    .refine(
-      (val) => !/^(odisha|orissa)$/i.test(val.trim()),
-      "Odisha cannot be selected as current address state"
-    ),
+  currentState: z.string().min(2, "State is required"),
   currentCity: z.string().min(2, "Current city is required"),
   currentLatitude: z.number().optional(),
   currentLongitude: z.number().optional(),
   currentPinCode: z.string().trim().min(1, "Postal code is required").max(16, "Postal code is too long"),
 
-  nearbyCommunityId: z.string().min(1, "Please select your nearby community"),
+  nearbyCommunityId: z.string(),
   nearbyCommunityName: z.string().optional(),
   requestedCommunityName: z.string().optional(),
 
@@ -115,6 +111,25 @@ const schema = z.object({
   passportFile: z.any().optional(),
 
 }).superRefine((data, ctx) => {
+  const livesInOdisha = data.residencyStatus === "RO";
+  if (!livesInOdisha) {
+    if (!data.bloodGroup?.trim()) ctx.addIssue({ code: "custom", message: "Blood group is required", path: ["bloodGroup"] });
+    if (!data.profession) ctx.addIssue({ code: "custom", message: "Please select your profession", path: ["profession"] });
+    if (data.odishaHomeAddress.trim().length < 5) ctx.addIssue({ code: "custom", message: "Odisha home address is required", path: ["odishaHomeAddress"] });
+    if (!data.odishaDistrict.trim()) ctx.addIssue({ code: "custom", message: "District is required", path: ["odishaDistrict"] });
+    if (data.odishaCity.trim().length < 2) ctx.addIssue({ code: "custom", message: "City is required", path: ["odishaCity"] });
+    if (!/^\d{6}$/.test(data.odishaPinCode)) ctx.addIssue({ code: "custom", message: "Pin code must be 6 digits", path: ["odishaPinCode"] });
+    if (!data.nearbyCommunityId) ctx.addIssue({ code: "custom", message: "Please select your nearby community", path: ["nearbyCommunityId"] });
+  }
+  if (livesInOdisha && !/^(odisha|orissa)$/i.test(data.currentState.trim())) {
+    ctx.addIssue({ code: "custom", message: "Current state must be Odisha", path: ["currentState"] });
+  }
+  if (livesInOdisha && data.currentCountry !== "India") {
+    ctx.addIssue({ code: "custom", message: "Current country must be India", path: ["currentCountry"] });
+  }
+  if (!livesInOdisha && /^(odisha|orissa)$/i.test(data.currentState.trim())) {
+    ctx.addIssue({ code: "custom", message: "Odisha cannot be selected as current address state", path: ["currentState"] });
+  }
   if (data.profession === "Doctor" && !data.doctorSpecialization?.trim()) {
     ctx.addIssue({ code: "custom", message: "Specialization is required", path: ["doctorSpecialization"] });
   }
@@ -124,7 +139,7 @@ const schema = z.object({
   if (data.residencyStatus === "RI" && data.mobileCountryCode !== "+91") {
     ctx.addIssue({ code: "custom", message: "Resident Indians must use a +91 mobile number for SMS verification", path: ["mobileCountryCode"] });
   }
-  if (data.residencyStatus === "NRI" && !z.email().safeParse(data.email?.trim()).success) {
+  if (data.residencyStatus !== "RI" && !z.email().safeParse(data.email?.trim()).success) {
     ctx.addIssue({ code: "custom", message: "Enter a valid email address for OTP verification", path: ["email"] });
   }
   if (data.currentCountry === "India" && !/^\d{6}$/.test(data.currentPinCode)) {
@@ -163,7 +178,7 @@ const schema = z.object({
   */
 
   // Validate community request
-  if (data.nearbyCommunityId === CANT_FIND_COMMUNITY) {
+  if (!livesInOdisha && data.nearbyCommunityId === CANT_FIND_COMMUNITY) {
     if (!data.requestedCommunityName || data.requestedCommunityName.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -185,6 +200,7 @@ const STEPS = [
 export default function JoinCommunityPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const [selectedType, setSelectedType] = useState<ResidencyStatus | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -237,7 +253,42 @@ export default function JoinCommunityPage() {
     mode: "onChange",
   });
 
-  const draft = useJoinFormDraft(methods, currentStep, setCurrentStep);
+  const draft = useJoinFormDraft(methods, currentStep, setCurrentStep, selectedType !== null && selectedType !== 'GUEST');
+  const selectType = (type: ResidencyStatus) => {
+    if (type === 'GUEST') {
+      void saveJoinFormDraft(null);
+      setSelectedType(type);
+      setCurrentStep(1);
+      return;
+    }
+    if (!selectedType && draft.restoredStatus === type) {
+      setSelectedType(type);
+      return;
+    }
+    const current = methods.getValues();
+    methods.reset({
+      ...current,
+      ...residencyDefaults(type),
+      residencyStatus: type,
+      profession: type === 'RO' ? undefined : current.profession,
+      doctorSpecialization: type === 'RO' ? '' : current.doctorSpecialization,
+      otherProfession: type === 'RO' ? '' : current.otherProfession,
+      currentState: type === 'RO' ? 'Odisha' : '',
+      currentCity: '',
+      currentPinCode: '',
+      currentLatitude: undefined,
+      currentLongitude: undefined,
+      nearbyCommunityId: '',
+      nearbyCommunityName: '',
+      requestedCommunityName: '',
+      mobileVerified: false,
+      verifiedMobileNumber: '',
+      emailVerified: false,
+      verifiedEmail: '',
+    });
+    setCurrentStep(1);
+    setSelectedType(type);
+  };
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
   const handleSubmit = async (accountUser = user) => {
@@ -258,8 +309,16 @@ export default function JoinCommunityPage() {
         showFailure('Please create your account to submit the application.', 3);
         return;
       }
+      const existing = await userService.getUserProfile(accountUser.uid);
+      if (existing.data?.isVerified || existing.data?.applicationStatus === 'pending_review') {
+        showFailure('This account already has an application. Please check its status in your profile.');
+        return;
+      }
 
-      const validation = schema.safeParse(methods.getValues());
+      const validation = schema.safeParse({
+        ...methods.getValues(),
+        residencyStatus: selectedType,
+      });
       if (!validation.success) {
         await methods.trigger();
         const issue = validation.error.issues[0];
@@ -270,9 +329,9 @@ export default function JoinCommunityPage() {
       }
       const data = validation.data;
       if (!isResidencyContactVerified(data)) {
-        showFailure(data.residencyStatus === "NRI"
-          ? 'Please verify your email address before submitting your application.'
-          : 'Please verify your mobile number before submitting your application.', 1);
+        showFailure(data.residencyStatus === "RI"
+          ? 'Please verify your mobile number before submitting your application.'
+          : 'Please verify your email address before submitting your application.', 1);
         return;
       }
 
@@ -294,11 +353,12 @@ export default function JoinCommunityPage() {
       }
 
       const age = calculateAge(data.dob);
-      const isCommunityRequest = (data.nearbyCommunityId || "") === CANT_FIND_COMMUNITY;
+      const isOdishaResident = data.residencyStatus === 'RO';
+      const isCommunityRequest = !isOdishaResident && (data.nearbyCommunityId || "") === CANT_FIND_COMMUNITY;
       const selectedCommunityId = isCommunityRequest ? null : (data.nearbyCommunityId || null);
       const selectedCommunityName = isCommunityRequest ? null : (data.nearbyCommunityName || null);
       const requestedCommunityName = isCommunityRequest ? (data.requestedCommunityName || "").trim() : null;
-      const communityRequestStatus: UserProfileData["communityRequestStatus"] = "pending";
+      const communityRequestStatus: UserProfileData["communityRequestStatus"] = isOdishaResident ? null : "pending";
 
       let currentLatitude = data.currentLatitude ?? null;
       let currentLongitude = data.currentLongitude ?? null;
@@ -330,17 +390,21 @@ export default function JoinCommunityPage() {
         age,
         dob: data.dob,
         gender: data.gender,
-        bloodGroup: data.bloodGroup,
-        profession: data.profession,
+        bloodGroup: data.bloodGroup || '',
+        ...(data.profession ? { profession: data.profession } : {}),
         doctorSpecialization: data.profession === "Doctor" ? data.doctorSpecialization?.trim() || "" : "",
         otherProfession: data.profession === "Others" ? data.otherProfession?.trim() || "" : "",
-        occupation: data.profession === "Doctor"
-          ? `Doctor${data.doctorSpecialization?.trim() ? ` - ${data.doctorSpecialization.trim()}` : ""}`
-          : data.profession === "Others" ? data.otherProfession?.trim() || "Others" : data.profession,
-        odishaHomeAddress: data.odishaHomeAddress,
-        odishaDistrict: data.odishaDistrict,
-        odishaCity: data.odishaCity,
-        odishaPinCode: data.odishaPinCode,
+        ...(data.profession ? {
+          occupation: data.profession === "Doctor"
+            ? `Doctor${data.doctorSpecialization?.trim() ? ` - ${data.doctorSpecialization.trim()}` : ""}`
+            : data.profession === "Others"
+              ? data.otherProfession?.trim() || "Others"
+              : data.profession,
+        } : {}),
+        odishaHomeAddress: isOdishaResident ? '' : data.odishaHomeAddress,
+        odishaDistrict: isOdishaResident ? '' : data.odishaDistrict,
+        odishaCity: isOdishaResident ? '' : data.odishaCity,
+        odishaPinCode: isOdishaResident ? '' : data.odishaPinCode,
         currentAddress: data.currentAddress,
         currentCountry: data.currentCountry,
         currentState: data.currentState,
@@ -348,15 +412,15 @@ export default function JoinCommunityPage() {
         currentLatitude,
         currentLongitude,
         currentPinCode: data.currentPinCode,
-        nearbyCommunityId: selectedCommunityId,
-        nearbyCommunityName: isCommunityRequest ? null : selectedCommunityName,
+        nearbyCommunityId: isOdishaResident ? null : selectedCommunityId,
+        nearbyCommunityName: isOdishaResident || isCommunityRequest ? null : selectedCommunityName,
         requestedCommunityName: isCommunityRequest ? requestedCommunityName : null,
         communityRequestStatus,
         interests: [],
-        idType: data.idType,
+        ...(data.idType ? { idType: data.idType } : {}),
         aadharNumber: data.idType === "aadhar" ? data.aadharNumber : null,
         passportNumber: data.idType === "passport" ? data.passportNumber : null,
-        identityConsent: data.identityConsent,
+        ...(data.identityConsent !== undefined ? { identityConsent: data.identityConsent } : {}),
         familyMembers: [],
         hasJoinedCommunity: true,
         isVerified: false,
@@ -384,13 +448,15 @@ export default function JoinCommunityPage() {
         ...profileData, documents, photoURL: documents.profilePhoto,
       });
 
-      // Email delivery and local draft cleanup must not hold up confirmation.
+      setSubmissionStatus('Sending your welcome email...');
+      const welcomeEmail = await emailService.sendWelcomeEmail({
+        name: data.fullName,
+        email: accountUser.email || data.email || '',
+      });
+      setEmailStatus(welcomeEmail.success ? 'sent' : 'failed');
       setIsSuccess(true);
       void draft.clearDraft();
       toast.success('Application submitted! Our team will verify your details.');
-      void emailService.sendWelcomeEmail({ name: data.fullName, email: accountUser.email || data.email || '' })
-        .then((result) => setEmailStatus(result.success ? 'sent' : 'failed'))
-        .catch(() => setEmailStatus('failed'));
     } catch (error: any) {
       showFailure(error?.message || 'Your application could not be submitted. Your entries are saved; please try again.');
       console.error('Submit error:', error);
@@ -411,12 +477,12 @@ export default function JoinCommunityPage() {
 
   const renderStep = () => {
     if (isSuccess) {
-      return <SuccessPage emailStatus={emailStatus} onGoHome={handleGoHome} onGoProfile={handleGoProfile} />;
+      return <SuccessPage residencyStatus={selectedType === 'RI' || selectedType === 'RO' ? selectedType : undefined} emailStatus={emailStatus} onGoHome={handleGoHome} onGoProfile={handleGoProfile} />;
     }
 
     switch (currentStep) {
       case 1:
-        return <Step1Personal onNext={handleNext} />;
+        return <Step1Personal accountType={selectedType as Exclude<ResidencyStatus, 'GUEST'>} onNext={handleNext} onChangeType={() => setSelectedType(null)} />;
       case 2:
         return <Step2Address onNext={handleNext} onBack={handleBack} buttonLabel="Next" />;
       case 3:
@@ -430,6 +496,10 @@ export default function JoinCommunityPage() {
     }
   };
 
+  if (!draft.ready) return null;
+  if (!selectedType) return <JoinTypeDialog onSelect={selectType} />;
+  if (selectedType === 'GUEST') return <GuestJoinForm onChangeType={() => setSelectedType(null)} />;
+
   return (
     <FormProvider {...methods}>
       <JoinFormSupport step={currentStep}>
@@ -441,7 +511,7 @@ export default function JoinCommunityPage() {
       >
         {!isSuccess && submissionError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{submissionError}</p>}
         {!isSuccess && isSubmitting && <p role="status" className="mb-4 text-sm font-medium text-[#6B1E5B]">{submissionStatus}</p>}
-        {draft.ready && renderStep()}
+        {renderStep()}
       </JoinCommunityLayout>
       </JoinFormSupport>
     </FormProvider>

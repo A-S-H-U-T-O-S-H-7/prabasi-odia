@@ -8,12 +8,13 @@ import {
 import { FaTwitter, FaLinkedin, FaWhatsapp } from "react-icons/fa";
 
 interface SuccessPageProps {
+  residencyStatus?: 'RI' | 'RO';
   emailStatus?: 'pending' | 'sent' | 'failed';
   onGoHome: () => void;
   onGoProfile: () => void;
 }
 
-export default function SuccessPage({ onGoHome, onGoProfile, emailStatus = 'pending' }: SuccessPageProps) {
+export default function SuccessPage({ onGoHome, onGoProfile, emailStatus = 'pending', residencyStatus }: SuccessPageProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -64,7 +65,7 @@ export default function SuccessPage({ onGoHome, onGoProfile, emailStatus = 'pend
         transition={{ delay: 0.6 }}
         className="mt-2 md:mt-3 text-xs md:text-sm text-[#6B5E5A] max-w-md mx-auto px-2"
       >
-        Your membership application is under review. You are not an active member yet;
+        Your {residencyStatus === 'RO' ? 'Odia account' : 'membership'} application is under review. You are not an active member yet;
         we’ll notify you when it is approved.
       </motion.p>
 
@@ -103,11 +104,11 @@ export default function SuccessPage({ onGoHome, onGoProfile, emailStatus = 'pend
               </div>
               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
                 <Shield className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
-                <span>Once approved, your profile becomes an active membership</span>
+                <span>{residencyStatus === 'RO' ? 'Once approved, your Odia account becomes active' : 'Once approved, your profile becomes an active membership'}</span>
               </div>
               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-amber-700/80">
                 <Award className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
-                <span>Member features and card unlock after approval</span>
+                <span>{residencyStatus ? 'Eligible services unlock after approval' : 'Member features and card unlock after approval'}</span>
               </div>
             </div>
           </div>

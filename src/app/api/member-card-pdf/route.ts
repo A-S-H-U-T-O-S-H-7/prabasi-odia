@@ -3,6 +3,7 @@ import { db } from "@/lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
 import { generateMemberCardPDF } from "@/lib/services/memberCardPDF";
 import { resolveMemberCardInput } from "@/lib/services/memberCardData";
+import { canHaveMemberCard } from '@/lib/residency';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = userSnap.data();
+
+    if (!canHaveMemberCard(data.residencyStatus)) {
+      return NextResponse.json({ success: false, error: 'Member cards are available only for NRI accounts.' }, { status: 403 });
+    }
 
     if (!data.isVerified) {
       return NextResponse.json(

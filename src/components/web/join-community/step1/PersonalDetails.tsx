@@ -32,6 +32,7 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
 
   const watchDob = watch("dob");
   const profession = watch("profession");
+  const isOdishaResident = watch("residencyStatus") === "RO";
   const [savedYear = '', savedMonth = '', savedDay = ''] = String(watchDob || '').split('-');
   const dobYear = String(watch('dobYear') ?? savedYear);
   const dobMonth = String(watch('dobMonth') ?? savedMonth);
@@ -163,8 +164,8 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
 
       </div>
 
-      {/* Blood Group + Profession */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      {/* Odisha residents do not need blood group or profession for this application. */}
+      {!isOdishaResident && <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">
             Blood Group <span className="text-red-400">*</span>
@@ -213,9 +214,9 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
             )}
           </FieldHint>
         </div>
-      </div>
+      </div>}
 
-      {profession === "Doctor" && (
+      {!isOdishaResident && profession === "Doctor" && (
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">Specialization <span className="text-red-400">*</span></label>
           <input {...register("doctorSpecialization")} className={inputClass("doctorSpecialization")} placeholder="e.g. Cardiology" />
@@ -223,7 +224,7 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
         </div>
       )}
 
-      {profession === "Others" && (
+      {!isOdishaResident && profession === "Others" && (
         <div>
           <label className="block text-sm font-medium text-[#2A1636] mb-2">Profession <span className="text-red-400">*</span></label>
           <input {...register("otherProfession")} className={inputClass("otherProfession")} placeholder="Enter your profession" />

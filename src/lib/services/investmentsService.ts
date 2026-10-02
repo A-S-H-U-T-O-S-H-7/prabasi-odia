@@ -1,6 +1,7 @@
 import { addDoc, collection, doc, getDoc, getDocs, limit, query, runTransaction, updateDoc, where } from 'firebase/firestore';
 import { z } from 'zod';
 import { auth, db } from '@/lib/firebase/config';
+import { requireApprovedMember } from '@/lib/memberAccess';
 import { INVESTMENT_SECTORS, type Investment, type InvestmentInterest, type InvestmentInterestDetails, type InvestmentStatus } from '@/lib/investments/types';
 
 const postSchema = z.object({
@@ -39,12 +40,7 @@ const mapInterest = (id: string, data: Record<string, unknown>): InvestmentInter
 });
 
 async function requireVerifiedMember() {
-  const user = auth.currentUser;
-  if (!user) throw new Error('Please sign in to continue.');
-  const snapshot = await getDoc(doc(db, 'users', user.uid));
-  const member = snapshot.data();
-  if (!member?.hasJoinedCommunity || !member?.isVerified) throw new Error('Only verified community members can use investments.');
-  return user.uid;
+  return requireApprovedMember('use investments');
 }
 
 async function requireInvestmentAdmin() {

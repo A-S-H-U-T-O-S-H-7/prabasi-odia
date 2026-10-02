@@ -2,6 +2,7 @@
 import { doc, setDoc, updateDoc, getDoc, collection, limit, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
+import type { ResidencyStatus } from '@/lib/residency';
 
 export interface FamilyMember {
   id: string;
@@ -18,7 +19,7 @@ export interface UserProfileData {
   photoURL?: string;
   phoneNumber?: string;
   mobileCountryCode?: string;
-  residencyStatus?: 'RI' | 'NRI';
+  residencyStatus?: ResidencyStatus;
   phoneKey?: string;
   age: number;
   gender: string;

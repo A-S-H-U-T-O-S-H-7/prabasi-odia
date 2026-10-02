@@ -10,6 +10,8 @@ import { emailService } from "@/lib/services/emailService";
 import UserStats from "@/components/admin/users/UserStats";
 import UserFilters from "@/components/admin/users/UserFilters";
 import UserTable from "@/components/admin/users/UserTable";
+import RegisteredUserTable from "@/components/admin/registered-users/RegisteredUserTable";
+import AccountTypeTabs, { type AccountTypeTab } from "@/components/admin/registered-users/AccountTypeTabs";
 import UserVerificationModal from "./UserVerificationModal";
 import EditMemberModal from "./EditMemberModal";
 import AdminMemberProfile from "./AdminMemberProfile";
@@ -23,6 +25,7 @@ export default function AdminUsersPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
+  const [accountType, setAccountType] = useState<AccountTypeTab>('all');
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [profileUser, setProfileUser] = useState<UserData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,7 +45,7 @@ export default function AdminUsersPage() {
     }
     fetchUsers();
     fetchStats();
-  }, [statusFilter]);
+  }, [hasPermission]);
 
   const fetchUsers = async (showRefresh = false) => {
     if (showRefresh) {
@@ -51,7 +54,10 @@ export default function AdminUsersPage() {
       setLoading(true);
     }
     try {
-      const result = await adminUserService.getUsers(10000, undefined, { status: statusFilter });
+      const result = await adminUserService.getUsers(10000, undefined, {
+        status: 'all',
+        includeGuests: true,
+      });
       if (result.users) {
         setUsers(result.users);
         setCurrentPage(1);
@@ -76,12 +82,12 @@ export default function AdminUsersPage() {
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
       setSearchResults(null);
-      fetchUsers();
+      setCurrentPage(1);
       return;
     }
     setLoading(true);
     try {
-      const result = await adminUserService.searchUsers(searchTerm);
+      const result = await adminUserService.searchRegisteredUsers(searchTerm);
       if (result.success && result.users) {
         setSearchResults(result.users);
         setCurrentPage(1);
@@ -115,6 +121,8 @@ export default function AdminUsersPage() {
     try {
       const result = await adminUserService.verifyUser(uid, memberId, communityOptions);
       if (result.success) {
+        setSearchTerm('');
+        setSearchResults(null);
         fetchUsers(true);
         fetchStats();
         return { success: true };
@@ -150,6 +158,8 @@ export default function AdminUsersPage() {
         }
         toast.success("User rejected");
         setIsModalOpen(false);
+        setSearchTerm('');
+        setSearchResults(null);
         fetchUsers(true);
         fetchStats();
       } else {
@@ -163,6 +173,8 @@ export default function AdminUsersPage() {
   };
 
   const handleRefresh = () => {
+    setSearchTerm('');
+    setSearchResults(null);
     fetchUsers(true);
     fetchStats();
   };
@@ -182,12 +194,19 @@ export default function AdminUsersPage() {
     return <AdminMemberProfile uid={profileUser.uid} onBack={() => setProfileUser(null)} />;
   }
 
-  const displayUsers = searchResults
-    ? searchResults.filter((user) =>
-        statusFilter === 'all' ||
-        (statusFilter === 'verified' ? user.isVerified : statusFilter === 'rejected' ? user.applicationStatus === 'rejected' : !user.isVerified && user.applicationStatus !== 'rejected')
-      )
-    : users;
+  const displayUsers = (searchResults || users).filter((user) => {
+    const matchesAccountType = accountType === 'GUEST'
+      ? user.residencyStatus === 'GUEST'
+      : accountType === 'RO'
+        ? user.residencyStatus === 'RO' && user.hasJoinedCommunity
+        : user.hasJoinedCommunity && user.residencyStatus !== 'GUEST';
+    if (!matchesAccountType || accountType === 'GUEST') return matchesAccountType;
+
+    if (statusFilter === 'verified') return user.isVerified;
+    if (statusFilter === 'rejected') return user.applicationStatus === 'rejected';
+    if (statusFilter === 'pending') return !user.isVerified && user.applicationStatus !== 'rejected';
+    return true;
+  });
   const totalPages = Math.max(1, Math.ceil(displayUsers.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const pageStart = (safeCurrentPage - 1) * pageSize;
@@ -207,7 +226,11 @@ export default function AdminUsersPage() {
           </button>
           <div>
             <h1 className="text-2xl font-serif font-bold text-[#2A1636]">Joined Members</h1>
-            <p className="text-sm text-[#6B5E5A]">Manage and verify members who submitted the community joining form</p>
+            <p className="text-sm text-[#6B5E5A]">
+              {accountType === 'GUEST'
+                ? 'Browse Guest accounts. Guests do not enter the member approval process.'
+                : 'Manage and verify accounts that submitted a joining application.'}
+            </p>
           </div>
         </div>
         <button
@@ -221,7 +244,17 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Stats */}
-      <UserStats stats={stats} />
+      {accountType === 'all' && <UserStats stats={stats} />}
+
+      <AccountTypeTabs
+        value={accountType}
+        allLabel="All members"
+        onChange={(next) => {
+          setAccountType(next);
+          setStatusFilter('all');
+          setCurrentPage(1);
+        }}
+      />
 
       {/* Filters */}
       <UserFilters
@@ -231,23 +264,35 @@ export default function AdminUsersPage() {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
+        setStatusFilter={(next) => {
+          setStatusFilter(next);
+          setCurrentPage(1);
+        }}
+        guestView={accountType === 'GUEST'}
       />
 
       {/* Table */}
-      <UserTable
-        users={paginatedUsers}
-        onViewUser={handleViewUser}
-        onViewProfile={handleViewProfile}
-        onEditUser={handleEditUser}
-        loading={loading}
-        startIndex={pageStart}
-      />
+      {accountType === 'GUEST' ? (
+        <RegisteredUserTable
+          users={paginatedUsers}
+          loading={loading}
+          startIndex={pageStart}
+        />
+      ) : (
+        <UserTable
+          users={paginatedUsers}
+          onViewUser={handleViewUser}
+          onViewProfile={handleViewProfile}
+          onEditUser={handleEditUser}
+          loading={loading}
+          startIndex={pageStart}
+        />
+      )}
 
       {!loading && displayUsers.length > 0 && (
         <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 sm:flex-row">
           <p className="text-sm text-[#6B5E5A]">
-            Showing {pageStart + 1}–{Math.min(pageStart + pageSize, displayUsers.length)} of {displayUsers.length} members
+            Showing {pageStart + 1}–{Math.min(pageStart + pageSize, displayUsers.length)} of {displayUsers.length} {accountType === 'GUEST' ? 'guests' : 'members'}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -284,7 +329,17 @@ export default function AdminUsersPage() {
         onReject={handleReject}
         isVerifying={isVerifying}
       />
-      <EditMemberModal user={selectedUser} isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSaved={() => { fetchUsers(true); fetchStats(); }} />
+      <EditMemberModal
+        user={selectedUser}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSaved={() => {
+          setSearchTerm('');
+          setSearchResults(null);
+          fetchUsers(true);
+          fetchStats();
+        }}
+      />
     </div>
   );
 }

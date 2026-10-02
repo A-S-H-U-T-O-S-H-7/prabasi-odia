@@ -32,9 +32,10 @@ export default function LoginPage() {
   const [registrationRequired, setRegistrationRequired] = useState(false);
 
   const redirectAfterAuthentication = async () => {
-    const hasJoinedCommunity = useAuthStore.getState().user?.hasJoinedCommunity === true;
+    const account = useAuthStore.getState().user;
+    const hasJoinedCommunity = account?.hasJoinedCommunity === true;
 
-    if (!hasJoinedCommunity) {
+    if (!hasJoinedCommunity && account?.residencyStatus !== 'GUEST') {
       setIsRedirectingToCommunity(true);
       await new Promise((resolve) => setTimeout(resolve, 2000));
       router.replace("/join-community");

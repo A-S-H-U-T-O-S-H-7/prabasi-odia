@@ -5,7 +5,7 @@ const KEY = 'current';
 // Explicitly exclude account passwords, OTPs and client verification flags.
 const FIELDS = [
   'residencyStatus', 'fullName', 'dob', 'dobDay', 'dobMonth', 'dobYear', 'gender', 'bloodGroup', 'mobileCountryCode', 'mobileNumber',
-  'occupation', 'email', 'photo', 'odishaHomeAddress', 'odishaDistrict', 'odishaCity',
+  'occupation', 'profession', 'otherProfession', 'doctorSpecialization', 'email', 'photo', 'odishaHomeAddress', 'odishaDistrict', 'odishaCity',
   'odishaPinCode', 'currentAddress', 'currentCountry', 'currentState', 'currentCity',
   'currentLatitude', 'currentLongitude', 'currentPinCode', 'nearbyCommunityId',
   'nearbyCommunityName', 'requestedCommunityName', 'idType', 'aadharNumber',

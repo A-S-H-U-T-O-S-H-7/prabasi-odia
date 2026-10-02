@@ -10,6 +10,7 @@ import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { ActivityActions, ActivityEntityTypes } from "@/lib/services/activityLogService";
 import { emailService } from "@/lib/services/emailService";
 import { publicCommunityService, PublicCommunity } from "@/lib/services/publicCommunityService";
+import { canHaveMemberCard } from '@/lib/residency';
 
 import { PersonalDetails } from "./PersonalDetails";
 import { AddressDetails } from "./AddressDetails";
@@ -64,8 +65,9 @@ export default function UserVerificationModal({
   // ============================================
   useEffect(() => {
     if (isOpen && user) {
-      fetchMemberCount();
-      loadCommunities();
+      if (canHaveMemberCard(user.residencyStatus)) void fetchMemberCount();
+      else setMemberId('');
+      if (user.residencyStatus !== 'RO') void loadCommunities();
       resetState();
     }
   }, [isOpen, user]);
@@ -169,7 +171,7 @@ export default function UserVerificationModal({
         communityName,
         bloodGroup: user.bloodGroup || "",
         location: [user.currentCity, user.currentState, user.currentCountry].filter(Boolean).join(", "),
-        residencyStatus: user.residencyStatus,
+        residencyStatus: user.residencyStatus === 'NRI' ? 'NRI' : undefined,
         photoURL: user.photoURL || user.documents?.profilePhoto || "",
       });
 
@@ -202,10 +204,18 @@ export default function UserVerificationModal({
 
   const handleResendVerificationEmail = async () => {
     if (isSendingVerificationEmail || approvalInFlight.current) return;
-    if (!user?.isVerified || !user.memberId) {
-      toast.error("This member must be verified and have a member ID before an email can be sent.");
+    if (!user?.isVerified) {
+      toast.error('This account must be approved before a confirmation email can be sent.');
       return;
     }
+
+    if (!canHaveMemberCard(user.residencyStatus)) {
+      const result = await emailService.sendWelcomeEmail({ name: user.displayName, email: user.email });
+      await adminUserService.recordVerificationEmail(user.uid, result);
+      toast[result.success ? 'success' : 'error'](result.success ? 'Confirmation email sent.' : result.message || 'Could not send confirmation email.');
+      return;
+    }
+    if (!user.memberId) return;
 
     await deliverVerificationEmail(
       user.memberId,
@@ -224,17 +234,20 @@ export default function UserVerificationModal({
       return;
     }
 
-    if (!memberId || memberId.trim().length === 0) {
+    const needsCard = canHaveMemberCard(user.residencyStatus);
+    const needsCommunity = user.residencyStatus !== 'RO';
+
+    if (needsCard && !memberId.trim()) {
       toast.error("Please generate or enter a Member ID");
       return;
     }
 
-    if (communityAction === "existing" && !selectedCommunityId) {
+    if (needsCommunity && communityAction === "existing" && !selectedCommunityId) {
       toast.error("Please select a community");
       return;
     }
 
-    if (communityAction === "create") {
+    if (needsCommunity && communityAction === "create") {
       const createName =
         user!.requestedCommunityName || user!.currentCity || user!.odishaCity || "";
       if (!String(createName).trim()) {
@@ -243,7 +256,7 @@ export default function UserVerificationModal({
       }
     }
 
-    if (communityAction === "auto" && !user!.nearbyCommunityId) {
+    if (needsCommunity && communityAction === "auto" && !user!.nearbyCommunityId) {
       const createName =
         user!.requestedCommunityName || user!.currentCity || user!.odishaCity || "";
       if (!String(createName).trim()) {
@@ -252,7 +265,7 @@ export default function UserVerificationModal({
       }
     }
 
-    const finalMemberId = memberId || generateMemberId(user!, memberCount);
+    const finalMemberId = needsCard ? memberId || generateMemberId(user!, memberCount) : '';
 
     const selected = communities.find((c) => c.id === selectedCommunityId);
     const communityOptions: VerifyUserCommunityOptions = {
@@ -279,8 +292,10 @@ export default function UserVerificationModal({
     approvalInFlight.current = true;
     setIsApproving(true);
     try {
-      const emailSent = await deliverVerificationEmail(finalMemberId, emailCommunityName);
-      if (!emailSent) return;
+      if (needsCard) {
+        const emailSent = await deliverVerificationEmail(finalMemberId, emailCommunityName);
+        if (!emailSent) return;
+      }
 
       const verificationResult = await onVerify(user.uid, finalMemberId, communityOptions);
       if (!verificationResult.success) {
@@ -288,19 +303,25 @@ export default function UserVerificationModal({
         return;
       }
 
+      if (!needsCard) {
+        const emailResult = await emailService.sendWelcomeEmail({ name: user.displayName, email: user.email });
+        await adminUserService.recordVerificationEmail(user.uid, emailResult);
+        if (!emailResult.success) toast.error('Account approved, but the confirmation email could not be sent.');
+      }
+
       await log({
         action: ActivityActions.VERIFY,
         entityType: ActivityEntityTypes.USER,
         entityId: user.uid,
         entityTitle: user.displayName,
-        details: `Verified user ${user.displayName} with member ID ${finalMemberId} (${communityAction}${
+        details: `Approved ${user.displayName}${needsCard ? ` with member ID ${finalMemberId}` : ''} (${needsCommunity ? communityAction : 'no community'}${
           communityOptions.communityName || communityOptions.createName
             ? `: ${communityOptions.communityName || communityOptions.createName}`
             : ""
         })`,
       });
 
-      toast.success('User verified successfully and member-card email sent.');
+      toast.success(needsCard ? 'NRI verified and member-card email sent.' : 'Account approved without a member card.');
       onClose();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not complete verification.';
@@ -492,16 +513,16 @@ export default function UserVerificationModal({
                         <span>This member is already verified. Verify action is locked.</span>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-xl border border-[#D4C8C0]/40 bg-white/50 px-3 py-2.5">
+                        {canHaveMemberCard(user.residencyStatus) && <div className="rounded-xl border border-[#D4C8C0]/40 bg-white/50 px-3 py-2.5">
                           <p className="text-[10px] uppercase tracking-wide text-[#6B5E5A] mb-1">Member ID</p>
                           <p className="font-mono font-semibold text-[#2A1636]">{user.memberId || "—"}</p>
-                        </div>
-                        <div className="rounded-xl border border-[#D4C8C0]/40 bg-white/50 px-3 py-2.5">
+                        </div>}
+                        {user.residencyStatus !== 'RO' && <div className="rounded-xl border border-[#D4C8C0]/40 bg-white/50 px-3 py-2.5">
                           <p className="text-[10px] uppercase tracking-wide text-[#6B5E5A] mb-1">Community</p>
                           <p className="font-medium text-[#2A1636]">
                             {user.nearbyCommunityName || user.requestedCommunityName || "—"}
                           </p>
-                        </div>
+                        </div>}
                       </div>
                       <button
                         onClick={() => setShowRejectForm(true)}
@@ -514,7 +535,7 @@ export default function UserVerificationModal({
                     </div>
                   ) : (
                     <>
-                      <CommunityAssignment
+                      {user.residencyStatus !== 'RO' && <CommunityAssignment
                         user={user}
                         communities={communities}
                         loadingCommunities={loadingCommunities}
@@ -530,10 +551,10 @@ export default function UserVerificationModal({
                         setIsSearchOpen={setIsSearchOpen}
                         handleCommunitySelect={handleCommunitySelect}
                         filteredCommunities={filteredCommunities}
-                      />
+                      />}
 
                       {/* Member ID */}
-                      <div className="mb-4">
+                      {canHaveMemberCard(user.residencyStatus) && <div className="mb-4">
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="text-xs font-medium text-[#2A1636]">Member ID <span className="text-red-400">*</span></label>
                           <button
@@ -567,15 +588,15 @@ export default function UserVerificationModal({
                             <AlertCircle className="w-3.5 h-3.5" /> Member ID is required
                           </p>
                         )}
-                      </div>
+                      </div>}
 
                       {/* Action Buttons */}
                       <div className="flex gap-3">
                         <button
                           onClick={user?.isVerified ? handleResendVerificationEmail : handleVerify}
-                          disabled={isApproving || isSendingVerificationEmail || isVerifying || (!user?.isVerified && (isRejected || isLoadingCount || !memberId))}
+                          disabled={isApproving || isSendingVerificationEmail || isVerifying || isRejected || (canHaveMemberCard(user.residencyStatus) && (isLoadingCount || !memberId))}
                           className={`flex-1 py-3 rounded-xl text-white font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                            (isApproving || isSendingVerificationEmail || isVerifying || (!user?.isVerified && (isRejected || isLoadingCount || !memberId)))
+                            (isApproving || isSendingVerificationEmail || isVerifying || isRejected || (canHaveMemberCard(user.residencyStatus) && (isLoadingCount || !memberId)))
                               ? 'bg-gray-400 cursor-not-allowed opacity-50'
                               : 'bg-gradient-to-r from-green-600 to-green-700 hover:shadow-lg hover:scale-[1.02]'
                           }`}
@@ -585,7 +606,7 @@ export default function UserVerificationModal({
                           ) : (
                             <Check className="w-4 h-4" />
                           )}
-                          {user?.isVerified ? 'Resend Verification Email' : 'Verify Member'}
+                          {user?.isVerified ? 'Resend Confirmation Email' : 'Approve Account'}
                         </button>
                         <button
                           onClick={() => setShowRejectForm(true)}
@@ -611,7 +632,7 @@ export default function UserVerificationModal({
                         </p>
                       )}
 
-                      {!memberId && (
+                      {canHaveMemberCard(user.residencyStatus) && !memberId && (
                         <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                           <AlertCircle className="w-3.5 h-3.5" /> Please generate or enter a Member ID
                         </p>

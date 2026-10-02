@@ -1,6 +1,7 @@
 // lib/services/adminUserService.ts
 import { db } from '@/lib/firebase/config';
 import type { ResidencyStatus } from '@/lib/residency';
+import { canHaveMemberCard, canJoinCommunity } from '@/lib/residency';
 import {
   collection,
   getDocs,
@@ -117,13 +118,14 @@ export const adminUserService = {
       search?: string;
       status?: 'all' | 'pending' | 'verified' | 'rejected';
       city?: string;
+      includeGuests?: boolean;
     }
   ) {
     try {
       const snapshot = await getDocs(collection(db, 'users'));
       let users = snapshot.docs
         .map((d) => this._mapUserDoc(d))
-        .filter((u) => u.hasJoinedCommunity);
+        .filter((u) => u.hasJoinedCommunity || (filters?.includeGuests && u.residencyStatus === 'GUEST'));
 
       if (filters?.status === 'pending') {
         users = users.filter((u) => !u.isVerified && u.applicationStatus !== 'rejected');
@@ -288,14 +290,21 @@ export const adminUserService = {
       }
 
       const userData = userDoc.data();
+      if (userData.residencyStatus === 'GUEST') {
+        return { success: false, error: 'Guest accounts cannot be approved as members.' };
+      }
       const updates: Record<string, any> = {
         isVerified: true,
         hasJoinedCommunity: true,
         applicationStatus: 'approved',
-        memberId,
+        memberId: canHaveMemberCard(userData.residencyStatus) ? memberId : '',
         verifiedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+
+      if (canHaveMemberCard(userData.residencyStatus) && !memberId.trim()) {
+        return { success: false, error: 'A member ID is required for an NRI application.' };
+      }
 
       const assignToExisting = async (communityId: string, communityName?: string) => {
         const addResult = await adminCommunityService.addMemberToCommunity(communityId, uid);
@@ -344,7 +353,12 @@ export const adminUserService = {
 
       const action = communityOptions.action || 'auto';
 
-      if (action === 'existing') {
+      if (!canJoinCommunity(userData.residencyStatus)) {
+        updates.nearbyCommunityId = null;
+        updates.nearbyCommunityName = null;
+        updates.requestedCommunityName = null;
+        updates.communityRequestStatus = null;
+      } else if (action === 'existing') {
         if (!communityOptions.communityId) {
           return { success: false, error: 'Please select a community' };
         }

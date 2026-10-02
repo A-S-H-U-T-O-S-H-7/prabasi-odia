@@ -18,6 +18,7 @@ export default function CommunitiesPreview() {
     isAuthenticated,
     hasJoinedCommunity: user?.hasJoinedCommunity ?? hasJoinedCommunity,
     isVerified: user?.isVerified ?? profile?.isVerified ?? false,
+    residencyStatus: user?.residencyStatus ?? profile?.residencyStatus,
   });
 
   useEffect(() => {

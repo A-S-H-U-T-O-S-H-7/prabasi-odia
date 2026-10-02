@@ -46,8 +46,12 @@ export const useLocationData = (formData: { country: string; state: string }) =>
     setLoading(prev => ({ ...prev, cities: false }));
     if (!formData.state || !formData.country) return;
     
-    const selectedCountry = countries.find((c) => c.name === formData.country);
-    const selectedState = states.find((s) => s.name === formData.state);
+    const selectedCountry = countries.find((c) => c.name === formData.country)
+      ?? (formData.country === 'India' ? { iso2: 'IN' } : undefined);
+    const isOdisha = /^(odisha|orissa)$/i.test(formData.state.trim());
+    const selectedState = states.find((s) =>
+      s.name === formData.state || (isOdisha && s.iso2 === 'OR')
+    ) ?? (selectedCountry?.iso2 === 'IN' && isOdisha ? { iso2: 'OR' } : undefined);
     if (!selectedCountry || !selectedState) return;
 
     setLoading(prev => ({ ...prev, cities: true }));

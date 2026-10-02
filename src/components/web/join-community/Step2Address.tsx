@@ -131,6 +131,7 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
   const formData = watch();
+  const isOdishaResident = formData.residencyStatus === 'RO';
   const nearbyCommunityId = formData.nearbyCommunityId || "";
   const currentState = formData.currentState;
   const currentCountry = formData.currentCountry;
@@ -141,15 +142,29 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
   const showRequestedCommunity = nearbyCommunityId === CANT_FIND_COMMUNITY;
 
   const { countries, states, cities, loading } = useLocationData({
-    country: formData.currentCountry || "",
-    state: formData.currentState || "",
+    country: isOdishaResident ? 'India' : formData.currentCountry || "",
+    state: isOdishaResident ? 'Odisha' : formData.currentState || "",
   });
 
-  const availableStates = useMemo(() => states.filter((state) => !isOdishaState(state.name)), [states]);
-  const hasSelectedCountry = countries.some((country) => country.name === currentCountry);
-  const hasSelectedState = availableStates.some((state) => state.name === currentState);
+  const availableStates = useMemo(() => states.filter((state) => isOdishaResident ? isOdishaState(state.name) : !isOdishaState(state.name)), [states, isOdishaResident]);
+  const hasSelectedCountry = isOdishaResident || countries.some((country) => country.name === currentCountry);
+  const hasSelectedState = isOdishaResident || availableStates.some((state) => state.name === currentState);
 
   useEffect(() => {
+    if (!isOdishaResident) return;
+    if (currentCountry !== 'India') {
+      setValue('currentCountry', 'India', { shouldValidate: true });
+    }
+    if (currentState !== 'Odisha') {
+      setValue('currentState', 'Odisha', { shouldValidate: true });
+    }
+  }, [isOdishaResident, currentCountry, currentState, setValue]);
+
+  useEffect(() => {
+    if (isOdishaResident) {
+      setLoadingCommunities(false);
+      return;
+    }
     let cancelled = false;
     const loadCommunities = async () => {
       setLoadingCommunities(true);
@@ -164,17 +179,17 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isOdishaResident]);
 
   useEffect(() => {
-    if (currentState && isOdishaState(currentState)) {
+    if (!isOdishaResident && currentState && isOdishaState(currentState)) {
       setValue("currentState", "", { shouldValidate: true });
       setValue("currentCity", "", { shouldValidate: true });
       setValue("currentLatitude", undefined);
       setValue("currentLongitude", undefined);
       toast.error("Odisha cannot be selected as current address state");
     }
-  }, [currentState, setValue]);
+  }, [currentState, isOdishaResident, setValue]);
 
   useEffect(() => {
     let cancelled = false;
@@ -231,10 +246,10 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
   }, [nearbyCommunityId, communities, setValue, formData.requestedCommunityName]);
 
   const fields = [
-    "odishaHomeAddress", "odishaDistrict", "odishaCity", "odishaPinCode",
+    ...(isOdishaResident ? [] : ["odishaHomeAddress", "odishaDistrict", "odishaCity", "odishaPinCode"]),
     "currentAddress", "currentCountry", "currentState", "currentCity", "currentPinCode",
-    "nearbyCommunityId",
-    ...(showRequestedCommunity ? ["requestedCommunityName"] : []),
+    ...(isOdishaResident ? [] : ["nearbyCommunityId"]),
+    ...(!isOdishaResident && showRequestedCommunity ? ["requestedCommunityName"] : []),
   ];
 
   const shouldShowError = (name: string) => Boolean((hasAttemptedSubmit || touchedFields[name]) && errors[name]);
@@ -286,12 +301,12 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
         </div>
         <div>
           <h2 className="text-lg font-bold text-[#2A1636]">📍 Your Roots</h2>
-          <p className="text-sm text-[#6B5E5A]">Where do you call home?</p>
+          <p className="text-sm text-[#6B5E5A]">{isOdishaResident ? 'Tell us where you live in Odisha.' : 'Where do you call home?'}</p>
         </div>
       </div>
 
       {/* Odisha Address Section */}
-      <div className="bg-[#6B1E5B]/5 rounded-xl border border-[#6B1E5B]/10 p-2.5 sm:rounded-2xl sm:p-3">
+      {!isOdishaResident && <div className="bg-[#6B1E5B]/5 rounded-xl border border-[#6B1E5B]/10 p-2.5 sm:rounded-2xl sm:p-3">
         <h3 className="text-sm font-semibold text-[#2A1636] mb-3 flex items-center gap-2">
           <Home className="w-4 h-4 text-[#6B1E5B]" /> Odisha Home Address
         </h3>
@@ -351,14 +366,14 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
             <ErrorMessage name="odishaPinCode" />
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Current Address Section */}
       <div className="bg-[#D9772B]/5 rounded-xl border border-[#D9772B]/10 p-2.5 sm:rounded-2xl sm:p-3">
         <h3 className="text-sm font-semibold text-[#2A1636] mb-1 flex items-center gap-2">
           <Building className="w-4 h-4 text-[#D9772B]" /> Current Address
         </h3>
-        <p className="text-xs text-[#D9772B] mb-3">Current address must be outside Odisha (Prabasi living elsewhere).</p>
+        <p className="text-xs text-[#D9772B] mb-3">{isOdishaResident ? 'Your current address must be in Odisha.' : 'Current address must be outside Odisha (Prabasi living elsewhere).'}</p>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
           <div className="lg:col-span-4">
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
@@ -374,7 +389,9 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
             </label>
             <div className="relative">
               <Globe className="absolute left-4 top-1/2 hidden -translate-y-1/2 h-4 w-4 text-[#6B5E5A]/40 sm:block" />
-              <SearchableSelect
+              {isOdishaResident ? (
+                <input value="India" readOnly className={`${inputClass("currentCountry")} sm:pl-12`} aria-label="Country: India" />
+              ) : <SearchableSelect
                 value={currentCountry || ""}
                 options={countries.map((country) => country.name)}
                 className={`${inputClass("currentCountry")} sm:pl-12`}
@@ -386,7 +403,7 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
                   setValue("currentLatitude", undefined);
                   setValue("currentLongitude", undefined);
                 }}
-              />
+              />}
             </div>
             <div className={currentAddressFeedbackClass}>
               {loading.countries && <p className="text-xs text-[#6B5E5A]">Loading countries...</p>}
@@ -398,7 +415,9 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
             <label className="block text-sm font-medium text-[#2A1636] mb-2">
               State <span className="text-red-400">*</span>
             </label>
-            <SearchableSelect
+            {isOdishaResident ? (
+              <input value="Odisha" readOnly className={inputClass("currentState")} aria-label="State: Odisha" />
+            ) : <SearchableSelect
               value={currentState || ""}
               options={availableStates.map((state) => state.name)}
               className={inputClass("currentState")}
@@ -411,7 +430,7 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
                 setValue("currentLatitude", undefined);
                 setValue("currentLongitude", undefined);
               }}
-            />
+            />}
             <div className={currentAddressFeedbackClass}>
               {loading.states && <p className="text-xs text-[#6B5E5A]">Loading states...</p>}
             </div>
@@ -426,18 +445,20 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
               value={currentCity || ""}
               options={cities.map((city) => city.name)}
               className={inputClass("currentCity")}
-              // Some countries (including Uganda) may have no city list from
-              // the location provider for a selected region. Keep this field
-              // editable after a state is chosen so the address form never
-              // traps the member behind an empty provider response.
-              disabled={!hasSelectedState || loading.cities}
-              blockedMessage={!hasSelectedCountry
-                ? "Please select your country first, then your state, to see the available cities."
-                : !hasSelectedState
-                  ? "Please select your state first to see the available cities."
-                  : undefined}
-              placeholder="Type city"
-              onChange={(value) => setValue("currentCity", value, { shouldValidate: hasAttemptedSubmit || touchedFields.currentCity })}
+              // Odisha is fixed for RO accounts. Keep city editable while
+              // suggestions load, and when the location provider has no data.
+              disabled={!isOdishaResident && (!hasSelectedState || loading.cities)}
+              blockedMessage={isOdishaResident
+                ? undefined
+                : !hasSelectedCountry
+                  ? "Please select your country first, then your state, to see the available cities."
+                  : !hasSelectedState
+                    ? "Please select your state first to see the available cities."
+                    : undefined}
+              placeholder={isOdishaResident ? "Type or choose your city" : "Type city"}
+              onChange={(value) => setValue("currentCity", value, {
+                shouldValidate: hasAttemptedSubmit || touchedFields.currentCity,
+              })}
             />
 
             <div className={currentAddressFeedbackClass}>
@@ -494,7 +515,7 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
       </div>
 
       {/* Nearby Community Section */}
-      <div className="bg-[#6B1E5B]/5 rounded-xl border border-[#6B1E5B]/10 p-2.5 sm:rounded-2xl sm:p-4">
+      {!isOdishaResident && <div className="bg-[#6B1E5B]/5 rounded-xl border border-[#6B1E5B]/10 p-2.5 sm:rounded-2xl sm:p-4">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#2A1636] sm:mb-4">
           <Users className="w-4 h-4 text-[#6B1E5B]" /> Your Nearby Community
         </h3>
@@ -542,7 +563,7 @@ export default function Step2Address({ onNext, onBack, buttonLabel = "Next", isS
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </div>}
 
       <input type="hidden" {...register("currentLatitude", { valueAsNumber: true })} />
       <input type="hidden" {...register("currentLongitude", { valueAsNumber: true })} />

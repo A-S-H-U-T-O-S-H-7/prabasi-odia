@@ -10,7 +10,7 @@ export default function ProfileAddresses({ profile }: { profile: any }) {
     <section className="bg-white/60 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-sm">
       <h3 className="text-sm font-semibold text-[#2A1636] mb-4">Addresses</h3>
       <div className="space-y-4">
-        <AddressItem icon={<Home className="w-4 h-4 text-[#6B1E5B]" />} title="Odisha Home" value={odishaAddress} />
+        {profile.residencyStatus !== 'RO' && <AddressItem icon={<Home className="w-4 h-4 text-[#6B1E5B]" />} title="Odisha Home" value={odishaAddress} />}
         <AddressItem icon={<MapPin className="w-4 h-4 text-[#D9772B]" />} title="Current Address" value={currentAddress} />
       </div>
     </section>

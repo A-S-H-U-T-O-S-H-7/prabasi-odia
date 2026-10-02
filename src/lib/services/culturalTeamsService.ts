@@ -2,6 +2,7 @@ import { addDoc, collection, doc, getDoc, getDocs, limit, query, updateDoc, wher
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { z } from 'zod';
 import { auth, db, storage } from '@/lib/firebase/config';
+import { requireApprovedMember } from '@/lib/memberAccess';
 import { CULTURAL_ART_FORMS, INDIAN_STATES, TRAVEL_SCOPES, type CulturalTeam, type CulturalTeamContact, type CulturalTeamDraft, type CulturalTeamEnquiry, type CulturalTeamEnquiryDraft, type CulturalTeamImage, type CulturalTeamStatus, type EnquiryStatus } from '@/lib/culturalTeams/types';
 
 const teamSchema = z.object({
@@ -63,7 +64,7 @@ export const culturalTeamsService = {
     return snapshot.docs.map(item => mapTeam(item.id, item.data())).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
   async register(data: CulturalTeamDraft, contact: Omit<CulturalTeamContact, 'ownerId'>, files: File[], onProgress?: (done: number, total: number) => void) {
-    const uid = requireUser();
+    const uid = await requireApprovedMember('register a cultural team');
     const team = teamSchema.safeParse(data);
     const privateContact = contactSchema.safeParse(contact);
     if (!team.success) throw new Error(team.error.issues[0]?.message || 'Check the team details.');
@@ -96,6 +97,7 @@ export const culturalTeamsService = {
     }
   },
   async sendEnquiry(teamId: string, data: CulturalTeamEnquiryDraft) {
+    await requireApprovedMember('contact a cultural team');
     const parsed = enquirySchema.safeParse(data);
     if (!parsed.success) throw new Error('Check the event and contact details.');
     const snapshot = await getDoc(doc(db, 'culturalTeams', teamId));

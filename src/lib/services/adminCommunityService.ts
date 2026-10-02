@@ -354,6 +354,10 @@ export const adminCommunityService = {
   // Add member to community
   async addMemberToCommunity(communityId: string, userId: string) {
     try {
+      const userSnap = await getDoc(doc(db, 'users', userId));
+      if (userSnap.data()?.residencyStatus === 'RO' || userSnap.data()?.residencyStatus === 'GUEST') {
+        return { success: false, error: 'This account type cannot join a community.' };
+      }
       const docRef = doc(db, COLLECTION, communityId);
       const docSnap = await getDoc(docRef);
       

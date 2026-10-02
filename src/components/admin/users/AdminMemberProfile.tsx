@@ -11,6 +11,7 @@ import ProfileMemberCard from "@/components/web/profile/ProfileMemberCard";
 import ProfileActivity from "@/components/web/profile/ProfileActivity";
 import ProfileAddresses from "@/components/web/profile/ProfileAddresses";
 import ProfilePeopleNearby from "@/components/web/profile/ProfilePeopleNearby";
+import { canHaveMemberCard } from '@/lib/residency';
 
 interface AdminMemberProfileProps {
   uid?: string;
@@ -54,6 +55,7 @@ export default function AdminMemberProfile({ uid: suppliedUid, onBack }: AdminMe
   // Older approved records can have applicationStatus without an isVerified
   // flag. Both fields represent an approved membership when a member ID exists.
   const hasMemberCard = Boolean(
+    canHaveMemberCard(profile.residencyStatus) &&
     profile.memberId &&
     profile.memberId !== "Pending" &&
     (profile.isVerified === true || profile.applicationStatus === "approved")
@@ -70,7 +72,7 @@ export default function AdminMemberProfile({ uid: suppliedUid, onBack }: AdminMe
           <div className="space-y-6 lg:col-span-2">
             <ProfilePeopleNearby profile={profile} />
             <ProfileAbout profile={profile} />
-            {hasMemberCard ? <ProfileMemberCard profile={cardProfile} memberUid={uid} /> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900"><p className="font-semibold">Membership application under review</p><p className="mt-1 text-sm">The member pass will appear here after approval.</p></div>}
+            {hasMemberCard ? <ProfileMemberCard profile={cardProfile} memberUid={uid} /> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900"><p className="font-semibold">{profile.isVerified ? 'Account approved' : 'Application under review'}</p><p className="mt-1 text-sm">{profile.isVerified ? 'This account type does not receive a member card.' : 'The account is awaiting administrator approval.'}</p></div>}
           </div>
           <div className="space-y-6"><ProfileStats profile={profile} /><ProfileAddresses profile={profile} /><ProfileActivity profile={profile} /></div>
         </div>

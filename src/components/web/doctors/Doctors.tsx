@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CalendarDays, HeartPulse, MessageCircle, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useUserStore } from '@/lib/store';
+import { canUseMemberServices } from '@/lib/residency';
 import type { ConsultationDraft, Doctor } from '@/lib/doctors/types';
 import { doctorsService } from '@/lib/services/doctorsService';
 import DoctorCard from './DoctorCard';
@@ -15,6 +16,8 @@ import DoctorHero from './DoctorHero';
 export default function Doctors() {
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading } = useAuthStore();
+  const profile = useUserStore((state) => state.profile);
+  const currentProfile = profile?.uid === user?.uid ? profile : null;
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -217,7 +220,15 @@ export default function Doctors() {
           onClose={() => {
             if (!saving) setSelected(null);
           }}
-          onRequesting={setRequesting}
+          onRequesting={(next) => {
+            if (next && (!(currentProfile?.isVerified ?? user?.isVerified) ||
+              !(currentProfile?.hasJoinedCommunity ?? user?.hasJoinedCommunity) ||
+              !canUseMemberServices(currentProfile?.residencyStatus ?? user?.residencyStatus))) {
+              toast.error('An approved Odia account is required to contact a doctor.');
+              return;
+            }
+            setRequesting(next);
+          }}
           onSubmit={submit}
         />
       )}

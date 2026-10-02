@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Filter, HeartHandshake, Loader2, Plus, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuthStore, useUserStore } from '@/lib/store';
+import { canUseMemberServices } from '@/lib/residency';
 import {
   URGENT_HELP_CATEGORIES,
   urgentHelpService,
@@ -40,6 +41,12 @@ export default function UrgentHelp() {
   const [offerError, setOfferError] = useState('');
   const [offering, setOffering] = useState(false);
   const [offeredRequestIds, setOfferedRequestIds] = useState<string[]>([]);
+  const currentProfile = profile?.uid === user?.uid ? profile : null;
+  const canParticipate = Boolean(
+    (currentProfile?.isVerified ?? user?.isVerified) &&
+    (currentProfile?.hasJoinedCommunity ?? user?.hasJoinedCommunity) &&
+    canUseMemberServices(currentProfile?.residencyStatus ?? user?.residencyStatus)
+  );
 
   const load = async () => {
     setLoading(true);
@@ -75,8 +82,8 @@ export default function UrgentHelp() {
       router.push('/login');
       return;
     }
-    if (!user?.isVerified) {
-      toast.error('Only verified members can submit an urgent-help request.');
+    if (!canParticipate) {
+      toast.error('An approved Odia account is required to request urgent help.');
       return;
     }
     setFormError('');
@@ -86,8 +93,8 @@ export default function UrgentHelp() {
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user?.uid || submitting) return;
-    if (!user.isVerified) {
-      setFormError('Only verified members can submit an urgent-help request.');
+    if (!canParticipate) {
+      setFormError('An approved Odia account is required to request urgent help.');
       return;
     }
 
@@ -308,6 +315,14 @@ export default function UrgentHelp() {
           request={selected}
           onClose={() => setSelected(null)}
           onOfferHelp={(request) => {
+            if (!isAuthenticated) {
+              router.push('/login');
+              return;
+            }
+            if (!canParticipate) {
+              toast.error('An approved Odia account is required to offer help.');
+              return;
+            }
             setOfferError('');
             setOfferRequest(request);
           }}

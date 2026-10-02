@@ -73,7 +73,7 @@ export default function RegisteredUserTable({
                         {user.displayName || "Unknown"}
                       </p>
                       <p className="text-xs text-[#6B5E5A] truncate">{user.email}</p>
-                      {user.hasJoinedCommunity && <div className="mt-1"><ResidencyBadge status={user.residencyStatus} compact /></div>}
+                      {(user.hasJoinedCommunity || user.residencyStatus === 'GUEST') && <div className="mt-1"><ResidencyBadge status={user.residencyStatus} compact /></div>}
                     </div>
                   </div>
                 </td>
@@ -90,7 +90,11 @@ export default function RegisteredUserTable({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">
-                  {user.isVerified ? (
+                  {user.residencyStatus === 'GUEST' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      <User className="h-3 w-3" /> Guest account
+                    </span>
+                  ) : user.isVerified ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
                       <ShieldCheck className="w-3 h-3" /> Verified
                     </span>

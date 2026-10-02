@@ -1,6 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
+import { requireApprovedMember } from '@/lib/memberAccess';
 
 export const JOB_CATEGORIES = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Startup / Co-founder'] as const;
 export type JobCategory = typeof JOB_CATEGORIES[number];
@@ -103,17 +104,16 @@ export const jobsService = {
   },
 
   async createJob(data: Omit<Job, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'rejectionReason'>) {
-    const userSnapshot = await getDoc(doc(db, 'users', data.ownerId));
-    const user = userSnapshot.exists() ? userSnapshot.data() : null;
-    if (!user?.hasJoinedCommunity || !user.isVerified) {
-      throw new Error('Only verified community members can post an opportunity.');
-    }
+    const uid = await requireApprovedMember('post an opportunity');
+    if (uid !== data.ownerId) throw new Error('You can post only from your own account.');
     const now = new Date().toISOString();
     const reference = await addDoc(collection(db, 'jobs'), { ...data, status: 'pending', createdAt: now, updatedAt: now });
     return reference.id;
   },
 
   async applyToJob(jobId: string, data: Omit<JobApplication, 'id' | 'jobId' | 'status' | 'createdAt' | 'resumeUrl' | 'resumeName'>, resume?: File) {
+    const uid = await requireApprovedMember('apply for a job');
+    if (uid !== data.applicantId) throw new Error('You can apply only from your own account.');
     const applicationRef = doc(db, 'jobs', jobId, 'applications', data.applicantId);
     if ((await getDoc(applicationRef)).exists()) throw new Error('You have already applied to this opportunity.');
     let resumeUrl = '';

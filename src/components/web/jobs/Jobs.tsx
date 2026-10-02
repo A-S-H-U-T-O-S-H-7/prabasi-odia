@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, BriefcaseBusiness, Loader2, LockKeyhole, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuthStore, useUserStore } from '@/lib/store';
+import { canUseMemberServices } from '@/lib/residency';
 import { jobsService, type Job } from '@/lib/services/jobsService';
 import { emailService } from '@/lib/services/emailService';
 import JobApplicationModal from './JobApplicationModal';
@@ -36,7 +37,8 @@ export default function Jobs() {
   const currentProfile = profile?.uid === user?.uid ? profile : null;
   const verifiedMember = Boolean(
     (currentProfile?.hasJoinedCommunity ?? user?.hasJoinedCommunity) &&
-    (currentProfile?.isVerified ?? user?.isVerified)
+    (currentProfile?.isVerified ?? user?.isVerified) &&
+    canUseMemberServices(currentProfile?.residencyStatus ?? user?.residencyStatus)
   );
 
   const loadJobs = async () => {
@@ -177,6 +179,10 @@ export default function Jobs() {
   const openApplication = (job: Job) => {
     if (!isAuthenticated) {
       router.push('/login');
+      return;
+    }
+    if (!verifiedMember) {
+      toast.error('An approved Odia account is required to apply for a job.');
       return;
     }
     if (job.ownerId === user?.uid) {

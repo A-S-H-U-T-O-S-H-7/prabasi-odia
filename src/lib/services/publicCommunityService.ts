@@ -144,6 +144,9 @@ export const publicCommunityService = {
 
       const userSnap = await getDoc(doc(db, 'users', userId));
       const userData = userSnap.exists() ? userSnap.data() : null;
+      if (userData?.residencyStatus === 'RO' || userData?.residencyStatus === 'GUEST') {
+        return { success: false, error: 'This account type cannot join a community.' };
+      }
       if (!userData?.hasJoinedCommunity) {
         return { success: false, error: 'Please complete the community joining form first' };
       }

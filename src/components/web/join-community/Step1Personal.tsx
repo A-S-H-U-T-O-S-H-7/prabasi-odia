@@ -7,8 +7,7 @@ import { useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useAuthStore } from "@/lib/store";
-import { isResidencyContactVerified } from "@/lib/residency";
-import ResidencySelect from "./step1/ResidencySelect";
+import { isResidencyContactVerified, residencyLabels, type ResidencyStatus } from "@/lib/residency";
 
 import ProfilePhotoUpload from "./step1/ProfilePhotoUpload";
 import PersonalDetails from "./step1/PersonalDetails";
@@ -18,6 +17,8 @@ import { useJoinFormSupport } from "./JoinFormSupport";
 
 interface Step1PersonalProps {
   onNext: () => void;
+  onChangeType: () => void;
+  accountType: Exclude<ResidencyStatus, 'GUEST'>;
 }
 
 const calculateAge = (dob: string): number => {
@@ -32,17 +33,23 @@ const calculateAge = (dob: string): number => {
   return age;
 };
 
-export default function Step1Personal({ onNext }: Step1PersonalProps) {
+export default function Step1Personal({ onNext, onChangeType, accountType }: Step1PersonalProps) {
   const support = useJoinFormSupport();
-  const { getValues, trigger, watch } = useFormContext();
+  const { getValues, setValue, trigger, watch } = useFormContext();
   const { user } = useAuthStore();
   const loginEmail = String(watch("email") || user?.email || "").trim();
 
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [verificationError, setVerificationError] = useState("");
-  const residencyStatus = watch("residencyStatus");
+  const residencyStatus = accountType;
   const mobileVerified = watch("mobileVerified");
   const emailVerified = watch("emailVerified");
+
+  useEffect(() => {
+    if (getValues('residencyStatus') !== accountType) {
+      setValue('residencyStatus', accountType, { shouldValidate: true });
+    }
+  }, [accountType, getValues, setValue]);
 
   useEffect(() => {
     setVerificationError("");
@@ -62,7 +69,10 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
       }
     }
 
-    const fieldsToValidate = ["residencyStatus", "email", "fullName", "dob", "gender", "bloodGroup", "mobileNumber", "mobileCountryCode", "photo", "profession", "doctorSpecialization", "otherProfession"];
+    const fieldsToValidate = [
+      "residencyStatus", "email", "fullName", "dob", "gender", "mobileNumber", "mobileCountryCode", "photo",
+      ...(residencyStatus === 'RO' ? [] : ["bloodGroup", "profession", "doctorSpecialization", "otherProfession"]),
+    ];
     const isValid = await trigger(fieldsToValidate);
 
     if (!isValid) {
@@ -71,8 +81,11 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
       return;
     }
 
-    const isResidentIndian = getValues("residencyStatus") === "RI";
-    const contactVerified = isResidencyContactVerified(getValues());
+    const isResidentIndian = accountType === "RI";
+    const contactVerified = isResidencyContactVerified({
+      ...getValues(),
+      residencyStatus: accountType,
+    });
 
     if (!contactVerified) {
       const message = !isResidentIndian && !loginEmail
@@ -107,10 +120,13 @@ export default function Step1Personal({ onNext }: Step1PersonalProps) {
         </div>
       </div>
 
-      <ResidencySelect />
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#6B1E5B]/15 bg-[#6B1E5B]/5 px-3 py-2.5 text-sm sm:px-4">
+        <span className="font-semibold text-[#2A1636]">Joining as {residencyLabels[residencyStatus as ResidencyStatus]}</span>
+        <button type="button" onClick={onChangeType} className="font-semibold text-[#6B1E5B] underline underline-offset-2">Change</button>
+      </div>
       <ProfilePhotoUpload hasAttemptedSubmit={hasAttemptedSubmit} />
       <PersonalDetails hasAttemptedSubmit={hasAttemptedSubmit} setHasAttemptedSubmit={setHasAttemptedSubmit} />
-      <ContactVerification loginEmail={loginEmail} />
+      <ContactVerification loginEmail={loginEmail} verificationChannel={accountType === 'RI' ? 'sms' : 'email'} />
       {verificationError && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 sm:px-4 sm:py-3">
           {verificationError}

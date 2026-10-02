@@ -10,7 +10,6 @@ import { toast } from "react-hot-toast";
 import { Controller, useFormContext } from "react-hook-form";
 import { useCountries } from "@/hooks/useCountries";
 import CountryCodeSelect from "./CountryCodeSelect";
-import { useResidencyChange } from "./useResidencyChange";
 import { useJoinFormSupport } from "../JoinFormSupport";
 import { 
   normalizeEmail,
@@ -20,12 +19,13 @@ import {
 
 interface ContactVerificationProps {
   loginEmail: string;
+  lockedEmail?: boolean;
+  verificationChannel: 'email' | 'sms';
 }
 
-export default function ContactVerification({ loginEmail }: ContactVerificationProps) {
+export default function ContactVerification({ loginEmail, lockedEmail = false, verificationChannel }: ContactVerificationProps) {
   const support = useJoinFormSupport();
   const { control, watch, getValues, setValue, trigger, formState: { errors, touchedFields } } = useFormContext();
-  const selectResidency = useResidencyChange();
   const { countries, loading: loadingCountries, error: countriesError, retry: retryCountries } = useCountries();
   const countryCodes = countries.flatMap((country) => {
     const digits = String(country.phonecode ?? "").replace(/\D/g, "");
@@ -46,8 +46,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 
   const watchMobileNumber = watch("mobileNumber");
   const watchMobileCountryCode = watch("mobileCountryCode");
-  const residencyStatus = watch("residencyStatus");
-  const isResidentIndian = residencyStatus === "RI";
+  const isResidentIndian = verificationChannel === 'sms';
   const isContactVerified = isResidentIndian ? isMobileVerified : isEmailVerified;
   const contactKey = isResidentIndian
     ? `RI:${watchMobileCountryCode}:${String(watchMobileNumber || "").replace(/[\s\-()]/g, "")}`
@@ -64,7 +63,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
 
   useEffect(() => () => { requestVersion.current += 1; }, []);
 
-  const currentContactKey = () => getValues("residencyStatus") === "RI"
+  const currentContactKey = () => isResidentIndian
     ? `RI:${getValues("mobileCountryCode")}:${String(getValues("mobileNumber") || "").replace(/[\s\-()]/g, "")}`
     : `NRI:${String(getValues("email") || loginEmail).trim().toLowerCase()}`;
 
@@ -387,6 +386,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
             <input
               type="email"
               value={loginEmail}
+              readOnly={lockedEmail}
               onChange={(event) => {
                 setValue("email", event.target.value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
               }}
@@ -394,7 +394,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
               placeholder="you@example.com"
             />
           </div>
-          {/* Email OTP Send Button - Only for NRIs */}
+          {/* NRI, Odisha resident, and guest accounts verify their email. */}
           {!isResidentIndian && (
             <motion.button
               type="button"
@@ -402,7 +402,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
               whileTap={{ scale: 0.98 }}
               onClick={handleSendOtp}
               disabled={isSendingOtp || isVerifyingOtp || isEmailVerified || resendCooldown > 0 || !loginEmail}
-              className={`px-2 py-2.5 rounded-xl text-xs sm:px-4 sm:py-3 sm:rounded-2xl sm:text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${
+              className={`cursor-pointer whitespace-nowrap rounded-xl px-2 py-2.5 text-xs font-medium transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-70 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm ${
                 isEmailVerified
                   ? "bg-green-600 text-white"
                   : "bg-gradient-to-r from-[#6B1E5B] to-[#8A2E72] text-white shadow-md shadow-[#6B1E5B]/20"
@@ -437,7 +437,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
             <p className="text-xs text-[#6B5E5A]/70">
               {isResidentIndian
                 ? "This email will be used when you create your account"
-                : "As an NRI, you will receive your OTP at this email address"}
+                : "Your verification code will be sent to this email address"}
             </p>
           )}
         </div>
@@ -457,10 +457,11 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
                 options={countryCodes}
                 value={field.value || ""}
                 onChange={(code) => {
-                  field.onChange(code);
-                  if (code !== "+91" && getValues("residencyStatus") === "RI") {
-                    selectResidency("NRI", code);
+                  if (code !== "+91" && isResidentIndian) {
+                    toast.error("This category requires an Indian mobile number. Change your category if you live abroad.");
+                    return;
                   }
+                  field.onChange(code);
                 }}
                 onBlur={field.onBlur}
                 inputRef={field.ref}
@@ -510,7 +511,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
                 }}
               />
             </div>
-            {/* SMS OTP Send Button - Only for Resident Indians */}
+            {/* RI applicants verify their Indian mobile number. */}
             {isResidentIndian && (
               <motion.button
                 type="button"
@@ -555,7 +556,7 @@ export default function ContactVerification({ loginEmail }: ContactVerificationP
                 <p className="text-[10px] text-amber-600">
                   {isResidentIndian
                     ? "OTP will be sent to this Indian mobile number"
-                    : "NRI contact verification uses email OTP"}
+                    : "This number is for contact only; verify your email above"}
                 </p>
               </div>
             )}

@@ -3,6 +3,7 @@
 import { User, MapPin, Shield, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { canHaveMemberCard, residencyLabels, type ResidencyStatus } from '@/lib/residency';
 
 interface ProfileHeaderProps {
   profile: any;
@@ -60,12 +61,13 @@ export default function ProfileHeader({ profile }: ProfileHeaderProps) {
               <h1 className="text-2xl font-serif font-bold text-[#2A1636]">
                 {profile.displayName || "User"}
               </h1>
+              {profile.residencyStatus && <span className="rounded-full border border-[#D4C8C0] bg-white/80 px-2.5 py-1 text-xs font-medium text-[#6B1E5B]">{residencyLabels[profile.residencyStatus as ResidencyStatus] || profile.residencyStatus}</span>}
               {profile.isVerified && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
                   <Shield className="w-3 h-3" /> Verified
                 </span>
               )}
-              {profile.memberId && (
+              {canHaveMemberCard(profile.residencyStatus) && profile.memberId && (
                 <span className="text-sm text-[#6B5E5A] font-medium">
                   ID: {profile.memberId}
                 </span>

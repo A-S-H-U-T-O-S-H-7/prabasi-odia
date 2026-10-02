@@ -1,6 +1,7 @@
 import { addDoc, collection, doc, getDoc, getDocs, limit, query, updateDoc, where } from 'firebase/firestore';
 import { z } from 'zod';
 import { auth, db } from '@/lib/firebase/config';
+import { requireApprovedMember } from '@/lib/memberAccess';
 import { CONSULTATION_MODES, DOCTOR_SPECIALTIES, type ConsultationDraft, type ConsultationRequest, type ConsultationStatus, type Doctor, type DoctorDraft } from '@/lib/doctors/types';
 
 const doctorSchema = z.object({
@@ -79,7 +80,7 @@ export const doctorsService = {
     return reference.id;
   },
   async requestConsultation(doctorId: string, data: ConsultationDraft) {
-    const uid = requireUser();
+    const uid = await requireApprovedMember('contact a doctor');
     const parsed = requestSchema.safeParse(data);
     if (!parsed.success) throw new Error('Check the patient details and consultation request.');
     if (parsed.data.preferredDate < today()) throw new Error('Choose today or a future date.');

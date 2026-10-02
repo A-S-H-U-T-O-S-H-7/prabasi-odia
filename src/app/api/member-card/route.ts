@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { generateMemberCardBundle } from '@/lib/services/memberCardPDF';
 import { resolveMemberCardInput } from '@/lib/services/memberCardData';
+import { canHaveMemberCard } from '@/lib/residency';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -97,6 +98,9 @@ export async function POST(request: NextRequest) {
     }
     const saved = await profileResponse.json();
     const user = readFields(saved.fields);
+    if (!canHaveMemberCard(user.residencyStatus as 'NRI' | 'RI' | 'RO' | 'GUEST' | undefined)) {
+      return NextResponse.json({ error: 'Member cards are available only for NRI accounts.' }, { status: 403 });
+    }
     // Support approved records created before isVerified was consistently
     // stored alongside applicationStatus.
     const approved = user.isVerified === true || user.applicationStatus === 'approved';

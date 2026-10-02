@@ -94,7 +94,9 @@ function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onRea
         width, height: Math.round(width / pageRatio), size: 'stretch',
         minWidth: 160, maxWidth: width, minHeight: Math.round(160 / pageRatio), maxHeight: Math.round(width / pageRatio),
         autoSize: true, usePortrait: true, showCover: true, drawShadow: true,
-        flippingTime: 850, showPageCorners: false, disableFlipByClick: true,
+        // Page clicks stay off through useMouseEvents and the pointer drag threshold.
+        // This must stay false so the library's previous-page button works in portrait mode.
+        flippingTime: 850, showPageCorners: false, disableFlipByClick: false,
         useMouseEvents: false, mobileScrollSupport: true, startPage: startPage - 1,
       });
       book.on('flip', (event) => { changeRef.current(event.data + 1); prefetch(event.data + 1); });
