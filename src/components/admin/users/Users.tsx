@@ -10,7 +10,6 @@ import { emailService } from "@/lib/services/emailService";
 import UserStats from "@/components/admin/users/UserStats";
 import UserFilters from "@/components/admin/users/UserFilters";
 import UserTable from "@/components/admin/users/UserTable";
-import RegisteredUserTable from "@/components/admin/registered-users/RegisteredUserTable";
 import AccountTypeTabs, { type AccountTypeTab } from "@/components/admin/registered-users/AccountTypeTabs";
 import UserVerificationModal from "./UserVerificationModal";
 import EditMemberModal from "./EditMemberModal";
@@ -56,7 +55,6 @@ export default function AdminUsersPage() {
     try {
       const result = await adminUserService.getUsers(10000, undefined, {
         status: 'all',
-        includeGuests: true,
       });
       if (result.users) {
         setUsers(result.users);
@@ -87,7 +85,7 @@ export default function AdminUsersPage() {
     }
     setLoading(true);
     try {
-      const result = await adminUserService.searchRegisteredUsers(searchTerm);
+      const result = await adminUserService.searchUsers(searchTerm);
       if (result.success && result.users) {
         setSearchResults(result.users);
         setCurrentPage(1);
@@ -195,12 +193,10 @@ export default function AdminUsersPage() {
   }
 
   const displayUsers = (searchResults || users).filter((user) => {
-    const matchesAccountType = accountType === 'GUEST'
-      ? user.residencyStatus === 'GUEST'
-      : accountType === 'RO'
-        ? user.residencyStatus === 'RO' && user.hasJoinedCommunity
-        : user.hasJoinedCommunity && user.residencyStatus !== 'GUEST';
-    if (!matchesAccountType || accountType === 'GUEST') return matchesAccountType;
+    const matchesAccountType = accountType === 'RO'
+      ? user.residencyStatus === 'RO' && user.hasJoinedCommunity
+      : user.hasJoinedCommunity && user.residencyStatus !== 'GUEST';
+    if (!matchesAccountType) return false;
 
     if (statusFilter === 'verified') return user.isVerified;
     if (statusFilter === 'rejected') return user.applicationStatus === 'rejected';
@@ -227,9 +223,7 @@ export default function AdminUsersPage() {
           <div>
             <h1 className="text-2xl font-serif font-bold text-[#2A1636]">Joined Members</h1>
             <p className="text-sm text-[#6B5E5A]">
-              {accountType === 'GUEST'
-                ? 'Browse Guest accounts. Guests do not enter the member approval process.'
-                : 'Manage and verify accounts that submitted a joining application.'}
+              Manage and verify accounts that submitted a joining application.
             </p>
           </div>
         </div>
@@ -268,31 +262,22 @@ export default function AdminUsersPage() {
           setStatusFilter(next);
           setCurrentPage(1);
         }}
-        guestView={accountType === 'GUEST'}
       />
 
       {/* Table */}
-      {accountType === 'GUEST' ? (
-        <RegisteredUserTable
-          users={paginatedUsers}
-          loading={loading}
-          startIndex={pageStart}
-        />
-      ) : (
-        <UserTable
-          users={paginatedUsers}
-          onViewUser={handleViewUser}
-          onViewProfile={handleViewProfile}
-          onEditUser={handleEditUser}
-          loading={loading}
-          startIndex={pageStart}
-        />
-      )}
+      <UserTable
+        users={paginatedUsers}
+        onViewUser={handleViewUser}
+        onViewProfile={handleViewProfile}
+        onEditUser={handleEditUser}
+        loading={loading}
+        startIndex={pageStart}
+      />
 
       {!loading && displayUsers.length > 0 && (
         <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 sm:flex-row">
           <p className="text-sm text-[#6B5E5A]">
-            Showing {pageStart + 1}–{Math.min(pageStart + pageSize, displayUsers.length)} of {displayUsers.length} {accountType === 'GUEST' ? 'guests' : 'members'}
+            Showing {pageStart + 1}–{Math.min(pageStart + pageSize, displayUsers.length)} of {displayUsers.length} members
           </p>
           <div className="flex items-center gap-2">
             <button

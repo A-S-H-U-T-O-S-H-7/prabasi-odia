@@ -118,14 +118,13 @@ export const adminUserService = {
       search?: string;
       status?: 'all' | 'pending' | 'verified' | 'rejected';
       city?: string;
-      includeGuests?: boolean;
     }
   ) {
     try {
       const snapshot = await getDocs(collection(db, 'users'));
       let users = snapshot.docs
         .map((d) => this._mapUserDoc(d))
-        .filter((u) => u.hasJoinedCommunity || (filters?.includeGuests && u.residencyStatus === 'GUEST'));
+        .filter((u) => u.hasJoinedCommunity);
 
       if (filters?.status === 'pending') {
         users = users.filter((u) => !u.isVerified && u.applicationStatus !== 'rejected');

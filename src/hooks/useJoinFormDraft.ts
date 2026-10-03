@@ -17,7 +17,7 @@ export function useJoinFormDraft<T extends FieldValues>(methods: UseFormReturn<T
       if (draft) {
         const values = { ...draft.values };
         // Older drafts used the phone code to choose verification.
-        if (!['RI', 'NRI', 'RO', 'GUEST'].includes(String(values.residencyStatus))) {
+        if (!['RI', 'NRI', 'RO'].includes(String(values.residencyStatus))) {
           values.residencyStatus = (values.mobileCountryCode && values.mobileCountryCode !== '+91') ||
             values.idType === 'passport' || (values.currentCountry && values.currentCountry !== 'India') ? 'NRI' : 'RI';
         }

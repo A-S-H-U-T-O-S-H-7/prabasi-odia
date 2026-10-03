@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useAuthStore } from "@/lib/store";
-import { isResidencyContactVerified, residencyLabels, type ResidencyStatus } from "@/lib/residency";
+import { isResidencyContactVerified, residencyLabels, type JoinResidencyStatus, type ResidencyStatus } from "@/lib/residency";
 
 import ProfilePhotoUpload from "./step1/ProfilePhotoUpload";
 import PersonalDetails from "./step1/PersonalDetails";
@@ -18,7 +18,7 @@ import { useJoinFormSupport } from "./JoinFormSupport";
 interface Step1PersonalProps {
   onNext: () => void;
   onChangeType: () => void;
-  accountType: Exclude<ResidencyStatus, 'GUEST'>;
+  accountType: JoinResidencyStatus;
 }
 
 const calculateAge = (dob: string): number => {

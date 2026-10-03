@@ -35,7 +35,7 @@ export default function LoginPage() {
     const account = useAuthStore.getState().user;
     const hasJoinedCommunity = account?.hasJoinedCommunity === true;
 
-    if (!hasJoinedCommunity && account?.residencyStatus !== 'GUEST') {
+    if (!hasJoinedCommunity) {
       setIsRedirectingToCommunity(true);
       await new Promise((resolve) => setTimeout(resolve, 2000));
       router.replace("/join-community");

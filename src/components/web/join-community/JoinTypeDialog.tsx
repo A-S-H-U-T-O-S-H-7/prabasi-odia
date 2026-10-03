@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Globe2, House, MapPin, UserRound } from 'lucide-react';
-import type { ResidencyStatus } from '@/lib/residency';
+import { Globe2, House, MapPin } from 'lucide-react';
+import type { JoinResidencyStatus } from '@/lib/residency';
 
 type Language = 'en' | 'or' | 'hi';
 
@@ -10,7 +10,7 @@ const translations: Record<Language, {
   welcome: string;
   heading: string;
   description: string;
-  choices: Record<ResidencyStatus, { title: string; detail: string }>;
+  choices: Record<JoinResidencyStatus, { title: string; detail: string }>;
 }> = {
   en: {
     welcome: 'Welcome to Prabasi Odia',
@@ -20,7 +20,6 @@ const translations: Record<Language, {
       NRI: { title: 'NRI · Odia living abroad', detail: 'I am from Odisha and live outside India.' },
       RI: { title: 'RI · Odia living elsewhere in India', detail: 'I am from Odisha and live in another Indian state.' },
       RO: { title: 'Odia living in Odisha', detail: 'I am from Odisha and live in Odisha.' },
-      GUEST: { title: 'Guest', detail: 'I want to create an account and explore the site.' },
     },
   },
   or: {
@@ -31,7 +30,6 @@ const translations: Record<Language, {
       NRI: { title: 'NRI · ବିଦେଶରେ ରହୁଥିବା ଓଡ଼ିଆ', detail: 'ମୁଁ ଓଡ଼ିଶାର, କିନ୍ତୁ ଭାରତ ବାହାରେ ରହୁଛି।' },
       RI: { title: 'RI · ଅନ୍ୟ ଭାରତୀୟ ରାଜ୍ୟରେ ରହୁଥିବା ଓଡ଼ିଆ', detail: 'ମୁଁ ଓଡ଼ିଶାର, କିନ୍ତୁ ଅନ୍ୟ ଏକ ଭାରତୀୟ ରାଜ୍ୟରେ ରହୁଛି।' },
       RO: { title: 'ଓଡ଼ିଶାରେ ରହୁଥିବା ଓଡ଼ିଆ', detail: 'ମୁଁ ଓଡ଼ିଶାର ଏବଂ ଓଡ଼ିଶାରେ ରହୁଛି।' },
-      GUEST: { title: 'ଅତିଥି', detail: 'ମୁଁ ଏକ ଖାତା ଖୋଲି ସାଇଟ୍ ଦେଖିବାକୁ ଚାହୁଁଛି।' },
     },
   },
   hi: {
@@ -42,7 +40,6 @@ const translations: Record<Language, {
       NRI: { title: 'NRI · विदेश में रहने वाले ओड़िया', detail: 'मैं ओडिशा से हूँ और भारत के बाहर रहता/रहती हूँ।' },
       RI: { title: 'RI · भारत के दूसरे राज्य में रहने वाले ओड़िया', detail: 'मैं ओडिशा से हूँ और भारत के किसी दूसरे राज्य में रहता/रहती हूँ।' },
       RO: { title: 'ओडिशा में रहने वाले ओड़िया', detail: 'मैं ओडिशा से हूँ और ओडिशा में ही रहता/रहती हूँ।' },
-      GUEST: { title: 'अतिथि', detail: 'मैं खाता बनाकर साइट देखना चाहता/चाहती हूँ।' },
     },
   },
 };
@@ -66,12 +63,6 @@ const choices = [
     card: 'border-violet-200 bg-gradient-to-br from-violet-50 to-purple-100/60 hover:border-violet-400 hover:from-violet-100 hover:to-purple-100',
     iconStyle: 'bg-violet-100 text-violet-700',
   },
-  {
-    value: 'GUEST',
-    icon: UserRound,
-    card: 'border-slate-200 bg-gradient-to-br from-slate-50 to-gray-100 hover:border-slate-400 hover:from-slate-100 hover:to-gray-100',
-    iconStyle: 'bg-slate-200 text-slate-700',
-  },
 ] as const;
 
 const languageOptions: { code: Language; label: string }[] = [
@@ -80,7 +71,7 @@ const languageOptions: { code: Language; label: string }[] = [
   { code: 'or', label: 'ଓଡ଼ି' },
 ];
 
-export default function JoinTypeDialog({ onSelect }: { onSelect: (type: ResidencyStatus) => void }) {
+export default function JoinTypeDialog({ onSelect }: { onSelect: (type: JoinResidencyStatus) => void }) {
   const [language, setLanguage] = useState<Language>('en');
   const content = translations[language];
 
@@ -123,7 +114,7 @@ export default function JoinTypeDialog({ onSelect }: { onSelect: (type: Residenc
               key={value}
               type="button"
               onClick={() => onSelect(value)}
-              className={`group flex min-h-28 cursor-pointer items-start gap-3 rounded-2xl border p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B1E5B] ${card}`}
+              className={`group flex min-h-28 cursor-pointer items-start gap-3 rounded-2xl border p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B1E5B] ${value === 'RO' ? 'sm:col-span-2' : ''} ${card}`}
             >
               <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${iconStyle}`}><Icon size={20} /></span>
               <span>

@@ -16,12 +16,10 @@ import { userService, type UserProfileData } from "@/lib/services/userService";
 import { emailService } from "@/lib/services/emailService";
 import { geocodeLocation } from "@/lib/utils/locationGeocode";
 import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
-import { residencyDefaults, isResidencyContactVerified, type ResidencyStatus } from "@/lib/residency";
+import { residencyDefaults, isResidencyContactVerified, type JoinResidencyStatus } from "@/lib/residency";
 import { useJoinFormDraft } from "@/hooks/useJoinFormDraft";
 import JoinFormSupport from "@/components/web/join-community/JoinFormSupport";
 import JoinTypeDialog from "@/components/web/join-community/JoinTypeDialog";
-import GuestJoinForm from "@/components/web/join-community/GuestJoinForm";
-import { saveJoinFormDraft } from "@/lib/joinFormDraft";
 
 // Calculate age from DOB
 const calculateAge = (dob: string): number => {
@@ -200,7 +198,7 @@ const STEPS = [
 export default function JoinCommunityPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [selectedType, setSelectedType] = useState<ResidencyStatus | null>(null);
+  const [selectedType, setSelectedType] = useState<JoinResidencyStatus | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -253,14 +251,8 @@ export default function JoinCommunityPage() {
     mode: "onChange",
   });
 
-  const draft = useJoinFormDraft(methods, currentStep, setCurrentStep, selectedType !== null && selectedType !== 'GUEST');
-  const selectType = (type: ResidencyStatus) => {
-    if (type === 'GUEST') {
-      void saveJoinFormDraft(null);
-      setSelectedType(type);
-      setCurrentStep(1);
-      return;
-    }
+  const draft = useJoinFormDraft(methods, currentStep, setCurrentStep, selectedType !== null);
+  const selectType = (type: JoinResidencyStatus) => {
     if (!selectedType && draft.restoredStatus === type) {
       setSelectedType(type);
       return;
@@ -482,7 +474,7 @@ export default function JoinCommunityPage() {
 
     switch (currentStep) {
       case 1:
-        return <Step1Personal accountType={selectedType as Exclude<ResidencyStatus, 'GUEST'>} onNext={handleNext} onChangeType={() => setSelectedType(null)} />;
+        return <Step1Personal accountType={selectedType as JoinResidencyStatus} onNext={handleNext} onChangeType={() => setSelectedType(null)} />;
       case 2:
         return <Step2Address onNext={handleNext} onBack={handleBack} buttonLabel="Next" />;
       case 3:
@@ -498,7 +490,6 @@ export default function JoinCommunityPage() {
 
   if (!draft.ready) return null;
   if (!selectedType) return <JoinTypeDialog onSelect={selectType} />;
-  if (selectedType === 'GUEST') return <GuestJoinForm onChangeType={() => setSelectedType(null)} />;
 
   return (
     <FormProvider {...methods}>

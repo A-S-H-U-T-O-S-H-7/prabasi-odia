@@ -7,146 +7,175 @@ import { ArrowUpRight, BookOpen } from "lucide-react";
 import HeroButtons, { HeroQuickLinks } from "./HeroButtons";
 import AvatarGroup from "./AvatarGroup";
 import Stats from "./Stats";
+import MagazineTypingTitle from "./MagazineTypingTitle";
 
 
 export default function HeroContent() {
   return (
-    <div className="max-w-3xl py-4 sm:py-0">
+    <div className="w-full py-4 sm:py-0">
+      <div className="max-w-3xl">
       
-      {/* Badge */}
-      <motion.div
-        initial={{ opacity: 0, x: -25 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5 }}
-        className="inline-flex mt-2 sm:mt-5 items-center gap-2 rounded-full border border-[#F4D3BE] bg-white/80 px-3 sm:px-5 py-1.5 sm:py-2 shadow-lg backdrop-blur-md"
-      >
-        <span className="h-2 w-2 sm:h-3 sm:w-2.5 rounded-full bg-gradient-to-r from-[#6B1E5B] to-[#D9772B]" />
-        <span className="text-[14px] sm:text-sm font-semibold tracking-wide text-[#6B1E5B]">
-          Connecting Odias Worldwide
-        </span>
-      </motion.div>
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, x: -25 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="inline-flex mt-2 sm:mt-5 items-center gap-2 rounded-full border border-[#F4D3BE] bg-white/80 px-3 sm:px-5 py-1.5 sm:py-2 shadow-lg backdrop-blur-md"
+        >
+          <span className="h-2 w-2 sm:h-3 sm:w-2.5 rounded-full bg-gradient-to-r from-[#6B1E5B] to-[#D9772B]" />
+          <span className="text-[14px] sm:text-sm font-semibold tracking-wide text-[#6B1E5B]">
+            Connecting Odias Worldwide
+          </span>
+        </motion.div>
 
-      {/* Heading */}
-      <motion.h1
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="
-          mt-3 sm:mt-4
-          font-serif
-          font-bold
-          tracking-[-1px] sm:tracking-[-2px]
-          leading-[0.95]
-          text-[28px]
-          sm:text-[44px]
-          lg:text-[66px]
-          xl:text-[76px]
-        "
-      >
-        <span className="bg-gradient-to-r from-[#4A148C] via-[#6A1B9A] to-[#8E24AA] bg-clip-text text-transparent">
-          One Community.
-        </span>
-        <br />
-        <span className="block mt-1 sm:mt-0 sm:inline whitespace-normal sm:whitespace-nowrap bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] to-[#E6A11C] bg-clip-text text-transparent">
-          Limitless Connections.
-        </span>
-      </motion.h1>
+        {/* Heading */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="
+            mt-3 sm:mt-4
+            font-serif
+            font-bold
+            tracking-[-1px] sm:tracking-[-2px]
+            leading-[0.95]
+            text-[28px]
+            sm:text-[44px]
+            lg:text-[66px]
+            xl:text-[76px]
+          "
+        >
+          <span className="bg-gradient-to-r from-[#4A148C] via-[#6A1B9A] to-[#8E24AA] bg-clip-text text-transparent">
+            One Community.
+          </span>
+          <br />
+          <span className="block mt-1 sm:mt-0 sm:inline whitespace-normal sm:whitespace-nowrap bg-gradient-to-r from-[#6B1E5B] via-[#D9772B] to-[#E6A11C] bg-clip-text text-transparent">
+            Limitless Connections.
+          </span>
+        </motion.h1>
 
-      {/* Description */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.25 }}
-        className="
-          mt-4 sm:mt-6
-          text-[14px]
-          sm:text-[16px]
-          leading-[1.6] sm:leading-8
-          text-[#5C5C66]
-          max-w-2xl
-        "
-      >
-        Prabasi Odia is a global platform connecting Odias across
-        the world through culture, community, professional
-        networking, events, volunteering, and meaningful
-        relationships. Together we preserve our heritage while
-        creating opportunities for future generations.
-      </motion.p>
+        {/* Description */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+          className="
+            mt-4 sm:mt-6
+            text-[14px]
+            sm:text-[16px]
+            leading-[1.6] sm:leading-8
+            text-[#5C5C66]
+            max-w-2xl
+          "
+        >
+          Prabasi Odia is a global platform connecting Odias across
+          the world through culture, community, professional
+          networking, events, volunteering, and meaningful
+          relationships. Together we preserve our heritage while
+          creating opportunities for future generations.
+        </motion.p>
 
-      {/* Buttons */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.45 }}
-        className="mt-6 sm:mt-8"
-      >
-        <HeroButtons />
-      </motion.div>
+        {/* Buttons */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45 }}
+          className="mt-6 sm:mt-8"
+        >
+          <HeroButtons />
+        </motion.div>
 
-      {/* Avatar Group */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-      >
-        <AvatarGroup />
-      </motion.div>
+        {/* Avatar Group */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          <AvatarGroup />
+        </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="mt-4"
-      >
-        <HeroQuickLinks />
-      </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-4"
+        >
+          <HeroQuickLinks />
+        </motion.div>
 
-      {/* Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 25 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="mt-6 sm:mt-10"
-      >
-        <Stats />
-      </motion.div>
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="mt-6 sm:mt-10"
+        >
+          <Stats />
+        </motion.div>
+      </div>
 
       {/* ✅ Project Credit with Avatar */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9 }}
-        className="mt-6 pt-4 border-t border-[#D4C8C0]/30"
+        className="mt-6 grid gap-5 border-t border-[#D4C8C0]/30 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(270px,340px)] md:items-center md:gap-8"
       >
-        <div className="flex items-center justify-left gap-3">
-          {/* Avatar */}
-          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#6B1E5B]/20 shadow-md flex-shrink-0">
-            <Image
-              src="/avatar5.jpeg"
-              alt="FCA(Dr) Manoranjan Mohanty"
-              width={40}
-              height={40}
-              className="w-full h-full object-cover"
-            />
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#6B1E5B]/20 shadow-md flex-shrink-0">
+              <Image
+                src="/avatar5.jpeg"
+                alt="FCA(Dr) Manoranjan Mohanty"
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div>
+              <p className="text-xs sm:text-sm text-[#2A1636] font-medium">
+                Project by <span className="text-[#6B1E5B] font-semibold">FCA(Dr) Manoranjan Mohanty</span>
+              </p>
+              <p className="text-[10px] sm:text-xs text-[#6B5E5A]">
+                President of <span className="text-[#6B1E5B] font-medium">Samudayik Vikas Samiti</span>
+              </p>
+            </div>
           </div>
-          
-          {/* Text */}
-          <div>
-            <p className="text-xs sm:text-sm text-[#2A1636] font-medium">
-              Project by <span className="text-[#6B1E5B] font-semibold">FCA(Dr) Manoranjan Mohanty</span>
-            </p>
-            <p className="text-[10px] sm:text-xs text-[#6B5E5A]">
-              President of <span className="text-[#6B1E5B] font-medium">Samudayik Vikas Samiti</span>
-            </p>
-          </div>
+          <Link
+            href="/manoranjan-mohanty"
+            className="group mt-3 inline-flex items-center gap-2 rounded-full border border-[#6B1E5B]/20 bg-white/80 px-4 py-2 text-xs font-semibold text-[#6B1E5B] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#6B1E5B]/50 hover:bg-white hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B1E5B] sm:ml-[3.25rem]"
+          >
+            <BookOpen className="h-4 w-4" />
+            Know more
+            <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
         </div>
+
         <Link
-          href="/manoranjan-mohanty"
-          className="group mt-3 inline-flex items-center gap-2 rounded-full border border-[#6B1E5B]/20 bg-white/80 px-4 py-2 text-xs font-semibold text-[#6B1E5B] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#6B1E5B]/50 hover:bg-white hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B1E5B] sm:ml-[3.25rem]"
+          href="/magazine"
+          aria-label="Explore Prabasi Odia magazines"
+          className="group flex min-h-28 cursor-pointer overflow-hidden rounded-2xl border border-[#D9B89B] bg-white/90 shadow-lg shadow-[#7C3A21]/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#A75E37] hover:shadow-xl hover:shadow-[#7C3A21]/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C3A21]"
         >
-          <BookOpen className="h-4 w-4" />
-          Know more
-          <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          <span className="flex min-w-0 flex-1 flex-col justify-center p-4">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#A75E37]">
+              Prabasi Odia
+            </span>
+            <MagazineTypingTitle />
+            <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#7C3A21]">
+              Browse issues
+              <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
+            </span>
+          </span>
+          <span className="relative w-[38%] shrink-0 overflow-hidden bg-[#7C3A21]">
+            <Image
+              src="/homemagz.png"
+              alt=""
+              fill
+              sizes="(max-width: 767px) 38vw, 130px"
+              className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+            />
+          </span>
         </Link>
       </motion.div>
     </div>

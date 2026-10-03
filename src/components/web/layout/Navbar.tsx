@@ -78,6 +78,7 @@ export default function Navbar() {
     { href: '/cultural-teams', label: 'Cultural Teams' },
     { href: '/media', label: 'Media' },
     { href: '/magazine', label: 'Magazine' },
+    { href: '/odisha-tourism', label: 'Explore Odisha' },
     { href: '/advisory-board', label: 'Advisory Board' },
   ];
   const donateHref = isAuthenticated ? '/donation' : '/join-community';

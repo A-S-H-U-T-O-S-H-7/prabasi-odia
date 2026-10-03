@@ -394,7 +394,7 @@ export default function ContactVerification({ loginEmail, lockedEmail = false, v
               placeholder="you@example.com"
             />
           </div>
-          {/* NRI, Odisha resident, and guest accounts verify their email. */}
+          {/* NRI and Odisha resident accounts verify their email. */}
           {!isResidentIndian && (
             <motion.button
               type="button"

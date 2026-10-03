@@ -1,6 +1,8 @@
 import { normalizeEmail, normalizeIndianPhone } from './mobileVerification';
 
+// GUEST remains for accounts created before Guest registration was removed.
 export type ResidencyStatus = 'NRI' | 'RI' | 'RO' | 'GUEST';
+export type JoinResidencyStatus = Exclude<ResidencyStatus, 'GUEST'>;
 
 export const residencyLabels: Record<ResidencyStatus, string> = {
   NRI: 'Odia living abroad',

@@ -1,6 +1,6 @@
 'use client';
 
-export type AccountTypeTab = 'all' | 'RO' | 'GUEST';
+export type AccountTypeTab = 'all' | 'RO';
 
 const tabs: { value: AccountTypeTab; label: string; activeClass: string }[] = [
   {
@@ -12,11 +12,6 @@ const tabs: { value: AccountTypeTab; label: string; activeClass: string }[] = [
     value: 'RO',
     label: 'Odisha residents (RO)',
     activeClass: 'border-violet-600 bg-violet-600 text-white',
-  },
-  {
-    value: 'GUEST',
-    label: 'Guests',
-    activeClass: 'border-slate-700 bg-slate-700 text-white',
   },
 ];
 
