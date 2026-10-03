@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowDownRight, ArrowUpRight, Compass } from 'lucide-react';
+import { ArrowUpRight, Compass } from 'lucide-react';
 
 export default function TourismHero() {
   return (
@@ -45,16 +45,6 @@ export default function TourismHero() {
               <Compass className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
-        </div>
-
-        <div className="mt-16 flex items-end justify-between gap-5 border-t border-white/25 pt-5 sm:mt-24">
-          <p className="max-w-sm text-xs leading-5 text-white/75 sm:text-sm">
-            <span className="mr-3 font-serif text-2xl italic text-[#FFD8AA]">ଓଡ଼ିଶା</span>
-            A journey through the land we call home.
-          </p>
-          <Link href="#places" aria-label="Scroll to places" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/45 transition hover:bg-white/15">
-            <ArrowDownRight className="h-5 w-5" aria-hidden="true" />
-          </Link>
         </div>
       </div>
     </section>

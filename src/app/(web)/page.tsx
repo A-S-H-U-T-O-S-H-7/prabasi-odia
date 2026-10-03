@@ -10,14 +10,12 @@ import PartnersSection from '@/components/web/home/AssociatesSection';
 import TestimonialsSection from '@/components/web/home/TestimonialsSection';
 import WelcomePopup from '@/components/web/home/WelcomePopup';
 import PartnersMarquee from '@/components/web/home/PartnersSection';
-import ChooseYourVibe from '@/components/web/home/ChooseYourVibe';
 
 export default function HomePage() {
   return (
     <>
       <WelcomePopup />
       <Hero/>
-      <ChooseYourVibe />
       <HowItWorks/>
       <AppDownloadBanner/>
       <FeaturesSection/>
