@@ -422,8 +422,14 @@ export default function JoinCommunityPage() {
       // Upload first; only mark the application submitted when every upload is ready.
       const documents: NonNullable<UserProfileData['documents']> = {};
       const upload = async (file: File, type: keyof typeof documents) => {
-        const result = await userService.uploadDocument(accountUser.uid, file, type, false);
-        documents[type] = result.url;
+        try {
+          const result = await userService.uploadDocument(accountUser.uid, file, type, false);
+          documents[type] = result.url;
+        } catch (error) {
+          const label = type === 'profilePhoto' ? 'Profile photo' : 'Document';
+          const detail = error instanceof Error ? error.message : 'Please try again.';
+          throw new Error(`${label} upload failed: ${detail}`);
+        }
       };
       setSubmissionStatus('Uploading your profile photo...');
       await upload(data.photo, 'profilePhoto');

@@ -7,6 +7,7 @@ import {
   getDocs,
   getDoc,
   doc,
+  runTransaction,
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore';
@@ -292,18 +293,18 @@ export const adminUserService = {
       if (userData.residencyStatus === 'GUEST') {
         return { success: false, error: 'Guest accounts cannot be approved as members.' };
       }
+      const cleanMemberId = memberId.trim();
+      if (canHaveMemberCard(userData.residencyStatus) && (!cleanMemberId || cleanMemberId === 'Pending')) {
+        return { success: false, error: 'A valid member ID is required for an RI or NRI application.' };
+      }
       const updates: Record<string, any> = {
         isVerified: true,
         hasJoinedCommunity: true,
         applicationStatus: 'approved',
-        memberId: canHaveMemberCard(userData.residencyStatus) ? memberId : '',
+        memberId: canHaveMemberCard(userData.residencyStatus) ? cleanMemberId : '',
         verifiedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-
-      if (canHaveMemberCard(userData.residencyStatus) && !memberId.trim()) {
-        return { success: false, error: 'A member ID is required for an NRI application.' };
-      }
 
       const assignToExisting = async (communityId: string, communityName?: string) => {
         const addResult = await adminCommunityService.addMemberToCommunity(communityId, uid);
@@ -399,6 +400,32 @@ export const adminUserService = {
         success: false,
         error: error instanceof Error ? error.message : 'Error verifying user',
       };
+    }
+  },
+
+  // Repair approvals made while RI accounts were excluded from member cards.
+  async assignMissingMemberId(uid: string, memberId: string) {
+    const requestedId = memberId.trim();
+    if (!requestedId || requestedId === 'Pending') {
+      return { success: false, error: 'Enter a valid member ID.' };
+    }
+    try {
+      const userRef = doc(db, 'users', uid);
+      const assignedId = await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(userRef);
+        if (!snapshot.exists()) throw new Error('User not found.');
+        const user = snapshot.data();
+        if (!canHaveMemberCard(user.residencyStatus)) throw new Error('This account does not receive a member card.');
+        if (user.isVerified !== true && user.applicationStatus !== 'approved') {
+          throw new Error('Approve this application before assigning a member ID.');
+        }
+        if (user.memberId && user.memberId !== 'Pending') return String(user.memberId);
+        transaction.update(userRef, { memberId: requestedId, updatedAt: new Date().toISOString() });
+        return requestedId;
+      });
+      return { success: true, memberId: assignedId };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Could not assign a member ID.' };
     }
   },
 

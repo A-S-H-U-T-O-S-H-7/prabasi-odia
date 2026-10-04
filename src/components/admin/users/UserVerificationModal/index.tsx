@@ -30,6 +30,7 @@ interface UserVerificationModalProps {
     communityOptions: VerifyUserCommunityOptions
   ) => Promise<{ success: boolean; error?: string }>;
   onReject: (uid: string, reason: string) => Promise<void>;
+  onMemberUpdated?: () => void;
   isVerifying?: boolean;
 }
 
@@ -39,6 +40,7 @@ export default function UserVerificationModal({
   onClose,
   onVerify,
   onReject,
+  onMemberUpdated,
   isVerifying = false,
 }: UserVerificationModalProps) {
   const { log } = useActivityLogger();
@@ -171,7 +173,7 @@ export default function UserVerificationModal({
         communityName,
         bloodGroup: user.bloodGroup || "",
         location: [user.currentCity, user.currentState, user.currentCountry].filter(Boolean).join(", "),
-        residencyStatus: user.residencyStatus === 'NRI' ? 'NRI' : undefined,
+        residencyStatus: user.residencyStatus === 'NRI' || user.residencyStatus === 'RI' ? user.residencyStatus : undefined,
         photoURL: user.photoURL || user.documents?.profilePhoto || "",
       });
 
@@ -208,19 +210,60 @@ export default function UserVerificationModal({
       toast.error('This account must be approved before a confirmation email can be sent.');
       return;
     }
+    approvalInFlight.current = true;
+    setIsSendingVerificationEmail(true);
+    try {
+      if (!canHaveMemberCard(user.residencyStatus)) {
+        const result = await emailService.sendWelcomeEmail({ name: user.displayName, email: user.email });
+        await adminUserService.recordVerificationEmail(user.uid, result);
+        toast[result.success ? 'success' : 'error'](result.success ? 'Confirmation email sent.' : result.message || 'Could not send confirmation email.');
+      } else {
+        if (!user.memberId || user.memberId === 'Pending') return;
+        await deliverVerificationEmail(
+          user.memberId,
+          user.nearbyCommunityName || user.requestedCommunityName || user.currentCity || "Prabasi Odia Community"
+        );
+      }
+      onMemberUpdated?.();
+      onClose();
+    } finally {
+      approvalInFlight.current = false;
+      setIsSendingVerificationEmail(false);
+    }
+  };
 
-    if (!canHaveMemberCard(user.residencyStatus)) {
-      const result = await emailService.sendWelcomeEmail({ name: user.displayName, email: user.email });
-      await adminUserService.recordVerificationEmail(user.uid, result);
-      toast[result.success ? 'success' : 'error'](result.success ? 'Confirmation email sent.' : result.message || 'Could not send confirmation email.');
+  const handleAssignMissingMemberId = async () => {
+    if (!user?.isVerified || !canHaveMemberCard(user.residencyStatus) || approvalInFlight.current) return;
+    if (!memberId.trim()) {
+      toast.error('Please generate or enter a Member ID');
       return;
     }
-    if (!user.memberId) return;
-
-    await deliverVerificationEmail(
-      user.memberId,
-      user.nearbyCommunityName || user.requestedCommunityName || user.currentCity || "Prabasi Odia Community"
-    );
+    approvalInFlight.current = true;
+    setIsApproving(true);
+    setVerificationError(null);
+    try {
+      const result = await adminUserService.assignMissingMemberId(user.uid, memberId);
+      if (!result.success || !result.memberId) {
+        const message = result.error || 'Could not assign a member ID.';
+        setVerificationError(message);
+        toast.error(message);
+        return;
+      }
+      onMemberUpdated?.();
+      const sent = await deliverVerificationEmail(
+        result.memberId,
+        user.nearbyCommunityName || user.requestedCommunityName || user.currentCity || 'Prabasi Odia Community'
+      );
+      if (!sent) toast.error('Member ID saved. Reopen this account to resend the card email.');
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not finish assigning the member ID.';
+      setVerificationError(message);
+      toast.error(message);
+    } finally {
+      approvalInFlight.current = false;
+      setIsApproving(false);
+    }
   };
 
   const handleVerify = async () => {
@@ -237,7 +280,7 @@ export default function UserVerificationModal({
     const needsCard = canHaveMemberCard(user.residencyStatus);
     const needsCommunity = user.residencyStatus !== 'RO';
 
-    if (needsCard && !memberId.trim()) {
+    if (needsCard && (!memberId.trim() || memberId.trim() === 'Pending')) {
       toast.error("Please generate or enter a Member ID");
       return;
     }
@@ -292,21 +335,19 @@ export default function UserVerificationModal({
     approvalInFlight.current = true;
     setIsApproving(true);
     try {
-      if (needsCard) {
-        const emailSent = await deliverVerificationEmail(finalMemberId, emailCommunityName);
-        if (!emailSent) return;
-      }
-
       const verificationResult = await onVerify(user.uid, finalMemberId, communityOptions);
       if (!verificationResult.success) {
-        setVerificationError(verificationResult.error || 'Email sent, but approval could not be saved.');
+        setVerificationError(verificationResult.error || 'Approval could not be saved.');
         return;
       }
 
-      if (!needsCard) {
+      let emailSent = false;
+      if (needsCard) {
+        emailSent = await deliverVerificationEmail(finalMemberId, emailCommunityName);
+      } else {
         const emailResult = await emailService.sendWelcomeEmail({ name: user.displayName, email: user.email });
         await adminUserService.recordVerificationEmail(user.uid, emailResult);
-        if (!emailResult.success) toast.error('Account approved, but the confirmation email could not be sent.');
+        emailSent = emailResult.success;
       }
 
       await log({
@@ -321,7 +362,8 @@ export default function UserVerificationModal({
         })`,
       });
 
-      toast.success(needsCard ? 'NRI verified and member-card email sent.' : 'Account approved without a member card.');
+      if (emailSent) toast.success(needsCard ? 'Member approved and card email sent.' : 'Account approved and confirmation email sent.');
+      else toast.error('Account approved, but email was not sent. Reopen this account to resend it.');
       onClose();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not complete verification.';
@@ -524,6 +566,40 @@ export default function UserVerificationModal({
                           </p>
                         </div>}
                       </div>
+                      {canHaveMemberCard(user.residencyStatus) && (!user.memberId || user.memberId === 'Pending') && (
+                        <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                          <p className="text-sm font-medium text-amber-900">This approved account is missing its member ID and card.</p>
+                          <label className="block text-xs font-medium text-[#2A1636]" htmlFor="missing-member-id">Member ID</label>
+                          <input
+                            id="missing-member-id"
+                            value={memberId}
+                            onChange={(event) => setMemberId(event.target.value)}
+                            className="w-full rounded-lg border border-[#D4C8C0] bg-white px-3 py-2 font-mono text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAssignMissingMemberId}
+                            disabled={isApproving || isSendingVerificationEmail || isLoadingCount || !memberId.trim()}
+                            className="rounded-lg bg-[#6B1E5B] px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                          >
+                            {isApproving || isSendingVerificationEmail ? 'Saving…' : 'Save ID and send card email'}
+                          </button>
+                          {verificationError && <p role="alert" className="text-sm text-red-700">{verificationError}</p>}
+                        </div>
+                      )}
+                      {(!canHaveMemberCard(user.residencyStatus) || (user.memberId && user.memberId !== 'Pending')) && (
+                        <button
+                          type="button"
+                          onClick={handleResendVerificationEmail}
+                          disabled={isSendingVerificationEmail || isApproving || isVerifying}
+                          className="w-full rounded-xl bg-[#6B1E5B] px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
+                        >
+                          {isSendingVerificationEmail ? 'Sending…' : canHaveMemberCard(user.residencyStatus) ? 'Resend member card email' : 'Resend confirmation email'}
+                        </button>
+                      )}
+                      {user.verificationEmailStatus === 'failed' && (
+                        <p className="text-sm text-amber-800">Last email attempt failed: {user.verificationEmailLastError || 'Please resend it.'}</p>
+                      )}
                       <button
                         onClick={() => setShowRejectForm(true)}
                         disabled={isRejected}

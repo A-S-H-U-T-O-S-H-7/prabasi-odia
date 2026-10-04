@@ -20,7 +20,7 @@ export function canUseMemberServices(status?: ResidencyStatus | null): boolean {
 }
 
 export function canHaveMemberCard(status?: ResidencyStatus | null): boolean {
-  return status === 'NRI' || !status;
+  return status === 'NRI' || status === 'RI' || !status;
 }
 
 export function residencyDefaults<T extends ResidencyStatus>(residencyStatus: T) {

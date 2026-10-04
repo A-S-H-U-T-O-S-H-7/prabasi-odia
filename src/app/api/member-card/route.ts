@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     const saved = await profileResponse.json();
     const user = readFields(saved.fields);
     if (!canHaveMemberCard(user.residencyStatus as 'NRI' | 'RI' | 'RO' | 'GUEST' | undefined)) {
-      return NextResponse.json({ error: 'Member cards are available only for NRI accounts.' }, { status: 403 });
+      return NextResponse.json({ error: 'Member cards are available only for RI and NRI accounts.' }, { status: 403 });
     }
     // Support approved records created before isVerified was consistently
     // stored alongside applicationStatus.

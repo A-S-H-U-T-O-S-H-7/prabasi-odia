@@ -120,7 +120,9 @@ export default function ProfilePage() {
               ) : profile.isVerified ? (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
                   <p className="font-semibold">Your account is approved</p>
-                  <p className="mt-1 text-sm">You can use member services. This account type does not receive a member card.</p>
+                  <p className="mt-1 text-sm">{canHaveMemberCard(profile.residencyStatus)
+                    ? 'Your member card will appear after an administrator assigns your member ID.'
+                    : 'You can use member services. This account type does not receive a member card.'}</p>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">

@@ -16,9 +16,10 @@ import { canHaveMemberCard } from '@/lib/residency';
 interface AdminMemberProfileProps {
   uid?: string;
   onBack?: () => void;
+  onRepairMemberId?: (uid: string) => void;
 }
 
-export default function AdminMemberProfile({ uid: suppliedUid, onBack }: AdminMemberProfileProps) {
+export default function AdminMemberProfile({ uid: suppliedUid, onBack, onRepairMemberId }: AdminMemberProfileProps) {
   const params = useParams();
   const uid = suppliedUid || (typeof params?.uid === "string" ? params.uid : "");
   const [profile, setProfile] = useState<UserProfileData | null>(null);
@@ -61,6 +62,9 @@ export default function AdminMemberProfile({ uid: suppliedUid, onBack }: AdminMe
     (profile.isVerified === true || profile.applicationStatus === "approved")
   );
   const cardProfile = { ...profile, isVerified: hasMemberCard };
+  const needsMemberId = canHaveMemberCard(profile.residencyStatus) &&
+    (profile.isVerified === true || profile.applicationStatus === 'approved') &&
+    (!profile.memberId || profile.memberId === 'Pending');
 
   return (
     <div className="relative min-h-screen pb-12">
@@ -72,7 +76,7 @@ export default function AdminMemberProfile({ uid: suppliedUid, onBack }: AdminMe
           <div className="space-y-6 lg:col-span-2">
             <ProfilePeopleNearby profile={profile} />
             <ProfileAbout profile={profile} />
-            {hasMemberCard ? <ProfileMemberCard profile={cardProfile} memberUid={uid} /> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900"><p className="font-semibold">{profile.isVerified ? 'Account approved' : 'Application under review'}</p><p className="mt-1 text-sm">{profile.isVerified ? 'This account type does not receive a member card.' : 'The account is awaiting administrator approval.'}</p></div>}
+            {hasMemberCard ? <ProfileMemberCard profile={cardProfile} memberUid={uid} /> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900"><p className="font-semibold">{profile.isVerified ? 'Account approved' : 'Application under review'}</p><p className="mt-1 text-sm">{needsMemberId ? 'This earlier approval is missing a member ID.' : profile.isVerified ? 'This account type does not receive a member card.' : 'The account is awaiting administrator approval.'}</p>{needsMemberId && onRepairMemberId && <button type="button" onClick={() => onRepairMemberId(uid)} className="mt-3 rounded-lg bg-[#6B1E5B] px-4 py-2 text-sm font-medium text-white">Assign member ID</button>}</div>}
           </div>
           <div className="space-y-6"><ProfileStats profile={profile} /><ProfileAddresses profile={profile} /><ProfileActivity profile={profile} /></div>
         </div>

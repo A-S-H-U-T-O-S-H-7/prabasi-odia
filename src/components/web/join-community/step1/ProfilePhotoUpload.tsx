@@ -26,6 +26,7 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
   const dragStart = useRef<{ x: number; y: number; cropX: number; cropY: number } | null>(null);
 
   const watchPhoto = watch("photo");
+  const residencyStatus = watch("residencyStatus");
   useEffect(() => {
     if (!(watchPhoto instanceof File)) { setPhotoPreview(null); return; }
     const url = URL.createObjectURL(watchPhoto);
@@ -35,29 +36,36 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // A cancelled crop or rejected file must still be selectable again.
+    e.target.value = "";
     if (file) {
-      const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-      if (!validTypes.includes(file.type)) {
-        setPhotoError("Please upload a valid image (JPEG, PNG, WEBP)");
+      if (file.type && !file.type.startsWith("image/")) {
+        setPhotoError("Please choose an image file");
         setValue("photo", null);
         return;
       }
 
-      if (file.size > 5 * 1024 * 1024) {
-        setPhotoError("Image size should be less than 5MB");
+      // The crop is exported as a small JPEG, so camera originals can be larger.
+      if (file.size > 20 * 1024 * 1024) {
+        setPhotoError("Choose an image smaller than 20MB");
         setValue("photo", null);
         return;
       }
 
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onload = () => {
+        if (typeof reader.result !== "string") {
+          setPhotoError("Could not open this image. Please choose it again.");
+          return;
+        }
         setPhotoError(null);
         setCropFile(file);
-        setCropSource(reader.result as string);
+        setCropSource(reader.result);
         setImageSize(null);
         setZoom(1);
         setPosition({ x: 0, y: 0 });
       };
+      reader.onerror = () => setPhotoError("Could not open this image. Please choose it again.");
       reader.readAsDataURL(file);
     }
   };
@@ -91,28 +99,46 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
     canvas.width = outputWidth;
     canvas.height = outputHeight;
     const context = canvas.getContext("2d");
-    if (!context) return;
+    if (!context) {
+      setPhotoError("Could not crop this image in your browser.");
+      return;
+    }
 
     const image = new window.Image();
-    image.src = cropSource;
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error("Could not crop image"));
-    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("Could not crop image"));
+        image.src = cropSource;
+      });
+    } catch {
+      setPhotoError("Could not open this image. Please choose a JPEG, PNG, or WebP photo.");
+      setCropSource(null);
+      setCropFile(null);
+      return;
+    }
     const drawnWidth = imageSize.width * scale * outputScale;
     const drawnHeight = imageSize.height * scale * outputScale;
     const x = (outputWidth - drawnWidth) / 2 + position.x * outputScale;
     const y = (outputHeight - drawnHeight) / 2 + position.y * outputScale;
-    context.drawImage(image, x, y, drawnWidth, drawnHeight);
-
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const croppedFile = new File([blob], `profile-${Date.now()}.jpg`, { type: "image/jpeg" });
-      setValue("photo", croppedFile, { shouldValidate: true });
-      if (hasAttemptedSubmit || touchedFields.photo) trigger("photo");
+    try {
+      context.drawImage(image, x, y, drawnWidth, drawnHeight);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          setPhotoError("Could not save the cropped photo. Please try again.");
+          return;
+        }
+        const croppedFile = new File([blob], `profile-${Date.now()}.jpg`, { type: "image/jpeg" });
+        setValue("photo", croppedFile, { shouldValidate: true });
+        if (hasAttemptedSubmit || touchedFields.photo) trigger("photo");
+        setCropSource(null);
+        setCropFile(null);
+      }, "image/jpeg", 0.92);
+    } catch {
+      setPhotoError("Could not crop this image. Please choose a JPEG, PNG, or WebP photo.");
       setCropSource(null);
       setCropFile(null);
-    }, "image/jpeg", 0.92);
+    }
   };
 
   return (
@@ -123,7 +149,7 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
       <div className="mb-2 flex items-start gap-2 rounded-xl border border-[#D9772B]/20 bg-[#FFF7E8] px-2.5 py-2 text-xs leading-4 text-[#6B5E5A] sm:mb-3 sm:gap-2.5 sm:px-3 sm:py-2.5 sm:leading-5">
         <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#D9772B]" />
         <p>
-          Please upload only a recent, clear <strong className="font-semibold text-[#2A1636]">passport-size photo</strong> with your face clearly visible. This photo will be printed on your Prabasi Odia member card, so please avoid selfies, group photos, filters.
+          Please upload a recent, clear <strong className="font-semibold text-[#2A1636]">passport-size photo</strong> with your face clearly visible. {residencyStatus === 'RO' ? 'This photo will be used on your profile.' : 'This photo will be printed on your Prabasi Odia member card.'} Please avoid selfies, group photos, and filters.
         </p>
       </div>
       <div className="flex items-start gap-3 sm:gap-4">
@@ -147,7 +173,7 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
               <p className="text-[10px] text-[#6B5E5A]/40 mt-1">Upload</p>
             </div>
           )}
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onClick={(event) => event.stopPropagation()} onChange={handleFileUpload} />
         </motion.div>
 
         <div className="flex min-h-20 flex-1 items-center sm:min-h-24">
@@ -177,7 +203,7 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
             )}
             {!photoPreview && !photoError && !errors.photo && (
               <motion.p key="hint" className="text-xs text-[#6B5E5A]/50">
-                JPEG, PNG or WEBP · up to 5MB
+                JPEG, PNG, WebP or supported camera photo · up to 20MB
               </motion.p>
             )}
           </AnimatePresence>
@@ -258,6 +284,11 @@ export default function ProfilePhotoUpload({ hasAttemptedSubmit }: ProfilePhotoU
                   const frame = cropFrameRef.current?.getBoundingClientRect();
                   if (frame) setFrameSize({ width: frame.width, height: frame.height });
                   setImageSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
+                }}
+                onError={() => {
+                  setPhotoError("Could not open this image. Please choose a JPEG, PNG, or WebP photo.");
+                  setCropSource(null);
+                  setCropFile(null);
                 }}
               />
             </div>

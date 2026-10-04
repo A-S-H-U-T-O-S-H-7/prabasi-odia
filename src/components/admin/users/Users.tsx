@@ -189,7 +189,20 @@ export default function AdminUsersPage() {
   }
 
   if (profileUser) {
-    return <AdminMemberProfile uid={profileUser.uid} onBack={() => setProfileUser(null)} />;
+    return <AdminMemberProfile
+      uid={profileUser.uid}
+      onBack={() => setProfileUser(null)}
+      onRepairMemberId={async (uid) => {
+        const result = await adminUserService.getUserById(uid);
+        if (!result.success || !result.user) {
+          toast.error(result.error || 'Could not load this member.');
+          return;
+        }
+        setSelectedUser(result.user);
+        setProfileUser(null);
+        setIsModalOpen(true);
+      }}
+    />;
   }
 
   const displayUsers = (searchResults || users).filter((user) => {
@@ -312,6 +325,12 @@ export default function AdminUsersPage() {
         onClose={() => setIsModalOpen(false)}
         onVerify={handleVerify}
         onReject={handleReject}
+        onMemberUpdated={() => {
+          setSearchTerm('');
+          setSearchResults(null);
+          fetchUsers(true);
+          fetchStats();
+        }}
         isVerifying={isVerifying}
       />
       <EditMemberModal

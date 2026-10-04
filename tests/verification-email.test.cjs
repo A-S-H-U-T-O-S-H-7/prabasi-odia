@@ -203,7 +203,11 @@ test('failed preparation responses fail without retrying the mail provider', asy
     if (options.status === 406) assert.match(result.message, /prepare the member-card attachment/);
     if (options.requestError) assert.match(result.message, /Could not contact the email provider directly/);
   }
-  const api = proxyClient({ body: { success: true, fields: { name: member.name } } });
+  const api = proxyClient({ body: { success: true, fields: {
+    name: member.name, email: member.email, member_id: member.memberId,
+    member_since: '22-09-2026', community_name: member.communityName,
+    member_card_path: tinyPdf.toString('base64'),
+  } } });
   const result = await withMockFetch(async () => new Response('\uFEFF{"status":true}', { status: 200 }), () => api.service.sendVerificationEmail(member));
   assert.equal(result.success, true);
 });
@@ -230,7 +234,7 @@ test('route stops on PDF failure and does not invoke PHP', async () => {
 
 // Exercise the real click handler with isolated effects; no browser, database,
 // or Firestore credentials are needed to test approval ordering and the lock.
-function clickHandler(send) {
+function clickHandler(send, residencyStatus = 'NRI') {
   const source = ts.createSourceFile('modal.tsx', readFileSync('src/components/admin/users/UserVerificationModal/index.tsx', 'utf8'),
     ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let initializer;
@@ -242,12 +246,15 @@ function clickHandler(send) {
   assert.ok(initializer);
   const events = [];
   const dependencies = {
-    user: { ...member, currentCity: 'Test', nearbyCommunityId: 'test-community' },
+    user: { ...member, residencyStatus, currentCity: 'Test', nearbyCommunityId: 'test-community' },
     approvalInFlight: { current: false }, isVerifying: false, isSendingVerificationEmail: false,
     memberId: member.memberId, communityAction: 'auto', selectedCommunityId: '', communities: [],
     setIsApproving() {}, setVerificationError: error => events.push(['error', error]),
     deliverVerificationEmail: async () => { events.push(['send']); return send(); },
-    onVerify: async () => { events.push(['approve']); return { success: true }; },
+    onVerify: async (_uid, memberId) => { events.push(['approve', memberId]); return { success: true }; },
+    canHaveMemberCard: loader()('src/lib/residency.ts').canHaveMemberCard,
+    emailService: { sendWelcomeEmail: async () => { events.push(['welcome']); return { success: true }; } },
+    adminUserService: { recordVerificationEmail: async () => ({ success: true }) },
     log: async () => { events.push(['log']); }, onClose: () => events.push(['close']),
     ActivityActions: { VERIFY: 'verify' }, ActivityEntityTypes: { USER: 'user' },
     toast: { success() {}, error: error => events.push(['error', error]) },
@@ -258,13 +265,13 @@ function clickHandler(send) {
   return { events, run: new Function(...Object.keys(dependencies), `${compiled}; return handler;`)(...Object.values(dependencies)) };
 }
 
-test('Verify approves and closes only after confirmed email success', async () => {
+test('Verify saves approval before card email and leaves a resend path on mail failure', async () => {
   const pass = clickHandler(async () => true);
   await pass.run();
-  assert.deepEqual(pass.events.map(e => e[0]), ['send', 'approve', 'log', 'close']);
+  assert.deepEqual(pass.events.map(e => e[0]), ['approve', 'send', 'log', 'close']);
   const fail = clickHandler(async () => false);
   await fail.run();
-  assert.deepEqual(fail.events.map(e => e[0]), ['send']);
+  assert.deepEqual(fail.events.map(e => e[0]), ['approve', 'send', 'log', 'error', 'close']);
 });
 
 test('repeated Verify clicks cannot send or approve twice while mail is running', async () => {
@@ -273,8 +280,47 @@ test('repeated Verify clicks cannot send or approve twice while mail is running'
   const handler = clickHandler(() => pending);
   const first = handler.run();
   await handler.run();
-  assert.deepEqual(handler.events.map(e => e[0]), ['send']);
+  assert.deepEqual(handler.events.map(e => e[0]), ['approve', 'send']);
   resolve(true);
   await first;
-  assert.deepEqual(handler.events.map(e => e[0]), ['send', 'approve', 'log', 'close']);
+  assert.deepEqual(handler.events.map(e => e[0]), ['approve', 'send', 'log', 'close']);
+});
+
+test('RI receives a member card and RO receives no member ID or card email', async () => {
+  const { canHaveMemberCard } = loader()('src/lib/residency.ts');
+  assert.equal(canHaveMemberCard('RI'), true);
+  assert.equal(canHaveMemberCard('NRI'), true);
+  assert.equal(canHaveMemberCard('RO'), false);
+  const ri = clickHandler(async () => true, 'RI');
+  await ri.run();
+  assert.deepEqual(ri.events.map(e => e[0]), ['approve', 'send', 'log', 'close']);
+  assert.equal(ri.events.find(e => e[0] === 'approve')[1], member.memberId);
+  const ro = clickHandler(async () => true, 'RO');
+  await ro.run();
+  assert.deepEqual(ro.events.map(e => e[0]), ['approve', 'welcome', 'log', 'close']);
+  assert.equal(ro.events.find(e => e[0] === 'approve')[1], '');
+});
+
+test('approved RI accounts missing an ID can be repaired without changing RO accounts', async () => {
+  let residencyStatus = 'RI';
+  const updates = [];
+  const service = loader({
+    '@/lib/firebase/config': { db: {} },
+    './adminCommunityService': { adminCommunityService: {} },
+    'firebase/firestore': {
+      doc: (_db, collection, uid) => ({ collection, uid }),
+      runTransaction: async (_db, work) => work({
+        get: async () => ({ exists: () => true, data: () => ({ residencyStatus, isVerified: true, memberId: '' }) }),
+        update: (_ref, fields) => updates.push(fields),
+      }),
+    },
+  })('src/lib/services/adminUserService.ts').adminUserService;
+  const ri = await service.assignMissingMemberId('ri-user', ' 26RI00001 ');
+  assert.equal(ri.success, true);
+  assert.equal(ri.memberId, '26RI00001');
+  assert.equal(updates[0].memberId, '26RI00001');
+  residencyStatus = 'RO';
+  const ro = await service.assignMissingMemberId('ro-user', '26RO00001');
+  assert.equal(ro.success, false);
+  assert.equal(updates.length, 1);
 });

@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAnimationFrame, useInView, useReducedMotion } from 'framer-motion';
 import Image from 'next/image';
 import {
   ArrowRight,
@@ -17,31 +16,6 @@ import {
   Waves,
 } from 'lucide-react';
 import { explorerTabs } from './explorerData';
-import styles from './destination-ribbon.module.css';
-
-const SECONDS_PER_PLACE = 4.5;
-
-function positionCards(nodes: Array<HTMLElement | null>, width: number, phase: number, count: number) {
-  if (!width || !count) return;
-  const slots = width < 640 ? 4 : width < 1024 ? 6 : 8;
-  const spacing = width / slots;
-  const perspective = Math.min(160, Math.max(70, spacing * 0.71)) * 8;
-
-  nodes.forEach((node, index) => {
-    if (!node) return;
-    const slot = ((index - phase + count) % count) - 2;
-    const position = (slot + 0.35) * spacing;
-    const distance = (position - width / 2) / (width / 2);
-    if (Math.abs(distance) > 1.45) {
-      node.style.visibility = 'hidden';
-      return;
-    }
-    const depth = distance * distance;
-    const x = width / 2 + (width / 2) * (0.86 * distance + 0.14 * distance ** 3);
-    node.style.visibility = 'visible';
-    node.style.transform = `translate3d(${x}px, 0, 0) translate(-50%, -50%) perspective(${perspective}px) rotateY(${-distance * 46}deg) scale(${1 + 0.65 * depth}, ${1 + 1.35 * depth})`;
-  });
-}
 
 const tabIcons = {
   sacred: Sparkles,
@@ -57,35 +31,7 @@ export default function DestinationExplorer() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(true);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const ribbonRef = useRef<HTMLDivElement>(null);
-  const ribbonCards = useRef<Array<HTMLElement | null>>([]);
-  const ribbonWidth = useRef(0);
-  const ribbonPhase = useRef(0);
-  const reduceMotion = useReducedMotion();
-  const ribbonInView = useInView(ribbonRef, { amount: 0.05 });
   const activeTab = explorerTabs.find((tab) => tab.id === activeId) ?? explorerTabs[0];
-  const ribbonItems = activeTab.items;
-  const ribbonFrames = [...ribbonItems, ...ribbonItems];
-
-  useEffect(() => {
-    ribbonPhase.current = 0;
-    const stage = ribbonRef.current;
-    if (!stage) return;
-    const resize = () => {
-      ribbonWidth.current = stage.clientWidth;
-      positionCards(ribbonCards.current, ribbonWidth.current, ribbonPhase.current, ribbonFrames.length);
-    };
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, [activeId, ribbonFrames.length]);
-
-  useAnimationFrame((_, delta) => {
-    if (reduceMotion || !ribbonInView || ribbonRef.current?.dataset.paused === 'true') return;
-    ribbonPhase.current = (ribbonPhase.current + Math.min(delta, 50) / (SECONDS_PER_PLACE * 1000)) % ribbonFrames.length;
-    positionCards(ribbonCards.current, ribbonWidth.current, ribbonPhase.current, ribbonFrames.length);
-  });
 
   const updateArrows = useCallback(() => {
     const scroller = scrollerRef.current;
@@ -182,38 +128,6 @@ export default function DestinationExplorer() {
           })}
         </div>
 
-        <div
-          ref={ribbonRef}
-          className={`${styles.stage} mt-4 sm:mt-5`}
-          role="group"
-          aria-label={`Moving photo ribbon of ${activeTab.label} destinations`}
-          onMouseEnter={(event) => { event.currentTarget.dataset.paused = 'true'; }}
-          onMouseLeave={(event) => { event.currentTarget.dataset.paused = 'false'; }}
-          onFocusCapture={(event) => { event.currentTarget.dataset.paused = 'true'; }}
-          onBlurCapture={(event) => { event.currentTarget.dataset.paused = 'false'; }}
-        >
-          {ribbonFrames.map((item, index) => (
-            <a
-              key={`${item.name}-${index}`}
-              ref={(node) => { ribbonCards.current[index] = node; }}
-              href={item.officialUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              tabIndex={index < ribbonItems.length ? 0 : -1}
-              aria-hidden={index >= ribbonItems.length || undefined}
-              aria-label={`${item.name}, ${item.location}. Read about it on Odisha Tourism (opens in a new tab)`}
-              className={`${styles.card} group focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F58A0A]`}
-            >
-              <Image src={item.image} alt="" fill sizes="(max-width: 639px) 18vw, 12vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" aria-hidden="true" />
-              <span className="absolute inset-x-3 bottom-3 text-white sm:inset-x-4 sm:bottom-4">
-                <span className="block text-[10px] font-medium text-white/80 sm:text-xs">{item.location}</span>
-                <span className="mt-1 block font-serif text-sm font-bold leading-tight sm:text-lg">{item.name}</span>
-              </span>
-            </a>
-          ))}
-        </div>
-
         <div className="relative mt-4 sm:mt-5">
           <div
             ref={scrollerRef}
@@ -271,7 +185,7 @@ export default function DestinationExplorer() {
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-4 text-[11px] text-[#7C8790]">
-          <p>Pause the ribbon by hovering or focusing a destination.</p>
+          <p>Demo imagery for layout preview; place photographs can be added later.</p>
           <p className="shrink-0 font-semibold">05 / 05 places</p>
         </div>
       </div>

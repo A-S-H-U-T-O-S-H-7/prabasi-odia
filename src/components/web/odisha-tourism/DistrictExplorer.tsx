@@ -1,9 +1,35 @@
 ﻿'use client';
 
 import Image from 'next/image';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAnimationFrame, useInView, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight, ChevronLeft, ChevronRight, CloudSun, MapPin, UtensilsCrossed } from 'lucide-react';
 import { explorerTabs } from './explorerData';
+import styles from './district-ribbon.module.css';
+
+const SECONDS_PER_DISTRICT = 4.5;
+
+function positionCards(nodes: Array<HTMLElement | null>, width: number, phase: number, count: number) {
+  if (!width || !count) return;
+  const slots = width < 640 ? 4 : width < 1024 ? 6 : 8;
+  const spacing = width / slots;
+  const perspective = Math.min(160, Math.max(70, spacing * 0.71)) * 8;
+
+  nodes.forEach((node, index) => {
+    if (!node) return;
+    const slot = ((index - phase + count) % count) - 2;
+    const position = (slot + 0.35) * spacing;
+    const distance = (position - width / 2) / (width / 2);
+    if (Math.abs(distance) > 1.45) {
+      node.style.visibility = 'hidden';
+      return;
+    }
+    const depth = distance * distance;
+    const x = width / 2 + (width / 2) * (0.86 * distance + 0.14 * distance ** 3);
+    node.style.visibility = 'visible';
+    node.style.transform = `translate3d(${x}px, 0, 0) translate(-50%, -50%) perspective(${perspective}px) rotateY(${-distance * 46}deg) scale(${1 + 0.65 * depth}, ${1 + 1.35 * depth})`;
+  });
+}
 
 type District = { name: string; x: number; y: number; place: string; summary: string; image: string; food: string; foodImage: string; temperature: number; sky: string; path: string };
 
@@ -55,9 +81,38 @@ const foodGuideUrl = cuisineTab?.officialUrl ?? 'https://apps.odishatourism.gov.
 
 export default function DistrictExplorer() {
   const [selected, setSelected] = useState(districtBlocks[0].name);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const ribbonRef = useRef<HTMLDivElement>(null);
+  const ribbonCards = useRef<Array<HTMLButtonElement | null>>([]);
+  const ribbonWidth = useRef(0);
+  const ribbonPhase = useRef(0);
+  const reduceMotion = useReducedMotion();
+  const ribbonInView = useInView(ribbonRef, { amount: 0.05 });
   const district = useMemo(() => districts.find((item) => item.name === selected) ?? districts[0], [selected]);
   const details = featured[selected] ?? district;
+
+  useEffect(() => {
+    const stage = ribbonRef.current;
+    if (!stage) return;
+    const resize = () => {
+      ribbonWidth.current = stage.clientWidth;
+      positionCards(ribbonCards.current, ribbonWidth.current, ribbonPhase.current, districtBlocks.length);
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+
+  useAnimationFrame((_, delta) => {
+    if (reduceMotion || !ribbonInView || ribbonRef.current?.dataset.paused === 'true') return;
+    ribbonPhase.current = (ribbonPhase.current + Math.min(delta, 50) / (SECONDS_PER_DISTRICT * 1000)) % districtBlocks.length;
+    positionCards(ribbonCards.current, ribbonWidth.current, ribbonPhase.current, districtBlocks.length);
+  });
+
+  function moveRibbon(direction: -1 | 1) {
+    ribbonPhase.current = (ribbonPhase.current + direction + districtBlocks.length) % districtBlocks.length;
+    positionCards(ribbonCards.current, ribbonWidth.current, ribbonPhase.current, districtBlocks.length);
+  }
 
   return (
     <>
@@ -141,19 +196,36 @@ export default function DistrictExplorer() {
             <p className="mt-2 text-sm text-[#697580]">Browse district highlights, then choose a district to see its details above.</p>
           </div>
           <div className="flex gap-2 self-end">
-            <button type="button" aria-label="Previous district highlights" onClick={() => carouselRef.current?.scrollBy({ left: -380, behavior: 'smooth' })} className="grid h-10 w-10 place-items-center rounded-full border border-[#D9DFE0] bg-white text-[#35404A] shadow-sm transition hover:border-[#F58A0A] hover:bg-[#F58A0A] hover:text-white"><ChevronLeft className="h-5 w-5" /></button>
-            <button type="button" aria-label="Next district highlights" onClick={() => carouselRef.current?.scrollBy({ left: 380, behavior: 'smooth' })} className="grid h-10 w-10 place-items-center rounded-full border border-[#D9DFE0] bg-white text-[#35404A] shadow-sm transition hover:border-[#F58A0A] hover:bg-[#F58A0A] hover:text-white"><ChevronRight className="h-5 w-5" /></button>
+            <button type="button" aria-label="Previous district highlights" onClick={() => moveRibbon(-1)} className="grid h-10 w-10 place-items-center rounded-full border border-[#D9DFE0] bg-white text-[#35404A] shadow-sm transition hover:border-[#F58A0A] hover:bg-[#F58A0A] hover:text-white"><ChevronLeft className="h-5 w-5" /></button>
+            <button type="button" aria-label="Next district highlights" onClick={() => moveRibbon(1)} className="grid h-10 w-10 place-items-center rounded-full border border-[#D9DFE0] bg-white text-[#35404A] shadow-sm transition hover:border-[#F58A0A] hover:bg-[#F58A0A] hover:text-white"><ChevronRight className="h-5 w-5" /></button>
           </div>
         </div>
-        <div ref={carouselRef} className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="District highlight carousel">
+        <div
+          ref={ribbonRef}
+          className={styles.stage}
+          role="group"
+          aria-label="Moving photo ribbon of Odisha district highlights"
+          onMouseEnter={(event) => { event.currentTarget.dataset.paused = 'true'; }}
+          onMouseLeave={(event) => { event.currentTarget.dataset.paused = 'false'; }}
+          onFocusCapture={(event) => { event.currentTarget.dataset.paused = 'true'; }}
+          onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.dataset.paused = 'false'; }}
+        >
           {districtBlocks.map((item, index) => (
-            <button key={item.name} type="button" aria-pressed={selected === item.name} onClick={() => { setSelected(item.name); document.getElementById('district-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className={`group relative isolate flex h-[330px] w-[78vw] max-w-[360px] shrink-0 snap-start flex-col justify-end overflow-hidden rounded-[1.35rem] border p-5 text-left text-white shadow-[0_14px_32px_rgba(28,42,42,0.12)] transition sm:h-[350px] sm:w-[40vw] lg:h-[370px] lg:w-[calc((100%-3rem)/4)] lg:max-w-none ${selected === item.name ? 'border-[#F58A0A] ring-2 ring-[#F58A0A]/50' : 'border-white/60 hover:border-[#F58A0A]/70'}`}>
-              <Image src={item.image} alt="" fill sizes="(max-width: 639px) 78vw, (max-width: 1023px) 40vw, 24vw" className="-z-20 object-cover transition-transform duration-700 group-hover:scale-105" />
-              <span className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/15 to-transparent" aria-hidden="true" />
-              <span className="absolute left-4 top-4 rounded-full border border-white/50 bg-black/25 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] backdrop-blur-sm">District {String(index + 1).padStart(2, '0')}</span>
-              <span className="font-serif text-xl font-bold leading-tight sm:text-2xl">{item.name}</span>
-              <span className="mt-1.5 line-clamp-2 text-xs leading-5 text-white/85 sm:text-sm">{item.place}</span>
-              <span className="mt-4 inline-flex min-h-9 w-fit items-center gap-2 rounded-full bg-[#F58A0A] px-4 text-xs font-bold text-white shadow-lg transition group-hover:bg-white group-hover:text-[#26362C]">Explore more <ArrowUpRight className="h-3.5 w-3.5" /></span>
+            <button
+              key={item.name}
+              ref={(node) => { ribbonCards.current[index] = node; }}
+              type="button"
+              aria-label={`Explore ${item.name}: ${item.place}`}
+              aria-pressed={selected === item.name}
+              onClick={() => { setSelected(item.name); document.getElementById('district-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+              className={`${styles.card} group border-2 text-left text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F58A0A] ${selected === item.name ? 'border-[#F58A0A]' : 'border-transparent hover:border-[#F58A0A]'}`}
+            >
+              <Image src={item.image} alt="" fill sizes="(max-width: 639px) 18vw, 12vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+              <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" aria-hidden="true" />
+              <span className="absolute inset-x-3 bottom-3 text-white sm:inset-x-4 sm:bottom-4">
+                <span className="block text-[10px] font-medium text-white/80 sm:text-xs">{item.place}</span>
+                <span className="mt-1 block font-serif text-sm font-bold leading-tight sm:text-lg">{item.name}</span>
+              </span>
             </button>
           ))}
         </div>

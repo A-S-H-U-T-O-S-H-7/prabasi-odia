@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const data = userSnap.data();
 
     if (!canHaveMemberCard(data.residencyStatus)) {
-      return NextResponse.json({ success: false, error: 'Member cards are available only for NRI accounts.' }, { status: 403 });
+      return NextResponse.json({ success: false, error: 'Member cards are available only for RI and NRI accounts.' }, { status: 403 });
     }
 
     if (!data.isVerified) {
