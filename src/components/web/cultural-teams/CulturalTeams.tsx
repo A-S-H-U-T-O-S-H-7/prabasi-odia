@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Music2 } from 'lucide-react';
+import { ArrowLeft, Music2, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuthStore, useUserStore } from '@/lib/store';
 import { canUseMemberServices } from '@/lib/residency';
@@ -107,7 +107,7 @@ export default function CulturalTeams() {
       return;
     }
     setFiles([]);
-    setScopes([]);
+    setScopes(['national']);
     setStates([]);
     setFormError('');
     setMode('register');
@@ -126,6 +126,26 @@ export default function CulturalTeams() {
     }
 
     const form = new FormData(event.currentTarget);
+    const chosenLanguages = form.getAll('languages').map(String);
+    const otherLanguage = String(form.get('otherLanguage') || '').trim();
+    if (!chosenLanguages.length) {
+      setFormError('Choose at least one language your team performs in.');
+      return;
+    }
+    if (chosenLanguages.includes('Other') && !otherLanguage) {
+      setFormError('Enter the other language your team performs in.');
+      return;
+    }
+    const languages = [...chosenLanguages.filter((language) => language !== 'Other'), ...(chosenLanguages.includes('Other') ? [otherLanguage] : [])].join(', ');
+    if (languages.length > 160) {
+      setFormError('Keep the list of languages under 160 characters.');
+      return;
+    }
+    const minimumCharge = String(form.get('minimumCharge') || '').trim();
+    if (!/\d/.test(minimumCharge)) {
+      setFormError('Enter a starting charge with a currency and amount.');
+      return;
+    }
     const draft: CulturalTeamDraft = {
       name: String(form.get('name') || '').trim(),
       artForm: String(form.get('artForm') || ''),
@@ -134,7 +154,8 @@ export default function CulturalTeams() {
       baseCity: String(form.get('baseCity') || '').trim(),
       baseState: String(form.get('baseState') || '').trim(),
       baseCountry: String(form.get('baseCountry') || '').trim(),
-      languages: String(form.get('languages') || '').trim(),
+      languages,
+      minimumCharge,
       travelScopes: scopes,
       availableStates: states,
     };
@@ -176,6 +197,7 @@ export default function CulturalTeams() {
       eventType: String(form.get('eventType') || '').trim(),
       eventDate: String(form.get('eventDate') || ''),
       eventLocation: String(form.get('eventLocation') || '').trim(),
+      budget: String(form.get('budget') || '').trim(),
       message: String(form.get('message') || '').trim(),
     };
 
@@ -223,14 +245,22 @@ export default function CulturalTeams() {
           )}
 
           <section id="explore-teams" aria-labelledby="explore-teams-heading" className="scroll-mt-24">
-            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[.18em] text-[#a65c52]">Approved teams</p>
                 <h2 id="explore-teams-heading" className="mt-2 text-3xl font-bold">Explore cultural teams</h2>
+                <p className="mt-2 text-sm text-[#806f75]">
+                  {loading ? 'Loading…' : `${visible.length} ${visible.length === 1 ? 'team' : 'teams'}`} ready to explore
+                </p>
               </div>
-              <span className="text-sm text-[#806f75]">
-                {loading ? 'Loading…' : `${visible.length} ${visible.length === 1 ? 'team' : 'teams'}`}
-              </span>
+              <button
+                type="button"
+                onClick={openRegistration}
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#713d55] to-[#a65c52] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#713d55]/20 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#713d55]"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Register your team
+              </button>
             </div>
 
             <CulturalTeamsFilters
@@ -245,7 +275,7 @@ export default function CulturalTeams() {
             {error ? (
               <div role="alert" className="mt-6 rounded-2xl border border-[#efdfd8] bg-white p-8 text-center text-sm text-red-700">
                 {error}
-                <button type="button" onClick={() => void load()} className="ml-2 font-bold underline">Try again</button>
+                <button type="button" onClick={() => void load()} className="ml-2 cursor-pointer font-bold underline">Try again</button>
               </div>
             ) : loading ? (
               <div role="status" className="mt-6 rounded-2xl border border-[#efdfd8] bg-white p-12 text-center text-sm text-[#806f75]">
@@ -259,7 +289,7 @@ export default function CulturalTeams() {
                 <button
                   type="button"
                   onClick={() => { setSearch(''); setArtForm('All art forms'); setTravel('Anywhere'); }}
-                  className="mt-4 text-sm font-bold text-[#a65c52]"
+                  className="mt-4 cursor-pointer text-sm font-bold text-[#a65c52]"
                 >
                   Clear filters
                 </button>

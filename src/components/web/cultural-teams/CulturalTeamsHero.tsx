@@ -49,14 +49,14 @@ export default function CulturalTeamsHero({ onRegister }: CulturalTeamsHeroProps
         <div className="mt-4 flex flex-wrap gap-3">
           <a
             href="#explore-teams"
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#713d55] transition hover:bg-[#fff4ef]"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#713d55] transition hover:bg-[#fff4ef]"
           >
             Explore teams <ArrowRight className="h-4 w-4" />
           </a>
           <button
             type="button"
             onClick={onRegister}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/40 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"
           >
             <Plus className="h-4 w-4" /> Register your team
           </button>

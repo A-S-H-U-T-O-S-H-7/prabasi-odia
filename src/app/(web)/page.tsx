@@ -4,6 +4,7 @@ import DonationBanner from '@/components/web/home/DonationSection';
 import CommunityFeatures from '@/components/web/home/Featuredcards';
 import FeaturesSection from '@/components/web/home/FeaturesSection';
 import Hero from '@/components/web/home/hero/Hero';
+import ProjectAndMagazineSection from '@/components/web/home/ProjectAndMagazineSection';
 import HowItWorks from '@/components/web/home/HowItWorks';
 import AppDownloadBanner from '@/components/web/home/AppDownloadBanner';
 import PartnersSection from '@/components/web/home/AssociatesSection';
@@ -16,6 +17,7 @@ export default function HomePage() {
     <>
       <WelcomePopup />
       <Hero/>
+      <ProjectAndMagazineSection/>
       <HowItWorks/>
       <AppDownloadBanner/>
       <FeaturesSection/>

@@ -10,13 +10,15 @@ const teamSchema = z.object({
   description: z.string().trim().min(40).max(4000), baseCity: z.string().trim().min(2).max(100),
   baseState: z.string().trim().min(2).max(100), baseCountry: z.string().trim().min(2).max(100),
   memberCount: z.coerce.number().int().min(1).max(500), languages: z.string().trim().min(2).max(160),
+  minimumCharge: z.string().trim().min(2).max(100).regex(/\d/, 'Enter an amount for the minimum charge.'),
   travelScopes: z.array(z.enum(TRAVEL_SCOPES)).min(1), availableStates: z.array(z.enum(INDIAN_STATES)).max(36),
 }).refine(data => !data.travelScopes.includes('states') || data.availableStates.length > 0, { message: 'Choose at least one state where the team can perform.' });
 const contactSchema = z.object({ contactName: z.string().trim().min(2).max(100), email: z.email().max(200), phone: z.string().trim().min(7).max(25) });
 const enquirySchema = z.object({
   organiserName: z.string().trim().min(2).max(100), email: z.email().max(200), phone: z.string().trim().min(7).max(25),
   eventType: z.string().trim().min(2).max(120), eventDate: z.string().trim().max(20),
-  eventLocation: z.string().trim().min(3).max(180), message: z.string().trim().min(20).max(2000),
+  eventLocation: z.string().trim().min(3).max(180), budget: z.string().trim().min(2).max(100),
+  message: z.string().trim().min(20).max(2000),
 });
 const text = (value: unknown) => typeof value === 'string' ? value : '';
 const mapTeam = (id: string, data: Record<string, unknown>): CulturalTeam => ({
@@ -32,7 +34,7 @@ const mapTeam = (id: string, data: Record<string, unknown>): CulturalTeam => ({
 const mapEnquiry = (id: string, data: Record<string, unknown>): CulturalTeamEnquiry => ({
   id, teamId: text(data.teamId), teamName: text(data.teamName), organiserName: text(data.organiserName),
   email: text(data.email), phone: text(data.phone), eventType: text(data.eventType), eventDate: text(data.eventDate),
-  eventLocation: text(data.eventLocation), message: text(data.message), status: (data.status || 'new') as EnquiryStatus,
+  eventLocation: text(data.eventLocation), budget: text(data.budget), message: text(data.message), status: (data.status || 'new') as EnquiryStatus,
   adminNotes: text(data.adminNotes), createdAt: text(data.createdAt), updatedAt: text(data.updatedAt),
 });
 const imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -87,8 +89,9 @@ export const culturalTeamsService = {
       }
       const now = new Date().toISOString();
       const batch = writeBatch(db);
-      batch.set(reference, { ...team.data, availableStates: team.data.travelScopes.includes('states') ? team.data.availableStates : [], ownerId: uid, images, status: 'pending', rejectionReason: '', createdAt: now, updatedAt: now });
-      batch.set(doc(db, 'culturalTeamContacts', reference.id), { ...privateContact.data, ownerId: uid });
+      const { minimumCharge, ...publicTeam } = team.data;
+      batch.set(reference, { ...publicTeam, availableStates: team.data.travelScopes.includes('states') ? team.data.availableStates : [], ownerId: uid, images, status: 'pending', rejectionReason: '', createdAt: now, updatedAt: now });
+      batch.set(doc(db, 'culturalTeamContacts', reference.id), { ...privateContact.data, minimumCharge, ownerId: uid });
       await batch.commit();
       return reference.id;
     } catch (cause) {
@@ -99,7 +102,7 @@ export const culturalTeamsService = {
   async sendEnquiry(teamId: string, data: CulturalTeamEnquiryDraft) {
     await requireApprovedMember('contact a cultural team');
     const parsed = enquirySchema.safeParse(data);
-    if (!parsed.success) throw new Error('Check the event and contact details.');
+    if (!parsed.success) throw new Error('Check the program, budget and contact details.');
     const snapshot = await getDoc(doc(db, 'culturalTeams', teamId));
     const team = snapshot.data();
     if (!team || team.status !== 'approved') throw new Error('This team is not accepting enquiries right now.');
@@ -115,6 +118,19 @@ export const culturalTeamsService = {
     await requireCulturalAdmin();
     const snapshot = await getDoc(doc(db, 'culturalTeamContacts', teamId));
     return snapshot.exists() ? snapshot.data() as CulturalTeamContact : null;
+  },
+  async setHeroImage(teamId: string, imagePath: string): Promise<CulturalTeamImage[]> {
+    await requireCulturalAdmin();
+    const teamRef = doc(db, 'culturalTeams', teamId);
+    const snapshot = await getDoc(teamRef);
+    if (!snapshot.exists()) throw new Error('This cultural team no longer exists.');
+    const images = Array.isArray(snapshot.data().images) ? snapshot.data().images as CulturalTeamImage[] : [];
+    const selectedIndex = images.findIndex((image) => image.path === imagePath);
+    if (selectedIndex < 0) throw new Error('Choose a photo from this team.');
+    if (selectedIndex === 0) return images;
+    const reordered = [images[selectedIndex], ...images.filter((_, index) => index !== selectedIndex)];
+    await updateDoc(teamRef, { images: reordered, updatedAt: new Date().toISOString() });
+    return reordered;
   },
   async setStatus(teamId: string, status: CulturalTeamStatus, rejectionReason = '') {
     await requireCulturalAdmin();

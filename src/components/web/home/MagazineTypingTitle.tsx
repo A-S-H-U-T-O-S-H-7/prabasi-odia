@@ -31,7 +31,7 @@ export default function MagazineTypingTitle() {
   }, [deleting, reduceMotion, visibleLength]);
 
   return (
-    <span className="mt-1 grid font-serif text-lg font-bold leading-tight text-[#2A1636]">
+    <span className="mt-1 grid font-serif text-base font-bold leading-tight text-[#2A1636]">
       <span className="invisible col-start-1 row-start-1" aria-hidden="true">
         {TITLE}
       </span>

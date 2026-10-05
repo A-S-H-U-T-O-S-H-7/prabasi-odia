@@ -44,7 +44,7 @@ export default function CulturalTeamsFilters({
           aria-label="Filter by art form"
           value={artForm}
           onChange={(event) => onArtForm(event.target.value)}
-          className="w-full rounded-xl bg-[#fbf5f1] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#ad6659]/20"
+          className="w-full cursor-pointer rounded-xl bg-[#fbf5f1] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#ad6659]/20"
         >
           <option>All art forms</option>
           {CULTURAL_ART_FORMS.map((value) => <option key={value}>{value}</option>)}
@@ -56,7 +56,7 @@ export default function CulturalTeamsFilters({
           aria-label="Filter by travel availability"
           value={travel}
           onChange={(event) => onTravel(event.target.value)}
-          className="w-full rounded-xl bg-[#fbf5f1] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#ad6659]/20"
+          className="w-full cursor-pointer rounded-xl bg-[#fbf5f1] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#ad6659]/20"
         >
           <option>Anywhere</option>
           {TRAVEL_SCOPES.map((value) => <option key={value} value={value}>{scopeLabel[value]}</option>)}

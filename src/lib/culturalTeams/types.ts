@@ -33,8 +33,8 @@ export interface CulturalTeam {
   createdAt: string;
   updatedAt: string;
 }
-export type CulturalTeamDraft = Pick<CulturalTeam, 'name' | 'artForm' | 'description' | 'baseCity' | 'baseState' | 'baseCountry' | 'memberCount' | 'languages' | 'travelScopes' | 'availableStates'>;
-export interface CulturalTeamContact { ownerId: string; contactName: string; email: string; phone: string; }
+export type CulturalTeamDraft = Pick<CulturalTeam, 'name' | 'artForm' | 'description' | 'baseCity' | 'baseState' | 'baseCountry' | 'memberCount' | 'languages' | 'travelScopes' | 'availableStates'> & { minimumCharge: string };
+export interface CulturalTeamContact { ownerId: string; contactName: string; email: string; phone: string; minimumCharge?: string; }
 export interface CulturalTeamEnquiry {
   id: string;
   teamId: string;
@@ -45,10 +45,11 @@ export interface CulturalTeamEnquiry {
   eventType: string;
   eventDate: string;
   eventLocation: string;
+  budget: string;
   message: string;
   status: EnquiryStatus;
   adminNotes: string;
   createdAt: string;
   updatedAt: string;
 }
-export type CulturalTeamEnquiryDraft = Pick<CulturalTeamEnquiry, 'organiserName' | 'email' | 'phone' | 'eventType' | 'eventDate' | 'eventLocation' | 'message'>;
+export type CulturalTeamEnquiryDraft = Pick<CulturalTeamEnquiry, 'organiserName' | 'email' | 'phone' | 'eventType' | 'eventDate' | 'eventLocation' | 'budget' | 'message'>;

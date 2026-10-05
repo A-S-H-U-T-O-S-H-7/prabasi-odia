@@ -1,14 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowUpRight, BookOpen } from "lucide-react";
 import HeroButtons, { HeroQuickLinks } from "./HeroButtons";
 import AvatarGroup from "./AvatarGroup";
 import Stats from "./Stats";
-import MagazineTypingTitle from "./MagazineTypingTitle";
-
 
 export default function HeroContent() {
   return (
@@ -113,71 +108,6 @@ export default function HeroContent() {
           <Stats />
         </motion.div>
       </div>
-
-      {/* ✅ Project Credit with Avatar */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-        className="mt-6 grid gap-5 border-t border-[#D4C8C0]/30 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(270px,340px)] md:items-center md:gap-8"
-      >
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#6B1E5B]/20 shadow-md flex-shrink-0">
-              <Image
-                src="/avatar5.jpeg"
-                alt="FCA(Dr) Manoranjan Mohanty"
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            <div>
-              <p className="text-xs sm:text-sm text-[#2A1636] font-medium">
-                Project by <span className="text-[#6B1E5B] font-semibold">FCA(Dr) Manoranjan Mohanty</span>
-              </p>
-              <p className="text-[10px] sm:text-xs text-[#6B5E5A]">
-                President of <span className="text-[#6B1E5B] font-medium">Samudayik Vikas Samiti</span>
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/manoranjan-mohanty"
-            className="group mt-3 inline-flex items-center gap-2 rounded-full border border-[#6B1E5B]/20 bg-white/80 px-4 py-2 text-xs font-semibold text-[#6B1E5B] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#6B1E5B]/50 hover:bg-white hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B1E5B] sm:ml-[3.25rem]"
-          >
-            <BookOpen className="h-4 w-4" />
-            Know more
-            <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </Link>
-        </div>
-
-        <Link
-          href="/magazine"
-          aria-label="Explore Prabasi Odia magazines"
-          className="group flex min-h-28 cursor-pointer overflow-hidden rounded-2xl border border-[#D9B89B] bg-white/90 shadow-lg shadow-[#7C3A21]/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#A75E37] hover:shadow-xl hover:shadow-[#7C3A21]/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C3A21]"
-        >
-          <span className="flex min-w-0 flex-1 flex-col justify-center p-4">
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#A75E37]">
-              Prabasi Odia
-            </span>
-            <MagazineTypingTitle />
-            <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#7C3A21]">
-              Browse issues
-              <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
-            </span>
-          </span>
-          <span className="relative w-[38%] shrink-0 overflow-hidden bg-[#7C3A21]">
-            <Image
-              src="/homemagz.png"
-              alt=""
-              fill
-              sizes="(max-width: 767px) 38vw, 130px"
-              className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-            />
-          </span>
-        </Link>
-      </motion.div>
     </div>
   );
 }

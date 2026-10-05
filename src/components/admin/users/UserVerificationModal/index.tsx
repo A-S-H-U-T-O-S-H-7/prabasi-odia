@@ -587,27 +587,30 @@ export default function UserVerificationModal({
                           {verificationError && <p role="alert" className="text-sm text-red-700">{verificationError}</p>}
                         </div>
                       )}
-                      {(!canHaveMemberCard(user.residencyStatus) || (user.memberId && user.memberId !== 'Pending')) && (
+                      <div className="flex flex-wrap items-center justify-start gap-2">
+                        {(!canHaveMemberCard(user.residencyStatus) || (user.memberId && user.memberId !== 'Pending')) && (
+                          <button
+                            type="button"
+                            onClick={handleResendVerificationEmail}
+                            disabled={isSendingVerificationEmail || isApproving || isVerifying}
+                            className="inline-flex cursor-pointer items-center rounded-lg bg-[#6B1E5B] px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isSendingVerificationEmail ? 'Sending…' : canHaveMemberCard(user.residencyStatus) ? 'Resend member card email' : 'Resend confirmation email'}
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={handleResendVerificationEmail}
-                          disabled={isSendingVerificationEmail || isApproving || isVerifying}
-                          className="w-full rounded-xl bg-[#6B1E5B] px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
+                          onClick={() => setShowRejectForm(true)}
+                          disabled={isRejected}
+                          className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-red-300 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {isSendingVerificationEmail ? 'Sending…' : canHaveMemberCard(user.residencyStatus) ? 'Resend member card email' : 'Resend confirmation email'}
+                          <XCircle className="h-3.5 w-3.5" />
+                          Reject
                         </button>
-                      )}
+                      </div>
                       {user.verificationEmailStatus === 'failed' && (
                         <p className="text-sm text-amber-800">Last email attempt failed: {user.verificationEmailLastError || 'Please resend it.'}</p>
                       )}
-                      <button
-                        onClick={() => setShowRejectForm(true)}
-                        disabled={isRejected}
-                        className="w-full py-3 rounded-xl border border-red-300 text-red-600 font-medium hover:bg-red-50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <XCircle className="w-4 h-4 inline mr-1" />
-                        Reject
-                      </button>
                     </div>
                   ) : (
                     <>

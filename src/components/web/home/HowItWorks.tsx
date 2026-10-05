@@ -29,7 +29,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section className="py-8 md:py-10 px-4 bg-gradient-to-b from-[#FFF9F2] via-[#FDE8D0]/10 to-[#FFF9F2]">
+    <section className="border-t border-[#E9D7CE] bg-gradient-to-b from-[#FFFDF9] via-[#FFF9F2] to-[#FFF9F2] px-4 py-10 md:py-12">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
