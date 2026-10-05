@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowLeftRight, BookOpen, ChevronLeft, ChevronRight, ExternalLink, Hand, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, BookOpen, ChevronLeft, ChevronRight, ExternalLink, Hand, Loader2, Minus, Plus } from 'lucide-react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { magazineService, type MagazineIssue } from '@/lib/services/magazineService';
 import styles from './magazineReader.module.css';
@@ -10,12 +10,16 @@ import styles from './magazineReader.module.css';
 const pdfRoute = (id: string, pdfUrl: string) =>
   `/api/magazines/${encodeURIComponent(id)}/pdf?url=${encodeURIComponent(pdfUrl)}`;
 type FlipBook = import('page-flip').PageFlip;
+const MIN_ZOOM = 75;
+const MAX_ZOOM = 200;
+const ZOOM_STEP = 25;
 
-function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onReady, onEndAttempt }: {
+function MagazineBook({ pdf, coverUrl, pageRatio, startPage, zoom, onPageChange, onReady, onEndAttempt }: {
   pdf: PDFDocumentProxy;
   coverUrl: string;
   pageRatio: number;
   startPage: number;
+  zoom: number;
   onPageChange: (page: number) => void;
   onReady: (book: FlipBook | null) => void;
   onEndAttempt: () => void;
@@ -24,31 +28,45 @@ function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onRea
   const changeRef = useRef(onPageChange);
   const readyRef = useRef(onReady);
   const endAttemptRef = useRef(onEndAttempt);
+  const zoomRef = useRef(zoom);
+  const refreshPagesRef = useRef<(() => void) | null>(null);
   changeRef.current = onPageChange;
   readyRef.current = onReady;
   endAttemptRef.current = onEndAttempt;
+  zoomRef.current = zoom;
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     let disposed = false;
     let book: FlipBook | null = null;
-    const urls: string[] = [];
-    const renders = new Map<number, Promise<void>>();
+    const baseUrls = new Map<number, string>();
+    const detailUrls = new Map<number, string>();
+    const renders = new Map<string, Promise<void>>();
     const images: HTMLImageElement[] = [];
+    let currentPage = startPage;
     const root = document.createElement('div');
     root.className = styles.flipRoot;
     host.appendChild(root);
 
-    const renderPage = (number: number): Promise<void> => {
-      if (number < 2 || number > pdf.numPages) return Promise.resolve();
-      if (renders.has(number)) return renders.get(number)!;
+    const showPage = (number: number) => {
+      const detail = zoomRef.current > 100 && Math.abs(number - currentPage) <= 2 ? detailUrls.get(number) : undefined;
+      const url = detail || baseUrls.get(number) || (number === 1 ? coverUrl : '');
+      if (images[number - 1]) images[number - 1].src = url;
+    };
+    const renderPage = (number: number, detail = false): Promise<void> => {
+      if (number < 1 || number > pdf.numPages) return Promise.resolve();
+      const urls = detail ? detailUrls : baseUrls;
+      if (urls.has(number)) return Promise.resolve();
+      const key = `${number}:${detail ? 'detail' : 'base'}`;
+      if (renders.has(key)) return renders.get(key)!;
       const task = (async () => {
         try {
+          if (detail) await renderPage(number);
           const page = await pdf.getPage(number);
           if (disposed) return;
           const original = page.getViewport({ scale: 1 });
-          const viewport = page.getViewport({ scale: 1200 / original.width });
+          const viewport = page.getViewport({ scale: (detail ? 2400 : 1800) / original.width });
           const canvas = document.createElement('canvas');
           canvas.width = Math.ceil(viewport.width);
           canvas.height = Math.ceil(viewport.height);
@@ -56,20 +74,34 @@ function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onRea
           if (!context) throw new Error('Canvas is unavailable');
           await page.render({ canvas, canvasContext: context, viewport }).promise;
           if (disposed) return;
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-          if (!blob || disposed) return;
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, detail ? 'image/png' : 'image/jpeg', detail ? undefined : 0.98));
+          canvas.width = 0;
+          canvas.height = 0;
+          if (!blob || disposed || (detail && (zoomRef.current <= 100 || Math.abs(number - currentPage) > 2))) return;
           const url = URL.createObjectURL(blob);
-          urls.push(url);
-          images[number - 1].src = url;
+          urls.set(number, url);
+          showPage(number);
         } catch (reason) {
           if (!disposed) console.error(`Could not render magazine page ${number}`, reason);
+        } finally {
+          renders.delete(key);
         }
       })();
-      renders.set(number, task);
+      renders.set(key, task);
       return task;
     };
     const prefetch = (index: number) => {
-      for (let page = Math.max(2, index); page <= Math.min(pdf.numPages, index + 5); page++) void renderPage(page);
+      currentPage = index;
+      for (const [number, url] of detailUrls) {
+        if (zoomRef.current > 100 && Math.abs(number - index) <= 2) continue;
+        detailUrls.delete(number);
+        showPage(number);
+        URL.revokeObjectURL(url);
+      }
+      for (let page = Math.max(1, index - 2); page <= Math.min(pdf.numPages, index + 5); page++) void renderPage(page);
+      if (zoomRef.current > 100) {
+        for (let page = index; page <= Math.min(pdf.numPages, index + 2); page++) void renderPage(page, true);
+      }
     };
 
     const mount = async () => {
@@ -87,7 +119,7 @@ function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onRea
         element.appendChild(image);
         return element;
       });
-      await Promise.all([2, 3, 4, startPage, startPage + 1].map(renderPage));
+      await Promise.all([1, startPage, startPage + 1].map((number) => renderPage(number)));
       if (disposed) return;
       const width = 440;
       book = new PageFlip(root, {
@@ -102,6 +134,7 @@ function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onRea
       book.on('flip', (event) => { changeRef.current(event.data + 1); prefetch(event.data + 1); });
       book.loadFromHTML(pages);
       readyRef.current(book);
+      refreshPagesRef.current = () => prefetch(book ? book.getCurrentPageIndex() + 1 : startPage);
       prefetch(startPage);
     };
     void mount();
@@ -109,10 +142,11 @@ function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onRea
     let gesture: { id: number; x: number; y: number; active: boolean } | null = null;
     const position = (event: PointerEvent) => {
       const area = root.querySelector('.stf__block')?.getBoundingClientRect();
-      return { x: event.clientX - (area?.left || 0), y: event.clientY - (area?.top || 0) };
+      const scale = zoomRef.current / 100;
+      return { x: (event.clientX - (area?.left || 0)) / scale, y: (event.clientY - (area?.top || 0)) / scale };
     };
     const pointerDown = (event: PointerEvent) => {
-      if (!book || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      if (!book || zoomRef.current > 100 || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
       gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, active: false };
     };
     const pointerMove = (event: PointerEvent) => {
@@ -134,7 +168,8 @@ function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onRea
         if (!area) return;
         const middle = area.left + area.width / 2;
         if (book.getOrientation() === 'landscape' && ((dx < 0 && gesture.x < middle) || (dx > 0 && gesture.x > middle))) return;
-        book.startUserTouch({ x: gesture.x - area.left, y: gesture.y - area.top });
+        const scale = zoomRef.current / 100;
+        book.startUserTouch({ x: (gesture.x - area.left) / scale, y: (gesture.y - area.top) / scale });
         gesture.active = true;
         host.setPointerCapture(event.pointerId);
       }
@@ -154,17 +189,20 @@ function MagazineBook({ pdf, coverUrl, pageRatio, startPage, onPageChange, onRea
     return () => {
       disposed = true;
       readyRef.current(null);
+      refreshPagesRef.current = null;
       host.removeEventListener('pointerdown', pointerDown);
       host.removeEventListener('pointermove', pointerMove);
       host.removeEventListener('pointerup', pointerUp);
       host.removeEventListener('pointercancel', pointerUp);
       book?.destroy();
       root.remove();
-      urls.forEach(URL.revokeObjectURL);
+      for (const url of [...baseUrls.values(), ...detailUrls.values()]) URL.revokeObjectURL(url);
     };
   }, [pdf, coverUrl, pageRatio, startPage]);
 
-  return <div ref={hostRef} className={styles.bookHost} aria-label="Drag a magazine page to turn it" />;
+  useEffect(() => { refreshPagesRef.current?.(); }, [zoom]);
+
+  return <div ref={hostRef} className={styles.bookHost} data-zoomed={zoom > 100} style={{ zoom: zoom / 100 }} aria-label={zoom > 100 ? 'Zoomed magazine pages; scroll to explore and use the arrows to turn pages' : 'Drag a magazine page to turn it'} />;
 }
 
 export default function MagazineReader({ issueId, initialIssue, embedded = false }: {
@@ -180,6 +218,7 @@ export default function MagazineReader({ issueId, initialIssue, embedded = false
   const [initialPage, setInitialPage] = useState(1);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape' | null>(null);
   const [showEndMessage, setShowEndMessage] = useState(false);
+  const [zoom, setZoom] = useState(100);
   const bookRef = useRef<FlipBook | null>(null);
   const endMessageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -221,6 +260,7 @@ export default function MagazineReader({ issueId, initialIssue, embedded = false
   useEffect(() => () => {
     if (endMessageTimer.current) clearTimeout(endMessageTimer.current);
   }, []);
+  useEffect(() => setZoom(100), [issueId]);
   const count = pdf?.numPages || 0;
   const visibleEnd = orientation === 'landscape' && page > 1 ? Math.min(page + 1, count) : page;
   const atEnd = count > 0 && visibleEnd >= count;
@@ -254,7 +294,14 @@ export default function MagazineReader({ issueId, initialIssue, embedded = false
       <div className={styles.shell}>
         <div className={styles.topbar}>
           {!embedded && <Link href="/magazine" className={styles.backLink}><ArrowLeft size={17} /> All magazines</Link>}
-          {issue && <a href={pdfRoute(issueId, issue.pdfUrl)} target="_blank" rel="noopener noreferrer" className={styles.pdfLink}>Open original PDF <ExternalLink size={15} /></a>}
+          <div className={styles.topbarActions}>
+            {pdf && <div className={styles.zoomControls} role="group" aria-label="Magazine zoom">
+              <button type="button" onClick={() => setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP))} disabled={zoom <= MIN_ZOOM} aria-label="Zoom out" title="Zoom out"><Minus size={17} aria-hidden="true" /></button>
+              <span aria-live="polite">{zoom}%</span>
+              <button type="button" onClick={() => setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP))} disabled={zoom >= MAX_ZOOM} aria-label="Zoom in" title="Zoom in"><Plus size={17} aria-hidden="true" /></button>
+            </div>}
+            {issue && <a href={pdfRoute(issueId, issue.pdfUrl)} target="_blank" rel="noopener noreferrer" className={styles.pdfLink}>Open original PDF <ExternalLink size={15} /></a>}
+          </div>
         </div>
         {loading ? <div className={styles.loading} role="status"><Loader2 className={styles.loadingIcon} /> Preparing the magazine...</div> : error || !issue || !pdf ? <div className={styles.error} role="alert">{error || 'This magazine is unavailable.'}</div> : (
           <>
@@ -267,13 +314,15 @@ export default function MagazineReader({ issueId, initialIssue, embedded = false
               <button type="button" className={styles.sideTurn} disabled={!orientation || page <= 1} onClick={() => bookRef.current?.flipPrev('bottom')} aria-label="Turn to previous pages" title="Previous pages">
                 <ChevronLeft size={27} aria-hidden="true" />
               </button>
-              <MagazineBook pdf={pdf} coverUrl={issue.coverUrl} pageRatio={issue.pageRatio && issue.pageRatio > 0 ? issue.pageRatio : 0.707} startPage={initialPage} onPageChange={(number) => { setPage(number); setShowEndMessage(false); }} onReady={onReady} onEndAttempt={showEnd} />
+              <div className={styles.bookViewport} data-zoomed={zoom > 100}>
+                <MagazineBook pdf={pdf} coverUrl={issue.coverUrl} pageRatio={issue.pageRatio && issue.pageRatio > 0 ? issue.pageRatio : 0.707} startPage={initialPage} zoom={zoom} onPageChange={(number) => { setPage(number); setShowEndMessage(false); }} onReady={onReady} onEndAttempt={showEnd} />
+              </div>
               <button type="button" className={styles.sideTurn} data-ended={atEnd} disabled={!orientation} aria-disabled={atEnd} onClick={nextPage} aria-label={atEnd ? 'End of magazine' : 'Turn to next pages'} title={atEnd ? 'End of magazine' : 'Next pages'}>
                 <ChevronRight size={27} aria-hidden="true" />
               </button>
             </section>
             <p className={`${styles.dragHint} ${showEndMessage ? styles.endMessage : ''}`} role="status" aria-live="polite">
-              {showEndMessage ? <><BookOpen size={19} aria-hidden="true" /> You’ve reached the end of this magazine.</> : <><Hand size={19} aria-hidden="true" /><ArrowLeftRight size={20} aria-hidden="true" /> Drag a page to turn it</>}
+              {showEndMessage ? <><BookOpen size={19} aria-hidden="true" /> You’ve reached the end of this magazine.</> : zoom > 100 ? 'Scroll to explore the page; use the arrows to turn pages.' : <><Hand size={19} aria-hidden="true" /><ArrowLeftRight size={20} aria-hidden="true" /> Drag a page to turn it</>}
             </p>
             <nav className={styles.controls} aria-label="Magazine pages">
               <button type="button" className={styles.previous} disabled={page <= 1} onClick={() => bookRef.current?.flipPrev('bottom')}><ChevronLeft size={18} /> Previous</button>
@@ -285,7 +334,7 @@ export default function MagazineReader({ issueId, initialIssue, embedded = false
               </div>
               <button type="button" className={styles.next} data-ended={atEnd} disabled={!orientation} aria-disabled={atEnd} onClick={nextPage}>{atEnd ? 'End' : 'Next'} <ChevronRight size={18} /></button>
             </nav>
-            <p className={styles.hint}>Drag with your mouse or finger, or use the arrows beside the magazine.</p>
+            <p className={styles.hint}>{zoom > 100 ? 'Scroll the enlarged pages, and use the arrows beside the magazine to turn pages.' : 'Drag with your mouse or finger, or use the arrows beside the magazine.'}</p>
           </>
         )}
       </div>

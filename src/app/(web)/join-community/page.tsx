@@ -18,6 +18,7 @@ import { geocodeLocation } from "@/lib/utils/locationGeocode";
 import { isIndianCountryCode, normalizeIndianPhone } from "@/lib/mobileVerification";
 import { residencyDefaults, isResidencyContactVerified, type JoinResidencyStatus } from "@/lib/residency";
 import { useJoinFormDraft } from "@/hooks/useJoinFormDraft";
+import { ENGLISH_NAME_PATTERN } from "@/lib/joinCommunityName";
 import JoinFormSupport from "@/components/web/join-community/JoinFormSupport";
 import JoinTypeDialog from "@/components/web/join-community/JoinTypeDialog";
 
@@ -39,7 +40,8 @@ const schema = z.object({
   residencyStatus: z.enum(["RI", "NRI", "RO"]),
   // Personal Info
   photo: z.any().refine((file) => file instanceof File, "Profile photo is required"),
-  fullName: z.string().min(2, "Full name is required"),
+  fullName: z.string().trim().min(2, "Full name is required")
+    .regex(ENGLISH_NAME_PATTERN, "Use English letters and spaces only"),
   dob: z.string()
     .min(1, "Date of birth is required")
     .refine((val) => {

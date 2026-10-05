@@ -6,6 +6,7 @@ import { useFormContext } from "react-hook-form";
 import { Briefcase } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
+import { keepEnglishNameCharacters } from "@/lib/joinCommunityName";
 
 const calculateAge = (dob: string): number => {
   if (!dob) return 0;
@@ -27,6 +28,7 @@ interface PersonalDetailsProps {
 
 export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSubmit }: PersonalDetailsProps) {
   const { register, watch, setValue, formState: { errors, touchedFields } } = useFormContext();
+  const fullNameField = register("fullName");
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
   const [ageError, setAgeError] = useState<string | null>(null);
 
@@ -93,7 +95,11 @@ export default function PersonalDetails({ hasAttemptedSubmit, setHasAttemptedSub
         <label className="block text-sm font-medium text-[#2A1636] mb-2">
           Full Name <span className="text-red-400">*</span>
         </label>
-        <input {...register("fullName")} className={inputClass("fullName")} placeholder="Your full name" />
+        <input {...fullNameField} onChange={(event) => {
+          event.target.value = keepEnglishNameCharacters(event.target.value);
+          void fullNameField.onChange(event);
+        }} className={inputClass("fullName")} placeholder="Your full name" autoComplete="name" />
+        <p className="mt-1 text-xs text-[#6B5E5A]">Use English letters and spaces only.</p>
         <FieldHint>
           {shouldShowError("fullName") && (
             <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-red-400 text-sm">

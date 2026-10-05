@@ -4,6 +4,7 @@
 .embedded .heading h1, .embedded .eyebrow { display: none; }
 .shell { width: min(100%, 1440px); margin: auto; }
 .topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.topbarActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-left: auto; }
 .backLink, .pdfLink { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; color: #6c442f; font-size: 13px; font-weight: 700; text-decoration: none; }
 .backLink:hover, .pdfLink:hover { text-decoration: underline; }
 .loading, .error { min-height: 380px; display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center; color: #675c52; }
@@ -15,9 +16,13 @@
 .heading p { margin: 0; color: #74685e; font-size: 12px; }
 .heading p span { margin: 0 5px; }
 .bookStage { display: grid; grid-template-columns: 48px minmax(0, 880px) 48px; align-items: center; justify-content: center; gap: 14px; padding: 30px 12px 18px; }
+.bookViewport { width: min(100%, 880px); min-width: 0; margin: auto; }
+.bookViewport[data-zoomed="true"] { max-height: min(75dvh, 950px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .bookHost { width: min(100%, 880px); margin: auto; opacity: 0; touch-action: pan-y pinch-zoom; user-select: none; cursor: grab; transition: opacity 240ms ease; }
+.bookHost[data-zoomed="true"] { touch-action: pan-x pan-y; cursor: default; }
 .bookStage[data-orientation="landscape"] .bookHost, .bookStage[data-orientation="portrait"] .bookHost { opacity: 1; }
 .bookHost:active { cursor: grabbing; }
+.bookHost[data-zoomed="true"]:active { cursor: default; }
 .flipRoot { width: 100%; }
 .flipPage { overflow: hidden; background: #fff; box-shadow: inset 0 0 12px #4d3e3120; }
 .flipPage img { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; user-select: none; }
@@ -38,6 +43,12 @@
 .previous:disabled, .next:disabled { opacity: .45; cursor: not-allowed; }
 .pagePosition { display: flex; align-items: center; justify-content: center; gap: 9px; min-width: 170px; color: #665a51; font-size: 12px; font-variant-numeric: tabular-nums; }
 .pagePosition select { min-height: 36px; max-width: 140px; padding: 5px; border: 1px solid #cfbfb0; border-radius: 5px; background: #fffdfa; color: #44352c; font-size: 11px; }
+.zoomControls { display: inline-flex; align-items: center; overflow: hidden; border: 1px solid #cfbfb0; border-radius: 8px; background: #fffdfa; color: #6c442f; }
+.zoomControls button { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.zoomControls button:hover:not(:disabled) { background: #f3e8dc; }
+.zoomControls button:focus-visible { outline: 2px solid #77432b; outline-offset: -3px; }
+.zoomControls button:disabled { opacity: .4; cursor: not-allowed; }
+.zoomControls span { min-width: 44px; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .hint { margin: 12px 0 0; text-align: center; color: #8b7c70; font-size: 11px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes messageAppear { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -47,6 +58,7 @@
   .heading { margin-top: 13px; }
   .bookStage { grid-template-columns: 32px minmax(0, 440px) 32px; gap: 4px; overflow: clip; padding: 24px 0 14px; }
   .bookHost { width: 100%; }
+  .bookViewport[data-zoomed="true"] { max-height: 65dvh; }
   .sideTurn { width: 32px; height: 32px; }
   .sideTurn svg { width: 18px; height: 18px; }
   .controls { gap: 8px; }

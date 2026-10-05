@@ -6,6 +6,7 @@ import { ArrowRight, Check, Eye, EyeOff, Loader2, LockKeyhole, Mail, User, X } f
 import { useAuthStore } from "@/lib/store";
 import { useFormContext } from "react-hook-form";
 import { useJoinFormSupport } from "./JoinFormSupport";
+import { ENGLISH_NAME_PATTERN, keepEnglishNameCharacters } from "@/lib/joinCommunityName";
 
 interface Step0AccountProps {
   initialName?: string;
@@ -38,6 +39,7 @@ export default function Step0Account({ initialName = "", initialEmail = "", onBa
     if (busy || operationInFlight.current) return;
     setError('');
     if (name.trim().length < 2) return fail('Enter your full name.');
+    if (!ENGLISH_NAME_PATTERN.test(name.trim())) return fail('Use English letters and spaces only for your name.');
     if (!/^\S+@\S+\.\S+$/.test(email)) return fail('Enter a valid email address.');
     if (password.length < 8) return fail('Password must be at least 8 characters.');
     if (password !== confirmPassword) return fail('Passwords do not match.');
@@ -111,7 +113,7 @@ export default function Step0Account({ initialName = "", initialEmail = "", onBa
           Applying as <span className="font-semibold text-[#2A1636]">{initialName}</span>
         </div>
       ) : (
-        <label className="block"><span className="mb-1.5 block text-sm font-medium text-[#2A1636]">Full name</span><div className="relative"><User className="absolute left-3.5 top-3.5 h-4 w-4 text-[#6B5E5A]" /><input className={inputClass} placeholder="Enter your full name" value={name} onChange={(e) => { setName(e.target.value); setValue("fullName", e.target.value); }} autoComplete="name" required /></div></label>
+        <label className="block"><span className="mb-1.5 block text-sm font-medium text-[#2A1636]">Full name</span><div className="relative"><User className="absolute left-3.5 top-3.5 h-4 w-4 text-[#6B5E5A]" /><input className={inputClass} placeholder="Enter your full name" value={name} onChange={(e) => { const cleanName = keepEnglishNameCharacters(e.target.value); setName(cleanName); setValue("fullName", cleanName, { shouldValidate: true }); }} autoComplete="name" required /></div><span className="mt-1 block text-xs text-[#6B5E5A]">Use English letters and spaces only.</span></label>
       )}
       <label className="block"><span className="mb-1.5 block text-sm font-medium text-[#2A1636]">Email address</span><div className="relative"><Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-[#6B5E5A]" /><input className={`${inputClass} ${emailLocked ? "bg-[#F7F3F1]/80 cursor-not-allowed" : ""}`} placeholder="you@example.com" type="email" value={email} onChange={(e) => { setEmail(e.target.value); setValue("email", e.target.value); }} readOnly={emailLocked} autoComplete="email" required /></div></label>
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4"><label className="block"><span className="mb-1.5 block text-sm font-medium text-[#2A1636]">Password</span><div className="relative"><LockKeyhole className="absolute left-3.5 top-3 h-4 w-4 text-[#6B5E5A] sm:top-3.5" /><input className={`${inputClass} pr-11`} placeholder="At least 8 characters" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-[#6B5E5A] sm:top-3">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></label><label className="block"><span className="mb-1.5 block text-sm font-medium text-[#2A1636]">Confirm password</span><div className="relative"><input className="w-full rounded-xl border border-[#D4C8C0]/60 bg-white px-3 py-2.5 pr-20 text-[#2A1636] outline-none focus:border-[#6B1E5B] focus:ring-2 focus:ring-[#6B1E5B]/15 sm:px-4 sm:py-3" placeholder="Re-enter your password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" required />{password && confirmPassword && (password === confirmPassword ? <Check aria-label="Passwords match" className="absolute right-10 top-3 h-4 w-4 text-green-600 sm:top-3.5" strokeWidth={3} /> : <X aria-label="Passwords do not match" className="absolute right-10 top-3 h-4 w-4 text-red-600 sm:top-3.5" strokeWidth={3} />)}<button type="button" aria-label={showConfirmPassword ? "Hide password" : "Show password"} onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-2.5 text-[#6B5E5A] sm:top-3">{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></label></div>
