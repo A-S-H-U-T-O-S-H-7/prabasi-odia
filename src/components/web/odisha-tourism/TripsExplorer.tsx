@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Clock3, Compass, ExternalLink, MapPin, Moon, RotateCcw, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock3, Compass, MapPin, Moon, RotateCcw, Sparkles } from 'lucide-react';
 import { featuredTrips, planningNote, tripDistricts, trips, tripThemes, type Trip, type TripTheme } from './tripData';
 
 type Duration = 'All lengths' | '2–3 days' | '4–5 days' | '6+ days';
@@ -101,17 +101,9 @@ export default function TripsExplorer() {
           )}
         </section>
 
-        <aside className="mt-14 grid gap-5 rounded-[1.6rem] bg-[#244D3E] p-5 text-white sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <aside className="mt-14 rounded-[1.6rem] bg-[#244D3E] p-5 text-white sm:p-8">
           <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#E7C28D]">Before you set out</p><h2 className="mt-2 font-serif text-2xl font-bold sm:text-3xl">Let the place set the pace.</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-white/80">For forest and wildlife stays, choose your booked camp and approved entrance before fixing the route. Check current access, local transport and accommodation for every journey.</p></div>
-          <a href="https://apps.odishatourism.gov.in/forest-wildlife" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 self-start rounded-full border border-white/35 px-4 py-2 text-xs font-bold text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:self-center">Official nature guide <ExternalLink className="h-4 w-4" aria-hidden="true" /></a>
         </aside>
-        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#687667]">
-          <span>Helpful official references:</span>
-          <a href="https://odishatourism.gov.in/content/dam/tourism/odishatourismbrochures/BuddhistCircuit.pdf" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[#A75F39]">Buddhist circuit</a>
-          <a href="https://odishatourism.gov.in/content/tourism/en/discover/attractions/lakes-waterfalls/sanaghagra-nature-camp.html" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[#A75F39]">Keonjhar waterfalls</a>
-          <a href="https://odishatourism.gov.in/content/tourism/en/discover/attractions/lakes-waterfalls/khandadhar-nature-camp.html" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[#A75F39]">Sundargarh Khandadhar</a>
-          <a href="https://odishatourism.gov.in/content/tourism/en/discover/attractions/beaches.html" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[#A75F39]">Odisha beaches</a>
-        </div>
       </main>
     </div>
   );

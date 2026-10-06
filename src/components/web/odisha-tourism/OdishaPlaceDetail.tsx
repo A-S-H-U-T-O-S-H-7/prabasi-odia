@@ -87,9 +87,6 @@ export default function OdishaPlaceDetail({ place }: { place: DetailedPlace }) {
               <div className="flex justify-between gap-3 py-3"><dt className="text-[#68796F]">Starting point</dt><dd className="max-w-[60%] text-right font-semibold">{place.destination}</dd></div>
             </dl>
             <p className="mt-5 rounded-xl bg-[#F7F0E3] p-4 text-xs leading-6 text-[#5C6C5F]">{place.travelNote}</p>
-            <a href={place.officialUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#A65A2A] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A65A2A]">
-              Official Odisha Tourism guide <ExternalLink className="h-4 w-4" aria-hidden="true" />
-            </a>
           </aside>
         </div>
 

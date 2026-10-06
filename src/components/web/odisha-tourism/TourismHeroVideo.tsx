@@ -14,7 +14,6 @@ export default function TourismHeroVideo() {
       muted
       playsInline
       preload="metadata"
-      poster="/tourism/konark-hero.webp"
       aria-hidden="true"
       tabIndex={-1}
       onLoadedMetadata={(event) => {

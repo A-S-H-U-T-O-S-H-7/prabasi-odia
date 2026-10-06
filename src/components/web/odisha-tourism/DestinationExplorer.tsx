@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  ArrowRight,
   ArrowUpRight,
   Leaf,
   MapPin,
@@ -128,9 +127,6 @@ export default function DestinationExplorer() {
               <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#F2C894]">Now exploring</p>
               <p className="mt-1 font-serif text-lg font-bold sm:text-xl">{activeTab.label}</p>
               <p className="mt-1 text-xs leading-5 text-white/80">{categoryNotes[activeTab.id]}</p>
-              <a href={activeTab.officialUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#F4C58B] underline-offset-4 transition hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4C58B]" aria-label={`View more ${activeTab.label} on Odisha Tourism (opens in a new tab)`}>
-                Explore the official guide <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </a>
             </div>
           </div>
 

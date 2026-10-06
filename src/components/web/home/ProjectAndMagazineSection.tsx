@@ -60,13 +60,13 @@ export default function ProjectAndMagazineSection() {
               <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
             </span>
           </span>
-          <span className="relative w-[34%] shrink-0 overflow-hidden bg-[#7C3A21]">
+          <span className="relative mr-2 aspect-square w-24 shrink-0 self-center overflow-hidden rounded-lg bg-[#E9D9CD] sm:mr-3 sm:w-28 xl:w-32">
             <Image
-              src="/homemagz.png"
+              src="/magazine-hero.jpeg"
               alt=""
               fill
-              sizes="(max-width: 767px) 34vw, 170px"
-              className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 639px) 96px, (max-width: 1279px) 112px, 128px"
+              className="object-contain transition-transform duration-500 group-hover:scale-105"
             />
           </span>
         </Link>
