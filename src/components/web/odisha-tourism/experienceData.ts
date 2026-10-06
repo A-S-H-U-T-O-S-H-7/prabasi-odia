@@ -1,115 +1,78 @@
-export type StoryCard = {
+export type AdivasiStory = {
+  slug: string;
   title: string;
-  image: string;
+  theme: string;
+  image?: string;
   description: string;
   detail: string;
-  href: string;
+  region: string;
+  highlights: string[];
+  visitNote: string;
 };
 
-export const cuisine: StoryCard[] = [
+export const adivasiStories: AdivasiStory[] = [
   {
-    title: 'Pakhala',
-    image: '/tourism/pakhala.webp',
-    description: 'The cooling comfort of home.',
-    detail: 'Water-soaked rice, often enjoyed with vegetables and other sides.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/the-taste-of-odisha.html',
-  },
-  {
-    title: 'Dalma',
-    image: '/tourism/dalma.webp',
-    description: 'Simple, generous and deeply Odia.',
-    detail: 'Lentils and vegetables come together in a much-loved everyday dish.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/the-taste-of-odisha.html',
-  },
-  {
-    title: 'Chhena Poda',
-    image: '/tourism/chhena-poda.webp',
-    description: 'A sweet worth saving room for.',
-    detail: 'Baked fresh cheese and a caramelised crust make a memorable finish.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/the-taste-of-odisha.html',
-  },
-];
-
-export type RoadTrip = {
-  name: string;
-  image: string;
-  duration: string;
-  theme: string;
-  description: string;
-  stops: string[];
-};
-
-export const roadTrips: RoadTrip[] = [
-  {
-    name: 'The coastal loop',
-    image: '/tourism/puri.webp',
-    duration: '3–4 day idea',
-    theme: 'Sea · Heritage',
-    description: 'Temple towns, carved stone and the wide-open water of Chilika.',
-    stops: ['Bhubaneswar', 'Konark', 'Puri', 'Chilika'],
-  },
-  {
-    name: 'Into the highlands',
-    image: '/tourism/road-trip.webp',
-    duration: '3 day idea',
-    theme: 'Hills · Nature',
-    description: 'Take the slower roads south, with green hills and quiet mornings.',
-    stops: ['Berhampur', 'Daringbadi', 'Koraput'],
-  },
-  {
-    name: 'The artful detour',
-    image: '/tourism/pipili.webp',
-    duration: '1–2 day idea',
-    theme: 'Craft · Culture',
-    description: 'Make time for the hands behind Odisha’s colour and craft.',
-    stops: ['Bhubaneswar', 'Pipili', 'Raghurajpur'],
-  },
-];
-
-export const adivasiStories: StoryCard[] = [
-  {
-    title: 'Art that remembers',
+    slug: 'saura-painting',
+    title: 'Saura painting',
+    theme: 'Art & expression',
     image: '/tourism/adivasi-art.webp',
-    description: 'Patterns, stories and knowledge carried through generations.',
-    detail: 'Explore artistic traditions with attention to the communities who create them.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/experience/themes/ethinic.html',
+    description: 'Painted forms carry stories of belief, ancestry and everyday life.',
+    detail: 'Saura painting is part of a living visual tradition. Figures, animals and geometric forms can hold meanings tied to community life and spiritual practice. The work deserves to be understood through the people who make and interpret it today.',
+    region: 'Southern Odisha',
+    highlights: ['Ritual imagery', 'Painted narratives', 'Living knowledge'],
+    visitNote: 'Learn from local artists or guides, and ask before photographing people or their work.',
   },
   {
-    title: 'Meet the heritage',
-    image: '/tourism/adivasi-museum.webp',
-    description: 'Objects are a doorway into living cultures, never the whole story.',
-    detail: 'Begin with Odisha’s Tribal Museum and learn from its collections.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/experience/themes/ethinic.html',
+    slug: 'kotpad-weaving',
+    title: 'Kotpad weaving',
+    theme: 'Cloth & colour',
+    description: 'Root-dyed textiles from southern Odisha carry an earthy, unmistakable palette.',
+    detail: 'Kotpad textiles are known for colours drawn from natural roots and for the skill involved in weaving them. Their warm reds, browns and creams are closely associated with the handloom traditions of southern Odisha.',
+    region: 'Kotpad, Koraput',
+    highlights: ['Natural root dyes', 'Handloom weaving', 'Earthy colour'],
+    visitNote: 'When visiting a weaving space, give artisans room to work and buy directly from makers where possible.',
   },
   {
-    title: 'The southern highlands',
+    slug: 'dokra-metalwork',
+    title: 'Dokra metalwork',
+    theme: 'Craft & making',
+    description: 'Lost-wax casting turns patient handwork into richly textured metal forms.',
+    detail: 'In Dokra making, a wax model helps shape a mould before metal is cast. Odisha’s artisan communities use the process to make figurines, jewellery and everyday objects, each with the marks of handwork.',
+    region: 'Dhenkanal, Mayurbhanj and beyond',
+    highlights: ['Lost-wax process', 'Hand-cast objects', 'Artisan workshops'],
+    visitNote: 'Choose a workshop visit arranged locally and ask before watching or photographing the casting process.',
+  },
+  {
+    slug: 'southern-highlands',
+    title: 'Southern highlands',
+    theme: 'Land & community',
     image: '/tourism/koraput-hills.webp',
-    description: 'Landscapes shaped by many communities and ways of life.',
-    detail: 'Travel thoughtfully, with local guidance and respect for local customs.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/experience/themes/ethinic.html',
-  },
-];
-
-export const cultureStories: StoryCard[] = [
-  {
-    title: 'Odissi',
-    image: '/tourism/odissi.webp',
-    description: 'Movement that gives stories a language of their own.',
-    detail: 'Discover Odisha’s classical dance tradition.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/experience/themes/odissi-dance.html',
+    description: 'Koraput and neighbouring hill districts hold many landscapes and community histories.',
+    detail: 'The hills and valleys of southern Odisha are home to many communities with distinct traditions and ways of knowing the land. A journey here can bring together landscapes, local markets and craft, guided by the people who call the region home.',
+    region: 'Koraput, Rayagada and Malkangiri',
+    highlights: ['Hill landscapes', 'Local markets', 'Community histories'],
+    visitNote: 'Plan with a local guide, respect community boundaries and check access before travelling to remote areas.',
   },
   {
-    title: 'Pattachitra',
-    image: '/tourism/raghurajpur.webp',
-    description: 'Stories painted with patience, line by line.',
-    detail: 'Visit the heritage craft village of Raghurajpur.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/discover/attractions/arts-crafts/raghurajpur.html',
+    slug: 'stone-work',
+    title: 'Stone work',
+    theme: 'Hands & heritage',
+    image: '/tourism/konark-hero.webp',
+    description: 'Odisha’s stone carvers give form to sculpture, architecture and everyday objects.',
+    detail: 'Stone carving connects Odisha’s historic architecture with workshops still active today. Artisans carve figures, decorative pieces and useful objects; Sukuapada is one of the villages where this craft continues.',
+    region: 'Across Odisha, including Sukuapada',
+    highlights: ['Living workshops', 'Hand-carved forms', 'Temple craft heritage'],
+    visitNote: 'Visit workshops with care, ask before entering work areas and allow time for conversation with artisans.',
   },
   {
-    title: 'Pipili appliqué',
-    image: '/tourism/pipili.webp',
-    description: 'Colour stitched into celebration and everyday life.',
-    detail: 'See the craft village behind the vibrant textiles.',
-    href: 'https://odishatourism.gov.in/content/tourism/en/discover/attractions/arts-crafts/pipili.html',
+    slug: 'tribal-museum',
+    title: 'Tribal Museum',
+    theme: 'Begin in Bhubaneswar',
+    image: '/tourism/adivasi-museum.webp',
+    description: 'Artefacts and recreated dwellings introduce the diversity of Odisha’s Adivasi communities.',
+    detail: 'The Museum of Tribal Arts and Artefacts in Bhubaneswar brings together objects, textiles and recreated dwellings from communities across Odisha. It offers a starting point for learning, while living cultures extend far beyond any collection.',
+    region: 'Bhubaneswar',
+    highlights: ['Artefact galleries', 'Recreated dwellings', 'A place to begin'],
+    visitNote: 'Check current opening hours and the museum’s photography rules before visiting.',
   },
 ];

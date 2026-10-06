@@ -1,236 +1,126 @@
-﻿'use client';
+'use client';
 
 import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useAnimationFrame, useInView, useReducedMotion } from 'framer-motion';
-import { ArrowUpRight, ChevronLeft, ChevronRight, CloudSun, MapPin, UtensilsCrossed } from 'lucide-react';
-import { explorerTabs } from './explorerData';
-import styles from './district-ribbon.module.css';
+import { useState } from 'react';
+import { ChevronDown, Compass, MapPin, Search, Sparkles, UtensilsCrossed } from 'lucide-react';
+import { districts } from './districtData';
+import styles from './district-marquee.module.css';
 
-const SECONDS_PER_DISTRICT = 4.5;
-
-function positionCards(nodes: Array<HTMLElement | null>, width: number, phase: number, count: number) {
-  if (!width || !count) return;
-  const slots = width < 640 ? 4 : width < 1024 ? 6 : 8;
-  const spacing = width / slots;
-  const perspective = Math.min(160, Math.max(70, spacing * 0.71)) * 8;
-
-  nodes.forEach((node, index) => {
-    if (!node) return;
-    const slot = ((index - phase + count) % count) - 2;
-    const position = (slot + 0.35) * spacing;
-    const distance = (position - width / 2) / (width / 2);
-    if (Math.abs(distance) > 1.45) {
-      node.style.visibility = 'hidden';
-      return;
-    }
-    const depth = distance * distance;
-    const x = width / 2 + (width / 2) * (0.86 * distance + 0.14 * distance ** 3);
-    node.style.visibility = 'visible';
-    node.style.transform = `translate3d(${x}px, 0, 0) translate(-50%, -50%) perspective(${perspective}px) rotateY(${-distance * 46}deg) scale(${1 + 0.65 * depth}, ${1 + 1.35 * depth})`;
-  });
-}
-
-type District = { name: string; x: number; y: number; place: string; summary: string; image: string; food: string; foodImage: string; temperature: number; sky: string; path: string };
-
-// Odisha-shaped locator map with clickable district cells placed in their approximate locations.
-const districts: District[] = [
-  { name: 'Sundargarh', x: 22, y: 12, place: 'Khandadhar Falls', summary: 'A dramatic cascade framed by the forests and hills of north-west Odisha.', image: '/tourism/koraput-hills.webp', food: 'Rugda curry', foodImage: '/tourism/dalma.webp', temperature: 29, sky: 'Partly cloudy', path: 'M42 20 L58 9 L82 17 L100 10 L118 19 L138 14 L153 28 L147 45 L128 53 L113 46 L94 56 L77 47 L58 54 L43 41 Z' },
-  { name: 'Mayurbhanj', x: 67, y: 15, place: 'Similipal National Park', summary: 'Waterfalls, sal forests and rich wildlife in Odishaâ€™s green north.', image: '/tourism/similipal.webp', food: 'Mudhi mansa', foodImage: '/tourism/dalma.webp', temperature: 30, sky: 'Clear skies', path: 'M166 22 L184 13 L206 19 L223 10 L245 22 L258 39 L249 56 L229 62 L216 78 L196 69 L181 74 L168 57 L151 51 L156 35 Z' },
-  { name: 'Balasore', x: 87, y: 24, place: 'Chandipur Beach', summary: 'A quiet coastal escape known for its remarkable disappearing sea.', image: '/tourism/puri.webp', food: 'Fresh coastal fish', foodImage: '/tourism/dalma.webp', temperature: 31, sky: 'Sunny', path: 'M246 68 L263 60 L279 67 L290 83 L283 98 L267 105 L251 95 L239 83 Z' },
-  { name: 'Kendujhar', x: 62, y: 28, place: 'Sanaghagara Falls', summary: 'A forest waterfall tucked into the uplands of northern Odisha.', image: '/tourism/similipal.webp', food: 'Mandia pej', foodImage: '/tourism/pakhala.webp', temperature: 28, sky: 'Light clouds', path: 'M148 58 L169 55 L181 76 L197 70 L216 81 L223 101 L211 116 L193 112 L180 127 L163 117 L145 121 L132 102 L137 83 Z' },
-  { name: 'Jharsuguda', x: 19, y: 27, place: 'Koilighughar Waterfall', summary: 'A scenic forest waterfall and a peaceful stop in western Odisha.', image: '/tourism/koraput-hills.webp', food: 'Chaul bara', foodImage: '/tourism/chhena-poda.webp', temperature: 32, sky: 'Mostly sunny', path: 'M40 56 L59 53 L77 59 L82 78 L68 93 L50 88 L37 98 L25 83 Z' },
-  { name: 'Sambalpur', x: 30, y: 38, place: 'Hirakud Reservoir', summary: 'Wide waters, island viewpoints and the living culture of western Odisha.', image: '/tourism/chilika.webp', food: 'Sambalpuri bara', foodImage: '/tourism/pakhala.webp', temperature: 33, sky: 'Sunny', path: 'M78 96 L95 83 L114 90 L131 84 L143 100 L137 120 L119 132 L99 123 L82 131 L68 117 Z' },
-  { name: 'Bargarh', x: 22, y: 49, place: 'Nrusinghanath Temple', summary: 'A sacred foothill retreat beneath the forested Gandhamardan range.', image: '/tourism/koraput-hills.webp', food: 'Bara and ghuguni', foodImage: '/tourism/dalma.webp', temperature: 32, sky: 'Clear skies', path: 'M38 103 L55 91 L71 99 L68 119 L82 133 L73 151 L53 148 L42 160 L28 146 L30 125 Z' },
-  { name: 'Debagarh', x: 42, y: 39, place: 'Pradhanpat Waterfall', summary: 'A leafy escape with a beautiful cascade close to Deogarh town.', image: '/tourism/similipal.webp', food: 'Pakhala bhata', foodImage: '/tourism/pakhala.webp', temperature: 29, sky: 'Partly cloudy', path: 'M137 124 L151 119 L166 126 L176 140 L165 156 L146 160 L132 149 Z' },
-  { name: 'Angul', x: 55, y: 49, place: 'Satkosia Gorge', summary: 'A spectacular river gorge where the Mahanadi winds through forest.', image: '/tourism/chilika.webp', food: 'Chhena poda', foodImage: '/tourism/chhena-poda.webp', temperature: 31, sky: 'Hazy sunshine', path: 'M178 134 L193 119 L212 119 L225 132 L217 151 L226 167 L210 180 L190 173 L176 184 L163 165 Z' },
-  { name: 'Dhenkanal', x: 70, y: 48, place: 'Kapilash Temple', summary: 'A hilltop Shiva shrine reached through forested Eastern Ghats.', image: '/tourism/konark-hero.webp', food: 'Dhenkanal bara', foodImage: '/tourism/pakhala.webp', temperature: 30, sky: 'Partly cloudy', path: 'M225 132 L244 124 L260 138 L263 157 L249 169 L257 184 L239 198 L222 186 L226 168 L216 151 Z' },
-  { name: 'Jajpur', x: 82, y: 39, place: 'Ratnagiri Buddhist Complex', summary: 'Ancient monasteries and sculpted heritage in Odishaâ€™s historic heartland.', image: '/tourism/konark-hero.webp', food: 'Chhena jhili', foodImage: '/tourism/chhena-poda.webp', temperature: 31, sky: 'Sunny', path: 'M258 109 L275 102 L291 112 L295 132 L281 145 L264 140 L260 157 L245 145 Z' },
-  { name: 'Bhadrak', x: 91, y: 38, place: 'Akhandalamani Temple', summary: 'A revered riverside temple and a gateway to the northern coast.', image: '/tourism/puri.webp', food: 'Chhena sweets', foodImage: '/tourism/chhena-poda.webp', temperature: 31, sky: 'Sunny', path: 'M293 105 L312 111 L320 126 L308 143 L291 138 L281 146 L275 130 Z' },
-  { name: 'Kendrapara', x: 89, y: 49, place: 'Bhitarkanika National Park', summary: 'Mangrove creeks, birdlife and one of Indiaâ€™s great estuarine habitats.', image: '/tourism/chilika.webp', food: 'Crab curry', foodImage: '/tourism/dalma.webp', temperature: 30, sky: 'Breezy', path: 'M280 148 L295 140 L310 148 L315 166 L300 178 L284 172 L269 182 L258 169 Z' },
-  { name: 'Cuttack', x: 76, y: 59, place: 'Barabati Fort', summary: 'Explore the old river city, its silver filigree and historic fort.', image: '/tourism/konark-hero.webp', food: 'Dahi bara aloo dum', foodImage: '/tourism/pakhala.webp', temperature: 32, sky: 'Sunny', path: 'M248 171 L261 165 L276 176 L272 191 L258 198 L247 211 L232 198 L238 183 Z' },
-  { name: 'Khordha', x: 69, y: 70, place: 'Lingaraj Temple', summary: 'Bhubaneswarâ€™s ancient temples, lively lanes and celebrated local cuisine.', image: '/tourism/konark-hero.webp', food: 'Dahi bara aloo dum', foodImage: '/tourism/pakhala.webp', temperature: 33, sky: 'Clear skies', path: 'M224 198 L240 194 L251 207 L246 224 L230 232 L214 224 L205 213 Z' },
-  { name: 'Puri', x: 76, y: 81, place: 'Jagannath Temple & Beach', summary: 'A beloved pilgrimage town where temple traditions meet the Bay of Bengal.', image: '/tourism/puri.webp', food: 'Mahaprasad', foodImage: '/tourism/dalma.webp', temperature: 31, sky: 'Sea breeze', path: 'M248 214 L263 207 L279 216 L286 231 L271 239 L254 234 L239 242 L228 231 Z' },
-  { name: 'Nayagarh', x: 61, y: 68, place: 'Kuanria Wildlife Sanctuary', summary: 'Forest trails, reservoirs and quiet countryside in central Odisha.', image: '/tourism/koraput-hills.webp', food: 'Arisa pitha', foodImage: '/tourism/chhena-poda.webp', temperature: 29, sky: 'Partly cloudy', path: 'M191 191 L207 182 L222 190 L227 207 L215 222 L198 225 L186 214 L179 201 Z' },
-  { name: 'Boudh', x: 45, y: 61, place: 'Boudh heritage temples', summary: 'Riverside shrines and a slower journey through central Odisha.', image: '/tourism/konark-hero.webp', food: 'Mandia pej', foodImage: '/tourism/pakhala.webp', temperature: 30, sky: 'Sunny spells', path: 'M157 169 L175 164 L188 177 L184 197 L170 207 L153 198 L144 184 Z' },
-  { name: 'Subarnapur', x: 31, y: 66, place: 'Sonepur river ghats', summary: 'A historic river town known for temples, weaving and tranquil ghats.', image: '/tourism/raghurajpur.webp', food: 'Sonepuri rasabali', foodImage: '/tourism/chhena-poda.webp', temperature: 32, sky: 'Clear skies', path: 'M102 151 L119 139 L137 147 L143 166 L132 181 L113 181 L99 171 Z' },
-  { name: 'Balangir', x: 20, y: 67, place: 'Harishankar Temple', summary: 'A forested pilgrimage destination with a waterfall at the foothills.', image: '/tourism/koraput-hills.webp', food: 'Kandhamula bhaja', foodImage: '/tourism/dalma.webp', temperature: 31, sky: 'Sunny', path: 'M60 153 L80 145 L99 154 L101 173 L91 190 L71 195 L56 181 Z' },
-  { name: 'Nuapada', x: 10, y: 68, place: 'Patora Dam', summary: 'Open landscapes and a peaceful reservoir in Odishaâ€™s west.', image: '/tourism/chilika.webp', food: 'Local millet dishes', foodImage: '/tourism/pakhala.webp', temperature: 32, sky: 'Sunny', path: 'M25 160 L43 151 L58 162 L57 183 L43 194 L27 187 L17 174 Z' },
-  { name: 'Kandhamal', x: 48, y: 78, place: 'Daringbadi', summary: 'Cool hill air, pine groves and winding roads in the Eastern Ghats.', image: '/tourism/koraput-hills.webp', food: 'Turmeric tea & local honey', foodImage: '/tourism/dalma.webp', temperature: 26, sky: 'Cool and cloudy', path: 'M133 207 L151 198 L168 207 L181 220 L177 240 L158 247 L140 239 L128 224 Z' },
-  { name: 'Kalahandi', x: 28, y: 83, place: 'Phurlijharan Waterfall', summary: 'A refreshing woodland cascade near the historic town of Bhawanipatna.', image: '/tourism/similipal.webp', food: 'Kalahandi bara', foodImage: '/tourism/pakhala.webp', temperature: 30, sky: 'Partly cloudy', path: 'M62 198 L81 191 L99 196 L111 211 L106 232 L88 241 L68 232 L57 216 Z' },
-  { name: 'Ganjam', x: 67, y: 91, place: 'Tara Tarini Temple', summary: 'Hilltop views, coastal towns and the warm flavours of southern Odisha.', image: '/tourism/koraput-hills.webp', food: 'Gopalpur seafood', foodImage: '/tourism/dalma.webp', temperature: 30, sky: 'Breezy', path: 'M182 245 L197 231 L215 232 L229 242 L244 241 L255 251 L246 266 L227 273 L207 266 L192 273 L177 262 Z' },
-  { name: 'Rayagada', x: 48, y: 96, place: 'Chatikona Waterfall', summary: 'Eastern Ghats scenery and vibrant weekly markets in tribal country.', image: '/tourism/koraput-hills.webp', food: 'Manda pitha', foodImage: '/tourism/chhena-poda.webp', temperature: 28, sky: 'Cloudy intervals', path: 'M123 246 L139 237 L156 245 L171 260 L168 279 L151 290 L133 283 L118 269 Z' },
-  { name: 'Gajapati', x: 60, y: 106, place: 'Mahendragiri Hills', summary: 'Sacred peaks and sweeping views over the southern Eastern Ghats.', image: '/tourism/koraput-hills.webp', food: 'Saura-style mandia', foodImage: '/tourism/pakhala.webp', temperature: 27, sky: 'Mountain clouds', path: 'M158 291 L174 280 L191 275 L207 283 L211 301 L197 313 L180 308 L165 317 L151 307 Z' },
-  { name: 'Nabarangpur', x: 27, y: 101, place: 'Papadahandi waterfall', summary: 'Forest roads and riverside picnic spots in the south-west.', image: '/tourism/similipal.webp', food: 'Ragi mudde', foodImage: '/tourism/pakhala.webp', temperature: 29, sky: 'Partly cloudy', path: 'M65 239 L85 235 L101 244 L110 260 L102 277 L84 285 L68 275 L55 262 Z' },
-  { name: 'Koraput', x: 36, y: 116, place: 'Deomali Peak', summary: 'Odishaâ€™s highest peak rises above coffee country and rolling green hills.', image: '/tourism/koraput-hills.webp', food: 'Koraput coffee & manda', foodImage: '/tourism/pakhala.webp', temperature: 25, sky: 'Cool and clear', path: 'M93 287 L111 278 L128 287 L145 301 L141 321 L124 333 L105 326 L91 312 Z' },
-  { name: 'Malkangiri', x: 17, y: 117, place: 'Bonda Hills', summary: 'A remarkable highland landscape in Odishaâ€™s far south-west.', image: '/tourism/koraput-hills.webp', food: 'Local bamboo shoot dishes', foodImage: '/tourism/dalma.webp', temperature: 28, sky: 'Cloudy intervals', path: 'M42 281 L60 273 L76 284 L86 300 L78 317 L61 324 L46 316 L34 301 Z' },
-];
-
-const districtBlocks = districts.slice(0, 29);
-
-const featured: Record<string, { place: string; summary: string; image: string; food: string; foodImage: string; temperature: number; sky: string }> = {
-  Sundargarh: { place: 'Khandadhar Falls', summary: 'A dramatic cascade framed by the forests and hills of north-west Odisha.', image: '/tourism/koraput-hills.webp', food: 'Rugda curry', foodImage: '/tourism/dalma.webp', temperature: 29, sky: 'Partly cloudy' },
-  Mayurbhanj: { place: 'Similipal National Park', summary: 'Waterfalls, sal forests and rich wildlife in Odishaâ€™s green north.', image: '/tourism/similipal.webp', food: 'Mudhi mansa', foodImage: '/tourism/dalma.webp', temperature: 30, sky: 'Clear skies' },
-  Khordha: { place: 'Lingaraj Temple', summary: 'Bhubaneswarâ€™s ancient temples, lively lanes and celebrated local cuisine.', image: '/tourism/konark-hero.webp', food: 'Dahi bara aloo dum', foodImage: '/tourism/pakhala.webp', temperature: 33, sky: 'Clear skies' },
-  Puri: { place: 'Jagannath Temple & Beach', summary: 'A beloved pilgrimage town where temple traditions meet the Bay of Bengal.', image: '/tourism/puri.webp', food: 'Mahaprasad', foodImage: '/tourism/dalma.webp', temperature: 31, sky: 'Sea breeze' },
-  Ganjam: { place: 'Tara Tarini Temple', summary: 'Hilltop views, coastal towns and the warm flavours of southern Odisha.', image: '/tourism/koraput-hills.webp', food: 'Gopalpur seafood', foodImage: '/tourism/dalma.webp', temperature: 30, sky: 'Breezy' },
-};
-
-const cuisineTab = explorerTabs.find((tab) => tab.id === 'cuisine');
-const foodGuideUrl = cuisineTab?.officialUrl ?? 'https://apps.odishatourism.gov.in/the-taste-of-odisha';
+const sortedDistricts = [...districts].sort((a, b) => a.name.localeCompare(b.name));
 
 export default function DistrictExplorer() {
-  const [selected, setSelected] = useState(districtBlocks[0].name);
-  const ribbonRef = useRef<HTMLDivElement>(null);
-  const ribbonCards = useRef<Array<HTMLButtonElement | null>>([]);
-  const ribbonWidth = useRef(0);
-  const ribbonPhase = useRef(0);
-  const reduceMotion = useReducedMotion();
-  const ribbonInView = useInView(ribbonRef, { amount: 0.05 });
-  const district = useMemo(() => districts.find((item) => item.name === selected) ?? districts[0], [selected]);
-  const details = featured[selected] ?? district;
-
-  useEffect(() => {
-    const stage = ribbonRef.current;
-    if (!stage) return;
-    const resize = () => {
-      ribbonWidth.current = stage.clientWidth;
-      positionCards(ribbonCards.current, ribbonWidth.current, ribbonPhase.current, districtBlocks.length);
-    };
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, []);
-
-  useAnimationFrame((_, delta) => {
-    if (reduceMotion || !ribbonInView || ribbonRef.current?.dataset.paused === 'true') return;
-    ribbonPhase.current = (ribbonPhase.current + Math.min(delta, 50) / (SECONDS_PER_DISTRICT * 1000)) % districtBlocks.length;
-    positionCards(ribbonCards.current, ribbonWidth.current, ribbonPhase.current, districtBlocks.length);
-  });
-
-  function moveRibbon(direction: -1 | 1) {
-    ribbonPhase.current = (ribbonPhase.current + direction + districtBlocks.length) % districtBlocks.length;
-    positionCards(ribbonCards.current, ribbonWidth.current, ribbonPhase.current, districtBlocks.length);
-  }
+  const [selected, setSelected] = useState('Puri');
+  const [query, setQuery] = useState('');
+  const district = districts.find((item) => item.name === selected) ?? districts[0];
+  const visibleDistricts = sortedDistricts.filter((item) => item.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const selectedNumber = String(sortedDistricts.findIndex((item) => item.name === selected) + 1).padStart(2, '0');
 
   return (
-    <>
-    <section id="district-guide" className="relative isolate overflow-hidden bg-[#19231F] px-4 py-14 text-white sm:px-6 lg:px-10 lg:py-20">
-      <Image src="/tourism/koraput-hills.webp" alt="" fill sizes="100vw" className="-z-20 object-cover opacity-25" aria-hidden="true" />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#171A17]/95 via-[#1E241E]/90 to-[#342012]/90" aria-hidden="true" />
-      <div className="mx-auto max-w-[90rem]">
-        <div className="mb-8 max-w-2xl">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F5A623]">Explore by district</p>
-          <h2 className="mt-2 font-serif text-4xl font-normal sm:text-5xl">Navigate Odisha</h2>
-          <div className="mt-4 h-1 w-14 rounded-full bg-[#F58A0A]" />
-          <p className="mt-3 text-sm text-white/75">Choose a district to discover its highlights, local flavours and weather.</p>
-        </div>
-
-        <div className="grid items-center gap-8 lg:grid-cols-[minmax(360px,0.92fr)_minmax(420px,1.08fr)] xl:gap-12">
-          <article className="overflow-hidden rounded-[1.6rem] border border-white/15 bg-[#171614]/80 shadow-2xl backdrop-blur-md">
-            <div className="flex items-start justify-between gap-4 p-5 sm:p-7">
-              <div>
-                <p className="flex items-center gap-2 text-2xl font-bold sm:text-3xl"><MapPin className="h-6 w-6 fill-[#F58A0A] text-[#F58A0A]" />{district.name}</p>
-                <p className="mt-1 pl-8 text-xs uppercase tracking-[0.14em] text-white/50">Odisha, India</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2 text-right">
-                <CloudSun className="h-6 w-6 text-[#F5A623]" />
-                <div><p className="text-2xl font-semibold leading-none">{details.temperature}Â°</p><p className="mt-1 text-[11px] text-white/65">{details.sky}</p></div>
-              </div>
-            </div>
-            <p className="px-5 text-sm leading-6 text-white/70 sm:px-7">{details.summary}</p>
-            <div className="flex gap-3 overflow-x-auto p-5 sm:gap-4 sm:p-7">
-              <div className="group relative h-[250px] min-w-[78%] flex-1 overflow-hidden rounded-3xl text-left sm:h-[290px] sm:min-w-0">
-                <Image src={details.image} alt={details.place} fill sizes="(max-width: 639px) 78vw, 40vw" className="object-cover transition duration-500 group-hover:scale-105" />
-                <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
-                <span className="absolute left-4 top-4 rounded-full bg-black/35 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur">Must-see place</span>
-                <span className="absolute bottom-4 left-4 right-4 font-semibold leading-snug">{details.place}</span>
-              </div>
-              <div className="group relative h-[250px] min-w-[78%] flex-1 overflow-hidden rounded-3xl text-left sm:h-[290px] sm:min-w-0">
-                <Image src={details.foodImage} alt={details.food} fill sizes="(max-width: 639px) 78vw, 40vw" className="object-cover transition duration-500 group-hover:scale-105" />
-                <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
-                <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-black/35 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur"><UtensilsCrossed className="h-3 w-3" />Taste of the district</span>
-                <span className="absolute bottom-4 left-4 right-4 font-semibold leading-snug">{details.food}</span>
-              </div>
-            </div>
-            <a href={foodGuideUrl} target="_blank" rel="noopener noreferrer" className="mx-5 mb-5 inline-flex items-center gap-2 text-xs font-semibold text-[#FFC36C] hover:text-white sm:mx-7 sm:mb-7">Explore Odisha Tourism <ArrowUpRight className="h-4 w-4" /></a>
-          </article>
-
-          <div className="w-full">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-white/90">Choose a district</h3>
-              <span className="text-xs text-white/55">{districtBlocks.length} districts</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5" role="group" aria-label="Choose an Odisha district">
-              {districtBlocks.map((item, index) => (
-                <button
-                  key={item.name}
-                  type="button"
-                  aria-pressed={selected === item.name}
-                  onClick={() => setSelected(item.name)}
-                  className={`group relative flex min-h-[68px] flex-col items-start justify-between overflow-hidden rounded-xl border p-3 text-left transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFC170] ${
-                    selected === item.name
-                      ? 'border-[#FFC170] bg-[#F58A0A] text-white shadow-lg shadow-orange-950/30'
-                      : 'border-white/10 bg-[#272923]/90 text-white/80 hover:border-[#F5A623]/70 hover:bg-[#39372E] hover:text-white'
-                  }`}
-                >
-                  <span className="text-[9px] font-bold uppercase tracking-[0.16em] opacity-55">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="text-xs font-semibold leading-tight sm:text-sm">{item.name}</span>
-                  {selected === item.name && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-white" aria-hidden="true" />}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    <section id="district-highlights" className="relative isolate overflow-hidden bg-[#F5F6F3] px-4 py-12 text-[#303A3B] sm:px-6 lg:px-10 lg:py-16">
-      <Image src="/tourism/koraput-hills.webp" alt="" fill sizes="100vw" className="-z-20 object-cover opacity-[0.14]" aria-hidden="true" />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white/85 via-[#F8F9F6]/85 to-white/90" aria-hidden="true" />
-      <div className="mx-auto max-w-[90rem]">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <section id="district-guide" className="relative isolate scroll-mt-16 overflow-hidden bg-[#173B32] px-3 py-8 text-[#FFF9EF] sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+      <div className="pointer-events-none absolute -right-40 -top-40 -z-10 h-[550px] w-[550px] rounded-full border-[76px] border-white/[0.025]" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-60 -left-40 -z-10 h-[600px] w-[600px] rounded-full border-[85px] border-[#C5935F]/[0.055]" aria-hidden="true" />
+      <div className="mx-auto max-w-[94rem]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,430px)] lg:items-end lg:gap-12">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#E97908]">A closer look at Odisha</p>
-            <h2 className="mt-2 font-serif text-3xl font-normal sm:text-4xl">Find your next favourite place</h2>
-            <p className="mt-2 text-sm text-[#697580]">Browse district highlights, then choose a district to see its details above.</p>
+            <p className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.19em] text-[#E9C38E] sm:text-xs sm:tracking-[0.24em]"><Sparkles className="h-4 w-4" aria-hidden="true" /> 02 / Explore by district</p>
+            <h2 className="mt-3 max-w-3xl font-serif text-[clamp(2rem,6vw,4rem)] font-bold leading-[1.05] tracking-[-0.055em]">
+              Navigate <span className="font-normal italic text-[#EFC995]">Odisha.</span>
+            </h2>
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/75 sm:text-base sm:leading-8">Thirty districts. Many ways to feel at home. Choose a district and find a story, a sight and a local flavour to start with.</p>
           </div>
-          <div className="flex gap-2 self-end">
-            <button type="button" aria-label="Previous district highlights" onClick={() => moveRibbon(-1)} className="grid h-10 w-10 place-items-center rounded-full border border-[#D9DFE0] bg-white text-[#35404A] shadow-sm transition hover:border-[#F58A0A] hover:bg-[#F58A0A] hover:text-white"><ChevronLeft className="h-5 w-5" /></button>
-            <button type="button" aria-label="Next district highlights" onClick={() => moveRibbon(1)} className="grid h-10 w-10 place-items-center rounded-full border border-[#D9DFE0] bg-white text-[#35404A] shadow-sm transition hover:border-[#F58A0A] hover:bg-[#F58A0A] hover:text-white"><ChevronRight className="h-5 w-5" /></button>
+          <div className="hidden items-center gap-4 rounded-[1.35rem] border border-white/15 bg-white/[0.055] p-4 backdrop-blur-sm sm:flex lg:mb-1">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#EFC995] text-[#23473C]"><Compass className="h-6 w-6" aria-hidden="true" /></span>
+            <p className="text-sm leading-6 text-white/80"><strong className="block font-serif text-lg text-white">A journey starts here</strong> Browse the district index and follow the places that interest you.</p>
           </div>
         </div>
-        <div
-          ref={ribbonRef}
-          className={styles.stage}
-          role="group"
-          aria-label="Moving photo ribbon of Odisha district highlights"
-          onMouseEnter={(event) => { event.currentTarget.dataset.paused = 'true'; }}
-          onMouseLeave={(event) => { event.currentTarget.dataset.paused = 'false'; }}
-          onFocusCapture={(event) => { event.currentTarget.dataset.paused = 'true'; }}
-          onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.dataset.paused = 'false'; }}
-        >
-          {districtBlocks.map((item, index) => (
-            <button
-              key={item.name}
-              ref={(node) => { ribbonCards.current[index] = node; }}
-              type="button"
-              aria-label={`Explore ${item.name}: ${item.place}`}
-              aria-pressed={selected === item.name}
-              onClick={() => { setSelected(item.name); document.getElementById('district-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
-              className={`${styles.card} group border-2 text-left text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F58A0A] ${selected === item.name ? 'border-[#F58A0A]' : 'border-transparent hover:border-[#F58A0A]'}`}
-            >
-              <Image src={item.image} alt="" fill sizes="(max-width: 639px) 18vw, 12vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" aria-hidden="true" />
-              <span className="absolute inset-x-3 bottom-3 text-white sm:inset-x-4 sm:bottom-4">
-                <span className="block text-[10px] font-medium text-white/80 sm:text-xs">{item.place}</span>
-                <span className="mt-1 block font-serif text-sm font-bold leading-tight sm:text-lg">{item.name}</span>
-              </span>
-            </button>
-          ))}
+
+        <div className="mt-8 grid gap-4 lg:mt-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-5">
+          <div className="relative isolate flex flex-col overflow-hidden rounded-[1.5rem] border border-[#E5D9C6] bg-[#F5EBDD] p-4 text-[#29473B] shadow-[0_28px_70px_rgba(3,20,13,0.2)] sm:rounded-[2rem] sm:p-6 lg:h-[620px] lg:p-7">
+            <span className="pointer-events-none absolute -right-5 -top-14 -z-10 font-serif text-[11rem] font-bold leading-none text-[#274D3D]/[0.055] sm:text-[15rem]" aria-hidden="true">30</span>
+            <div className="relative flex flex-wrap items-start justify-between gap-3">
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#A26039] sm:text-xs">The district index</p><h3 className="mt-1 font-serif text-2xl font-bold sm:text-3xl">Where to next?</h3></div>
+              <span className="rounded-full border border-[#D6C7B1] bg-white/60 px-3 py-1.5 text-[10px] font-bold text-[#52695C] sm:text-xs">30 places to begin</span>
+            </div>
+            <p className="relative mt-3 max-w-sm text-xs leading-6 text-[#657368] sm:text-sm"><span className="sm:hidden">Tap a moving district name, or use the picker to jump straight to one.</span><span className="hidden sm:inline">Search by name, then choose a district to reveal its highlight and local flavour.</span></p>
+
+            <div className={`${styles.viewport} relative mt-5 sm:hidden`} role="group" aria-label="Scrolling Odisha districts">
+              <div className={styles.track}>
+                {[0, 1].map((copy) => (
+                  <div key={copy} className="flex shrink-0 gap-2 pr-2" aria-hidden={copy === 1}>
+                    {sortedDistricts.map((item) => (
+                      <button
+                        key={`${copy}-${item.name}`}
+                        type="button"
+                        tabIndex={copy === 1 ? -1 : 0}
+                        aria-pressed={copy === 0 ? selected === item.name : undefined}
+                        onClick={() => setSelected(item.name)}
+                        className={`min-h-11 shrink-0 cursor-pointer rounded-full border px-4 py-2 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A26039] ${selected === item.name ? 'border-[#315F4D] bg-[#315F4D] text-white' : 'border-[#D7C9B7] bg-white text-[#315044] hover:border-[#A26039] hover:bg-[#FFF9EF]'}`}
+                      >
+                        {item.name}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative mt-5 sm:hidden">
+              <label htmlFor="mobile-district-picker" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#8F6043]">Jump to a district</label>
+              <select id="mobile-district-picker" value={selected} onChange={(event) => setSelected(event.target.value)} className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-[#D7C9B7] bg-white px-4 pr-10 text-sm font-semibold text-[#29473B] outline-none focus-visible:border-[#A26039]">
+                {sortedDistricts.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-4 bottom-4 h-4 w-4 text-[#A26039]" aria-hidden="true" />
+            </div>
+
+            <div className="relative mt-5 hidden sm:block">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#718274]" aria-hidden="true" />
+              <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search a district" aria-label="Search districts" className="h-12 w-full rounded-xl border border-[#D7C9B7] bg-white pl-11 pr-4 text-sm text-[#29473B] outline-none placeholder:text-[#829083] focus-visible:border-[#A26039] focus-visible:ring-2 focus-visible:ring-[#A26039]/20" />
+            </div>
+
+            <div className="mt-5 hidden min-h-0 flex-1 grid-cols-3 content-start gap-2 overflow-y-auto pr-1 sm:grid sm:max-h-[320px] lg:max-h-none lg:grid-cols-2 xl:grid-cols-3" role="group" aria-label="Odisha districts">
+              {visibleDistricts.map((item) => {
+                const active = selected === item.name;
+                return (
+                  <button key={item.name} type="button" aria-pressed={active} onClick={() => setSelected(item.name)} className={`group flex min-h-14 cursor-pointer items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A26039] xl:text-sm ${active ? 'border-[#315F4D] bg-[#315F4D] text-white shadow-[0_8px_16px_rgba(30,64,46,0.2)]' : 'border-[#E2D6C5] bg-white/80 text-[#345246] hover:border-[#A8B69F] hover:bg-white'}`}>
+                    <span className="min-w-0 break-words">{item.name}</span>
+                    <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${active ? 'bg-[#EFC995]' : 'bg-[#B7C8B2] group-hover:bg-[#648F74]'}`} />
+                  </button>
+                );
+              })}
+            </div>
+            {visibleDistricts.length === 0 && <p className="mt-5 hidden text-sm text-[#68766C] sm:block">No district matches &quot;{query}&quot;. Try another name.</p>}
+            <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-[#D9CDBA] pt-4 text-xs text-[#647468] sm:text-sm">
+              <span>{visibleDistricts.length} of {districts.length} districts</span>
+              <span className="inline-flex items-center gap-2 font-semibold text-[#315F4D]"><span className="h-2 w-2 rounded-full bg-[#C8834B]" /> {district.name} selected</span>
+            </div>
+          </div>
+
+          <article className="flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] bg-[#FFF9EF] text-[#264238] shadow-[0_28px_70px_rgba(3,20,13,0.2)] sm:rounded-[2rem] lg:h-[620px]">
+            <div className="relative isolate min-h-[255px] flex-1 overflow-hidden bg-[#325447] sm:min-h-[340px] lg:min-h-[370px]">
+              <Image key={district.image} src={district.image} alt="" fill sizes="(max-width: 1023px) 100vw, 52vw" className="-z-20 object-cover" />
+              <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#142A22]/90 via-[#142A22]/20 to-[#142A22]/15" />
+              <div className="flex h-full min-h-[255px] flex-col justify-between p-5 text-white sm:min-h-[340px] sm:p-7 lg:min-h-[370px]">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="rounded-full border border-white/40 bg-black/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm">District {selectedNumber} / 30</span>
+                  <span className="grid h-9 w-9 place-items-center rounded-full border border-white/40 bg-black/20 backdrop-blur-sm"><MapPin className="h-4 w-4" aria-hidden="true" /></span>
+                </div>
+                <div><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#F0CC99]">Now exploring</p><h3 aria-live="polite" className="mt-2 break-words font-serif text-[clamp(2rem,5vw,4rem)] font-bold leading-[1.05] tracking-[-0.05em]">{district.name}</h3><p className="mt-2 max-w-xl text-sm leading-6 text-white/90 sm:text-base">{district.summary}</p></div>
+              </div>
+            </div>
+            <div className="grid gap-3 p-4 sm:grid-cols-2 sm:gap-4 sm:p-6">
+              <div className="flex min-w-0 items-center gap-3 rounded-[1.2rem] bg-[#EDF0E5] p-3.5 sm:p-4">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#D6E3D2] text-[#315E4D]"><Compass className="h-5 w-5" aria-hidden="true" /></span>
+                <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#8F6043]">A place to see</p><p className="mt-1 font-serif text-base font-bold leading-tight sm:text-lg">{district.place}</p></div>
+              </div>
+              <div className="flex min-w-0 items-center gap-3 rounded-[1.2rem] bg-[#F5EBDD] p-3.5 sm:p-4">
+                <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#E0B87F]"><Image src={district.foodImage} alt="" fill sizes="44px" className="object-cover" /></span>
+                <div className="min-w-0"><p className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.13em] text-[#8F6043]"><UtensilsCrossed className="h-3 w-3" aria-hidden="true" /> Local flavour</p><p className="mt-1 font-serif text-base font-bold leading-tight sm:text-lg">{district.food}</p></div>
+              </div>
+            </div>
+          </article>
         </div>
+
       </div>
     </section>
-    </>
   );
 }

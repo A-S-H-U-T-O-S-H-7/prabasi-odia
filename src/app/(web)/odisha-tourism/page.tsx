@@ -3,7 +3,7 @@ import OdishaTourism from '@/components/web/odisha-tourism/OdishaTourism';
 
 export const metadata: Metadata = {
   title: 'Explore Odisha | Prabasi Odia',
-  description: 'Explore Odisha’s top attractions, road trips, cuisine, Adivasi heritage, culture and themed trails with Prabasi Odia.',
+  description: 'Explore Odisha’s attractions, journeys, cuisine, Adivasi heritage, culture and themed itineraries with Prabasi Odia.',
 };
 
 export default function OdishaTourismPage() {

@@ -271,3 +271,12 @@ export const explorerTabs: ExplorerTab[] = [
     ],
   },
 ];
+
+export const slugForPlace = (name: string) =>
+  name.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+export const explorerPlaces = explorerTabs.flatMap((tab) =>
+  tab.items.map((item) => ({ ...item, slug: slugForPlace(item.name), category: tab.id, categoryLabel: tab.label })),
+);
+
+export const placeHref = (name: string) => `/odisha-tourism/places/${slugForPlace(name)}`;

@@ -18,7 +18,7 @@ export default function TrailStories() {
       <div className="mx-auto max-w-[90rem] lg:mx-10 2xl:mx-auto">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#EAC097]">06 / Themed trails</p>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#EAC097]">07 / Themed trails</p>
             <h2 className="mt-3 max-w-2xl font-serif text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
               Follow a story <span className="italic font-normal text-[#EAC097]">of your own.</span>
             </h2>

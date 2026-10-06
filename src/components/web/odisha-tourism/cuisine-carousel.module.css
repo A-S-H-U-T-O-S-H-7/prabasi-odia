@@ -1,35 +1,35 @@
 .stage {
   position: relative;
-  width: 100%;
-  height: clamp(280px, 34vw, 520px);
+  height: clamp(315px, 32vw, 430px);
   overflow: hidden;
-  container-type: inline-size;
-  perspective: 1200px;
+  perspective: 950px;
 }
 
 .card {
   position: absolute;
   top: 50%;
   left: 0;
-  width: clamp(70px, 8.875cqw, 160px);
+  width: clamp(150px, 17vw, 210px);
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  border-radius: clamp(10px, 1cqw, 16px);
-  background: #26362c;
+  border-radius: 1.25rem;
   backface-visibility: hidden;
   transform-origin: center;
   visibility: hidden;
   will-change: transform;
 }
 
+@media (max-width: 1023px) {
+  .card { width: clamp(145px, 24vw, 195px); }
+}
+
 @media (min-width: 640px) and (max-width: 1023px) {
-  .stage { height: clamp(320px, 42vw, 440px); }
-  .card { width: clamp(70px, 11.833333cqw, 160px); }
+  .stage { height: clamp(340px, 42vw, 400px); }
 }
 
 @media (max-width: 639px) {
-  .stage { height: clamp(280px, 72vw, 440px); }
-  .card { width: clamp(70px, 17.75cqw, 160px); }
+  .stage { height: 330px; }
+  .card { width: clamp(138px, 40vw, 165px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
